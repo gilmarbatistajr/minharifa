@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: minharifa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: minharifa
+      POSTGRES_PASSWORD: minharifa
+      POSTGRES_DB: minharifa
+    ports:
+      - "5432:5432"
+    volumes:
+      - minharifa-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  minharifa-postgres-data:

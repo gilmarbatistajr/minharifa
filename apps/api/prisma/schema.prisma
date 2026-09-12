@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Administrador {
+  id              String   @id @default(uuid())
+  nome            String
+  email           String   @unique
+  senhaHash       String
+  emailConfirmado Boolean  @default(false)
+  criadoEm        DateTime @default(now())
+
+  tokenConfirmacaoEmail         String?   @unique
+  tokenConfirmacaoEmailExpiraEm DateTime?
+
+  tokenRecuperacaoSenha         String?   @unique
+  tokenRecuperacaoSenhaExpiraEm DateTime?
+
+  novoEmailPendente                 String?
+  tokenConfirmacaoNovoEmail         String?   @unique
+  tokenConfirmacaoNovoEmailExpiraEm DateTime?
+
+  grupos  Grupo[]
+  premios Premio[]
+
+  @@map("administradores")
+}
+
+model Grupo {
+  id                    String        @id @default(uuid())
+  administradorId       String
+  administrador         Administrador @relation(fields: [administradorId], references: [id])
+  nome                  String
+  identificadorWhatsapp String        @unique
+  criadoEm              DateTime      @default(now())
+
+  agenteChatbot     AgenteChatbot?
+  linksConvite      LinkConvite[]
+  compradores       Comprador[]
+  sorteios          Sorteio[]
+  creditosPendentes CreditoPendente[]
+
+  @@map("grupos")
+}
+
+model AgenteChatbot {
+  id                  String  @id @default(uuid())
+  grupoId             String  @unique
+  grupo               Grupo   @relation(fields: [grupoId], references: [id])
+  ativo               Boolean @default(false)
+  avisaCotasRestantes Boolean @default(true)
+  avisaNovoSorteio    Boolean @default(true)
+  avisaResultado      Boolean @default(true)
+
+  @@map("agentes_chatbot")
+}
+
+enum StatusLinkConvite {
+  ATIVO
+  REVOGADO
+}
+
+model LinkConvite {
+  id       String            @id @default(uuid())
+  grupoId  String
+  grupo    Grupo             @relation(fields: [grupoId], references: [id])
+  codigo   String            @unique
+  status   StatusLinkConvite @default(ATIVO)
+  criadoEm DateTime          @default(now())
+
+  @@map("links_convite")
+}
+
+model Comprador {
+  id                 String   @id @default(uuid())
+  grupoId            String
+  grupo              Grupo    @relation(fields: [grupoId], references: [id])
+  nome               String
+  apelido            String?
+  dataNascimento     DateTime
+  telefone           String
+  cpf                String   @unique
+  endereco           String
+  email              String?  @unique
+  senhaHash          String?
+  cashbackDisponivel Decimal  @default(0) @db.Decimal(10, 2)
+  aceitouTermoEm     DateTime
+  criadoEm           DateTime @default(now())
+
+  googleId   String? @unique
+  facebookId String? @unique
+  appleId    String? @unique
+
+  tokenRecuperacaoSenha         String?   @unique
+  tokenRecuperacaoSenhaExpiraEm DateTime?
+
+  cotas                   Cota[]
+  pagamentos              Pagamento[]
+  creditosPendentes       CreditoPendente[]
+  escolhasPosCancelamento EscolhaPosCancelamento[]
+
+  @@map("compradores")
+}
+
+model Premio {
+  id                 String        @id @default(uuid())
+  administradorId    String
+  administrador      Administrador @relation(fields: [administradorId], references: [id])
+  nome               String
+  descricao          String
+  fotoUrl            String
+  valor              Decimal       @db.Decimal(10, 2)
+  valorOpcaoDinheiro Decimal?      @db.Decimal(10, 2)
+  criadoEm           DateTime      @default(now())
+
+  sorteio Sorteio?
+
+  @@map("premios")
+}
+
+enum StatusSorteio {
+  AGUARDANDO_ABERTURA
+  VENDAS_ABERTAS
+  VENDAS_ENCERRADAS
+  COTAS_ESGOTADAS
+  FINALIZADO
+  CANCELADO
+}
+
+model Sorteio {
+  id                       String        @id @default(uuid())
+  grupoId                  String
+  grupo                    Grupo         @relation(fields: [grupoId], references: [id])
+  premioId                 String        @unique
+  premio                   Premio        @relation(fields: [premioId], references: [id])
+  dataAberturaVendas       DateTime
+  dataEncerramentoVendas   DateTime
+  dataRealizacao           DateTime
+  quantidadeCotas          Int
+  valorCota                Decimal       @db.Decimal(10, 2)
+  status                   StatusSorteio @default(AGUARDANDO_ABERTURA)
+  cotaVencedoraNumero      Int?
+  vencedorOptouPorDinheiro Boolean?
+  criadoEm                 DateTime      @default(now())
+
+  cotas                   Cota[]
+  escolhasPosCancelamento EscolhaPosCancelamento[]
+
+  @@map("sorteios")
+}
+
+enum StatusCota {
+  DISPONIVEL
+  RESERVADA
+  PAGA
+  CANCELADA_REEMBOLSADA
+}
+
+model Cota {
+  id              String     @id @default(uuid())
+  sorteioId       String
+  sorteio         Sorteio    @relation(fields: [sorteioId], references: [id])
+  compradorId     String?
+  comprador       Comprador? @relation(fields: [compradorId], references: [id])
+  numero          Int
+  status          StatusCota @default(DISPONIVEL)
+  reservadaEm     DateTime?
+  reservaExpiraEm DateTime?
+
+  pagamento Pagamento?
+
+  @@unique([sorteioId, numero])
+  @@map("cotas")
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+  CASHBACK
+}
+
+enum StatusPagamento {
+  PENDENTE
+  APROVADO
+  RECUSADO
+  ESTORNADO
+}
+
+model Pagamento {
+  id                    String          @id @default(uuid())
+  cotaId                String          @unique
+  cota                  Cota            @relation(fields: [cotaId], references: [id])
+  compradorId           String
+  comprador             Comprador       @relation(fields: [compradorId], references: [id])
+  valor                 Decimal         @db.Decimal(10, 2)
+  valorCashbackAplicado Decimal         @default(0) @db.Decimal(10, 2)
+  metodo                MetodoPagamento
+  status                StatusPagamento @default(PENDENTE)
+  idTransacaoGateway    String?
+  criadoEm              DateTime        @default(now())
+
+  @@map("pagamentos")
+}
+
+// Crédito gerado quando um comprador opta por manter cotas de um sorteio
+// cancelado para o próximo sorteio do mesmo grupo, mas ainda não existe um
+// próximo sorteio no momento da escolha (ver cancelamento-de-sorteio.feature).
+model CreditoPendente {
+  id              String    @id @default(uuid())
+  compradorId     String
+  comprador       Comprador @relation(fields: [compradorId], references: [id])
+  grupoId         String
+  grupo           Grupo     @relation(fields: [grupoId], references: [id])
+  sorteioOrigemId String
+  quantidadeCotas Int
+  valorTotal      Decimal   @db.Decimal(10, 2)
+  utilizado       Boolean   @default(false)
+  criadoEm        DateTime  @default(now())
+
+  @@map("creditos_pendentes")
+}
+
+enum StatusEscolhaPosCancelamento {
+  PENDENTE
+  REEMBOLSO
+  CREDITO_PROXIMO_SORTEIO
+  CASHBACK
+}
+
+// Registra, por comprador, a janela de decisão após o cancelamento de um
+// sorteio: reembolso, manter cotas via crédito, ou (se não se manifestar
+// no prazo) conversão automática em cashback.
+model EscolhaPosCancelamento {
+  id              String                       @id @default(uuid())
+  sorteioId       String
+  sorteio         Sorteio                      @relation(fields: [sorteioId], references: [id])
+  compradorId     String
+  comprador       Comprador                    @relation(fields: [compradorId], references: [id])
+  quantidadeCotas Int
+  valorTotal      Decimal                      @db.Decimal(10, 2)
+  status          StatusEscolhaPosCancelamento @default(PENDENTE)
+  prazoExpiraEm   DateTime
+  decididoEm      DateTime?
+  criadoEm        DateTime                     @default(now())
+
+  @@map("escolhas_pos_cancelamento")
+}

@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="130" fill="#12E07E" />
+  <circle cx="0" cy="256" r="46" fill="#0C1B26" />
+  <circle cx="512" cy="256" r="46" fill="#0C1B26" />
+  <text x="256" y="320" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="220" font-weight="900" fill="#08202C">MR</text>
+</svg>
