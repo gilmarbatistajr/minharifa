@@ -3,10 +3,14 @@ import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { Sorteio, StatusSorteio } from '../domain/entities/sorteio.entity';
 import { SorteioRepository } from '../domain/repositories/sorteio.repository';
 
+const INCLUDE_PREMIOS = { premios: { select: { id: true } } } as const;
+
 type RegistroSorteio = {
   id: string;
   grupoId: string;
-  premioId: string;
+  nome: string;
+  descricao: string;
+  premios: { id: string }[];
   dataAberturaVendas: Date;
   dataEncerramentoVendas: Date;
   dataRealizacao: Date;
@@ -21,7 +25,9 @@ function paraDominio(registro: RegistroSorteio): Sorteio {
   return new Sorteio(
     registro.id,
     registro.grupoId,
-    registro.premioId,
+    registro.nome,
+    registro.descricao,
+    registro.premios.map((premio) => premio.id),
     registro.dataAberturaVendas,
     registro.dataEncerramentoVendas,
     registro.dataRealizacao,
@@ -38,25 +44,53 @@ export class PrismaSorteioRepository implements SorteioRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async buscarPorId(id: string): Promise<Sorteio | null> {
-    const registro = await this.prisma.sorteio.findUnique({ where: { id } });
+    const registro = await this.prisma.sorteio.findUnique({
+      where: { id },
+      include: INCLUDE_PREMIOS,
+    });
     return registro ? paraDominio(registro) : null;
   }
 
-  async buscarPorPremioId(premioId: string): Promise<Sorteio | null> {
-    const registro = await this.prisma.sorteio.findUnique({ where: { premioId } });
-    return registro ? paraDominio(registro) : null;
+  async listarPorPremioId(premioId: string): Promise<Sorteio[]> {
+    const registros = await this.prisma.sorteio.findMany({
+      where: { premios: { some: { id: premioId } } },
+      include: INCLUDE_PREMIOS,
+    });
+    return registros.map(paraDominio);
   }
 
   async listarPorGrupo(grupoId: string): Promise<Sorteio[]> {
-    const registros = await this.prisma.sorteio.findMany({ where: { grupoId } });
+    const registros = await this.prisma.sorteio.findMany({
+      where: { grupoId },
+      include: INCLUDE_PREMIOS,
+    });
     return registros.map(paraDominio);
   }
 
   async listarPorAdministrador(administradorId: string): Promise<Sorteio[]> {
     const registros = await this.prisma.sorteio.findMany({
       where: { grupo: { administradorId } },
+      include: INCLUDE_PREMIOS,
     });
     return registros.map(paraDominio);
+  }
+
+  async criar(sorteio: Sorteio): Promise<void> {
+    await this.prisma.sorteio.create({
+      data: {
+        id: sorteio.id,
+        grupoId: sorteio.grupoId,
+        nome: sorteio.nome,
+        descricao: sorteio.descricao,
+        premios: { connect: sorteio.premioIds.map((id) => ({ id })) },
+        dataAberturaVendas: sorteio.dataAberturaVendas,
+        dataEncerramentoVendas: sorteio.dataEncerramentoVendas,
+        dataRealizacao: sorteio.dataRealizacao,
+        quantidadeCotas: sorteio.quantidadeCotas,
+        valorCota: sorteio.valorCota,
+        status: sorteio.status,
+      },
+    });
   }
 
   async salvar(sorteio: Sorteio): Promise<void> {

@@ -34,6 +34,7 @@ describe('EscolherReembolsoUseCase', () => {
       buscarPorSorteioENumero: jest.fn(),
       listarPorSorteio: jest.fn().mockResolvedValue(cotas),
       contarPagasPorSorteio: jest.fn(),
+      criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const pagamentoRepository: PagamentoRepository = {

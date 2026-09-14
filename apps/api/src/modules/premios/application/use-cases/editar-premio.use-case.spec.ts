@@ -18,7 +18,7 @@ describe('EditarPremioUseCase', () => {
     );
   }
 
-  function criarDependencias(premio: Premio | null, sorteioVinculado: Sorteio | null) {
+  function criarDependencias(premio: Premio | null, sorteiosVinculados: Sorteio[]) {
     const premioRepository: PremioRepository = {
       buscarPorId: jest.fn().mockResolvedValue(premio),
       listarPorAdministrador: jest.fn(),
@@ -27,9 +27,10 @@ describe('EditarPremioUseCase', () => {
     };
     const sorteioRepository: SorteioRepository = {
       buscarPorId: jest.fn(),
-      buscarPorPremioId: jest.fn().mockResolvedValue(sorteioVinculado),
+      listarPorPremioId: jest.fn().mockResolvedValue(sorteiosVinculados),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
 
@@ -40,12 +41,14 @@ describe('EditarPremioUseCase', () => {
     return new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de Natal',
+      'descrição',
+      ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
       100,
-        50,
+      50,
       status,
       null,
       null,
@@ -54,7 +57,7 @@ describe('EditarPremioUseCase', () => {
 
   it('permite editar um prêmio não vinculado a nenhum sorteio', async () => {
     const premio = criarPremio();
-    const { premioRepository, sorteioRepository } = criarDependencias(premio, null);
+    const { premioRepository, sorteioRepository } = criarDependencias(premio, []);
     const useCase = new EditarPremioUseCase(premioRepository, sorteioRepository);
 
     await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 });
@@ -66,7 +69,7 @@ describe('EditarPremioUseCase', () => {
   it('rejeita edição de prêmio vinculado a sorteio com vendas abertas', async () => {
     const premio = criarPremio();
     const sorteio = criarSorteio('VENDAS_ABERTAS');
-    const { premioRepository, sorteioRepository } = criarDependencias(premio, sorteio);
+    const { premioRepository, sorteioRepository } = criarDependencias(premio, [sorteio]);
     const useCase = new EditarPremioUseCase(premioRepository, sorteioRepository);
 
     await expect(
@@ -75,10 +78,10 @@ describe('EditarPremioUseCase', () => {
     expect(premioRepository.salvar).not.toHaveBeenCalled();
   });
 
-  it('permite editar prêmio vinculado a sorteio já finalizado', async () => {
+  it('permite editar prêmio vinculado apenas a sorteios já finalizados/cancelados', async () => {
     const premio = criarPremio();
     const sorteio = criarSorteio('FINALIZADO');
-    const { premioRepository, sorteioRepository } = criarDependencias(premio, sorteio);
+    const { premioRepository, sorteioRepository } = criarDependencias(premio, [sorteio]);
     const useCase = new EditarPremioUseCase(premioRepository, sorteioRepository);
 
     await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 });
@@ -87,7 +90,7 @@ describe('EditarPremioUseCase', () => {
   });
 
   it('rejeita quando o prêmio não existe', async () => {
-    const { premioRepository, sorteioRepository } = criarDependencias(null, null);
+    const { premioRepository, sorteioRepository } = criarDependencias(null, []);
     const useCase = new EditarPremioUseCase(premioRepository, sorteioRepository);
 
     await expect(
@@ -97,7 +100,7 @@ describe('EditarPremioUseCase', () => {
 
   it('rejeita quando o prêmio pertence a outro administrador', async () => {
     const premio = criarPremio('admin-2');
-    const { premioRepository, sorteioRepository } = criarDependencias(premio, null);
+    const { premioRepository, sorteioRepository } = criarDependencias(premio, []);
     const useCase = new EditarPremioUseCase(premioRepository, sorteioRepository);
 
     await expect(

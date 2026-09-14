@@ -57,6 +57,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       buscarPorSorteioENumero: jest.fn(),
       listarPorSorteio: jest.fn(),
       contarPagasPorSorteio: jest.fn(),
+      criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const paymentGateway: PaymentGateway = {

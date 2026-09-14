@@ -12,9 +12,10 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
   function criarSorteioRepositorio(sorteios: Sorteio[]): SorteioRepository {
     return {
       buscarPorId: jest.fn(),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn().mockResolvedValue(sorteios),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
   }
@@ -25,6 +26,7 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
       buscarPorSorteioENumero: jest.fn(),
       listarPorSorteio: jest.fn(),
       contarPagasPorSorteio: jest.fn().mockResolvedValue(cotasPagas),
+      criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
   }
@@ -45,7 +47,9 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
     const sorteio = new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date('2026-01-01T00:00:00Z'),
       new Date('2026-01-20T00:00:00Z'),
       new Date('2026-01-21T00:00:00Z'),
@@ -81,7 +85,9 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
     const sorteio = new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date('2026-01-01T00:00:00Z'),
       new Date('2026-01-10T12:00:00Z'),
       new Date('2026-01-11T00:00:00Z'),
@@ -108,7 +114,9 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
     const esgotado = new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
@@ -121,7 +129,9 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
     const finalizado = new Sorteio(
       'sorteio-2',
       'grupo-1',
-      'premio-2',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-2'],
       new Date(),
       new Date(),
       new Date(),

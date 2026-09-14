@@ -24,7 +24,9 @@ describe('GerarCobrancaPixUseCase', () => {
     return new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
@@ -46,13 +48,15 @@ describe('GerarCobrancaPixUseCase', () => {
       buscarPorSorteioENumero: jest.fn().mockResolvedValue(cota),
       listarPorSorteio: jest.fn(),
       contarPagasPorSorteio: jest.fn(),
+      criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
     const sorteioRepository: SorteioRepository = {
       buscarPorId: jest.fn().mockResolvedValue(sorteio),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
     const pagamentoRepository: PagamentoRepository = {

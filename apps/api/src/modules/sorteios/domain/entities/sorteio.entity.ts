@@ -12,7 +12,9 @@ export class Sorteio {
   constructor(
     public readonly id: string,
     public readonly grupoId: string,
-    public readonly premioId: string,
+    public readonly nome: string,
+    public readonly descricao: string,
+    public readonly premioIds: string[],
     public readonly dataAberturaVendas: Date,
     public readonly dataEncerramentoVendas: Date,
     public readonly dataRealizacao: Date,

@@ -11,9 +11,10 @@ describe('ListarSorteiosVisiveisParaCompradorUseCase', () => {
   function criarSorteioRepositorio(sorteiosPorGrupo: Record<string, Sorteio[]>): SorteioRepository {
     return {
       buscarPorId: jest.fn(),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn().mockImplementation(async (grupoId: string) => sorteiosPorGrupo[grupoId] ?? []),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
   }
@@ -22,7 +23,9 @@ describe('ListarSorteiosVisiveisParaCompradorUseCase', () => {
     const sorteioDoGrupoA = new Sorteio(
       'sorteio-a',
       'grupo-a',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
@@ -35,7 +38,9 @@ describe('ListarSorteiosVisiveisParaCompradorUseCase', () => {
     const sorteioDoGrupoB = new Sorteio(
       'sorteio-b',
       'grupo-b',
-      'premio-2',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-2'],
       new Date(),
       new Date(),
       new Date(),

@@ -15,7 +15,9 @@ describe('IniciarCancelamentoSorteioUseCase', () => {
     const sorteio = new Sorteio(
       'sorteio-1',
       'grupo-1',
-      'premio-1',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
@@ -54,9 +56,10 @@ describe('IniciarCancelamentoSorteioUseCase', () => {
   function criarDependencias(sorteio: Sorteio | null, grupo: Grupo | null, cotas: Cota[]) {
     const sorteioRepository: SorteioRepository = {
       buscarPorId: jest.fn().mockResolvedValue(sorteio),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const grupoRepository: GrupoRepository = {
@@ -71,6 +74,7 @@ describe('IniciarCancelamentoSorteioUseCase', () => {
       buscarPorSorteioENumero: jest.fn(),
       listarPorSorteio: jest.fn().mockResolvedValue(cotas),
       contarPagasPorSorteio: jest.fn(),
+      criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const compradorRepository: CompradorRepository = {

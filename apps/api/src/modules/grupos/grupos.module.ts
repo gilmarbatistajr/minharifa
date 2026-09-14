@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SorteiosModule } from '../sorteios/sorteios.module';
+import { PremiosModule } from '../premios/premios.module';
 import { GRUPO_REPOSITORY } from './domain/repositories/grupo.repository';
 import { AGENTE_CHATBOT_REPOSITORY } from './domain/repositories/agente-chatbot.repository';
 import { LINK_CONVITE_REPOSITORY } from './domain/repositories/link-convite.repository';
@@ -18,10 +19,12 @@ import { GerarLinkConviteUseCase } from './application/use-cases/gerar-link-conv
 import { ValidarCodigoConviteUseCase } from './application/use-cases/validar-codigo-convite.use-case';
 import { RevogarLinkConviteUseCase } from './application/use-cases/revogar-link-convite.use-case';
 import { ListarSorteiosVisiveisParaCompradorUseCase } from './application/use-cases/listar-sorteios-visiveis-comprador.use-case';
+import { CadastrarSorteioUseCase } from './application/use-cases/cadastrar-sorteio.use-case';
+import { ListarSorteiosDoGrupoUseCase } from './application/use-cases/listar-sorteios-grupo.use-case';
 import { GruposController } from './presentation/grupos.controller';
 
 @Module({
-  imports: [SorteiosModule],
+  imports: [SorteiosModule, PremiosModule],
   controllers: [GruposController],
   providers: [
     { provide: GRUPO_REPOSITORY, useClass: PrismaGrupoRepository },
@@ -39,6 +42,8 @@ import { GruposController } from './presentation/grupos.controller';
     ValidarCodigoConviteUseCase,
     RevogarLinkConviteUseCase,
     ListarSorteiosVisiveisParaCompradorUseCase,
+    CadastrarSorteioUseCase,
+    ListarSorteiosDoGrupoUseCase,
   ],
   exports: [GRUPO_REPOSITORY, LINK_CONVITE_REPOSITORY, ValidarCodigoConviteUseCase],
 })

@@ -66,6 +66,20 @@ export class PrismaCotaRepository implements CotaRepository {
     return this.prisma.cota.count({ where: { sorteioId, status: 'PAGA' } });
   }
 
+  async criarEmLote(cotas: Cota[]): Promise<void> {
+    await this.prisma.cota.createMany({
+      data: cotas.map((cota) => ({
+        id: cota.id,
+        sorteioId: cota.sorteioId,
+        numero: cota.numero,
+        status: cota.status,
+        compradorId: cota.compradorId,
+        reservadaEm: cota.reservadaEm,
+        reservaExpiraEm: cota.reservaExpiraEm,
+      })),
+    });
+  }
+
   async salvar(cota: Cota): Promise<void> {
     // Em produção, isto deve rodar dentro de uma transação com verificação
     // otimista (ex: where incluindo o status anterior) para garantir que

@@ -15,8 +15,11 @@ import { GerarLinkConviteUseCase } from '../application/use-cases/gerar-link-con
 import { ValidarCodigoConviteUseCase } from '../application/use-cases/validar-codigo-convite.use-case';
 import { RevogarLinkConviteUseCase } from '../application/use-cases/revogar-link-convite.use-case';
 import { ListarSorteiosVisiveisParaCompradorUseCase } from '../application/use-cases/listar-sorteios-visiveis-comprador.use-case';
+import { CadastrarSorteioUseCase } from '../application/use-cases/cadastrar-sorteio.use-case';
+import { ListarSorteiosDoGrupoUseCase } from '../application/use-cases/listar-sorteios-grupo.use-case';
 import { CadastrarGrupoDto } from './dto/cadastrar-grupo.dto';
 import { ConfigurarAvisosAgenteChatbotDto } from './dto/configurar-avisos-agente-chatbot.dto';
+import { CadastrarSorteioDto } from './dto/cadastrar-sorteio.dto';
 
 @Controller('grupos')
 export class GruposController {
@@ -33,6 +36,8 @@ export class GruposController {
     private readonly validarCodigoConviteUseCase: ValidarCodigoConviteUseCase,
     private readonly revogarLinkConviteUseCase: RevogarLinkConviteUseCase,
     private readonly listarSorteiosVisiveisParaCompradorUseCase: ListarSorteiosVisiveisParaCompradorUseCase,
+    private readonly cadastrarSorteioUseCase: CadastrarSorteioUseCase,
+    private readonly listarSorteiosDoGrupoUseCase: ListarSorteiosDoGrupoUseCase,
   ) {}
 
   @UseGuards(AdministradorGuard)
@@ -110,6 +115,39 @@ export class GruposController {
     @Param('grupoId') grupoId: string,
   ) {
     return this.contarSorteiosDoGrupoUseCase.executar({
+      administradorId: usuario.administradorId!,
+      grupoId,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Post(':grupoId/sorteios')
+  async cadastrarSorteio(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('grupoId') grupoId: string,
+    @Body() dto: CadastrarSorteioDto,
+  ) {
+    return this.cadastrarSorteioUseCase.executar({
+      administradorId: usuario.administradorId!,
+      grupoId,
+      nome: dto.nome,
+      descricao: dto.descricao,
+      premioIds: dto.premioIds,
+      quantidadeCotas: dto.quantidadeCotas,
+      valorCota: dto.valorCota,
+      dataAberturaVendas: new Date(dto.dataAberturaVendas),
+      dataEncerramentoVendas: new Date(dto.dataEncerramentoVendas),
+      dataRealizacao: new Date(dto.dataRealizacao),
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Get(':grupoId/sorteios')
+  async listarSorteiosDoGrupo(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('grupoId') grupoId: string,
+  ) {
+    return this.listarSorteiosDoGrupoUseCase.executar({
       administradorId: usuario.administradorId!,
       grupoId,
     });

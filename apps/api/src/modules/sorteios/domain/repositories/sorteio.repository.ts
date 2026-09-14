@@ -6,9 +6,10 @@ import { Sorteio } from '../entities/sorteio.entity';
  */
 export interface SorteioRepository {
   buscarPorId(id: string): Promise<Sorteio | null>;
-  buscarPorPremioId(premioId: string): Promise<Sorteio | null>;
+  listarPorPremioId(premioId: string): Promise<Sorteio[]>;
   listarPorGrupo(grupoId: string): Promise<Sorteio[]>;
   listarPorAdministrador(administradorId: string): Promise<Sorteio[]>;
+  criar(sorteio: Sorteio): Promise<void>;
   salvar(sorteio: Sorteio): Promise<void>;
 }
 

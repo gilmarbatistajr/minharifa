@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
@@ -10,24 +10,53 @@ import { Badge } from '../../../../../components/ui/Badge';
 import { CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../../components/ui/Spinner';
-import { IconArrowLeft, IconCopy, IconWhatsapp } from '../../../../../components/ui/icons';
+import { IconArrowLeft, IconCopy, IconPlus, IconWhatsapp } from '../../../../../components/ui/icons';
 import {
   gruposApi,
   ApiError,
   type CompradorResumo,
-  type ContagemSorteios,
   type DetalheGrupo,
+  type Sorteio,
 } from '../../../../../lib/api';
+import { formatarData, formatarMoeda, formatarStatusSorteio } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
+const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = {
+  VENDAS_ABERTAS: 'accent',
+  AGUARDANDO_ABERTURA: 'neutral',
+  VENDAS_ENCERRADAS: 'warning',
+  COTAS_ESGOTADAS: 'warning',
+  FINALIZADO: 'neutral',
+  CANCELADO: 'danger',
+};
+
 export default function DetalheGrupoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-16 text-muted">
+          <Spinner />
+        </div>
+      }
+    >
+      <DetalheGrupoConteudo />
+    </Suspense>
+  );
+}
+
+function DetalheGrupoConteudo() {
   const { id } = useParams<{ id: string }>();
   const { sessao } = useSessaoAdministrador();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Muda a cada sorteio criado, forçando o efeito abaixo a refazer o fetch
+  // mesmo permanecendo na mesma rota (o Next não remonta o componente só
+  // por causa de um query param diferente).
+  const sorteioCriado = searchParams.get('sorteioCriado');
 
   const [grupo, setGrupo] = useState<DetalheGrupo | null>(null);
   const [compradores, setCompradores] = useState<CompradorResumo[] | null>(null);
-  const [contagem, setContagem] = useState<ContagemSorteios | null>(null);
+  const [sorteios, setSorteios] = useState<Sorteio[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregarGrupo = useCallback(() => {
@@ -39,8 +68,8 @@ export default function DetalheGrupoPage() {
     if (!sessao) return;
     recarregarGrupo();
     gruposApi.listarCompradores(sessao.token, id).then(setCompradores);
-    gruposApi.contarSorteios(sessao.token, id).then(setContagem);
-  }, [sessao, id, recarregarGrupo]);
+    gruposApi.listarSorteiosDoGrupo(sessao.token, id).then(setSorteios);
+  }, [sessao, id, recarregarGrupo, sorteioCriado]);
 
   if (!grupo) {
     return (
@@ -71,6 +100,8 @@ export default function DetalheGrupoPage() {
 
       {erro && <Alert tone="error">{erro}</Alert>}
 
+      <SecaoSorteios grupoId={id} sorteios={sorteios} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <SecaoAgenteChatbot
           grupoId={id}
@@ -82,25 +113,7 @@ export default function DetalheGrupoPage() {
 
         <SecaoLinkConvite grupoId={id} token={sessao?.token} aoErro={setErro} />
 
-        <Card>
-          <p className="font-mono text-xs uppercase tracking-wide text-muted">Sorteios</p>
-          {!contagem ? (
-            <Spinner size={18} />
-          ) : (
-            <div className="mt-3 flex gap-6">
-              <div>
-                <p className="font-display text-3xl text-night">{contagem.emAndamento}</p>
-                <p className="text-xs text-muted">em andamento</p>
-              </div>
-              <div>
-                <p className="font-display text-3xl text-night">{contagem.finalizados}</p>
-                <p className="text-xs text-muted">finalizados</p>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card className="flex flex-col gap-3">
+        <Card className="flex flex-col gap-3 lg:col-span-2">
           <p className="font-mono text-xs uppercase tracking-wide text-muted">
             Compradores ({compradores?.length ?? '...'})
           </p>
@@ -119,6 +132,61 @@ export default function DetalheGrupoPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function SecaoSorteios({ grupoId, sorteios }: { grupoId: string; sorteios: Sorteio[] | null }) {
+  const router = useRouter();
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-xs uppercase tracking-wide text-muted">
+          Sorteios {sorteios ? `(${sorteios.length})` : ''}
+        </p>
+        <Button
+          variant="secondary"
+          onClick={() => router.push(`/admin/grupos/${grupoId}/sorteios/novo`)}
+        >
+          <IconPlus className="h-4 w-4" /> Criar sorteio
+        </Button>
+      </div>
+
+      {sorteios === null && (
+        <div className="flex justify-center py-6 text-muted">
+          <Spinner size={18} />
+        </div>
+      )}
+
+      {sorteios?.length === 0 && (
+        <EmptyState
+          title="Nenhum sorteio criado ainda"
+          description="Crie o primeiro sorteio deste grupo escolhendo cotas, valor e prêmios."
+        />
+      )}
+
+      {sorteios && sorteios.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {sorteios.map((sorteio) => (
+            <div
+              key={sorteio.id}
+              className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-medium text-night">{sorteio.nome}</p>
+                <p className="text-xs text-muted">
+                  {sorteio.quantidadeCotas} cotas de {formatarMoeda(sorteio.valorCota)} · sorteio em{' '}
+                  {formatarData(sorteio.dataRealizacao)}
+                </p>
+              </div>
+              <Badge tone={TOM_STATUS[sorteio.status] ?? 'neutral'}>
+                {formatarStatusSorteio(sorteio.status)}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 

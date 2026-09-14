@@ -10,6 +10,7 @@ export interface CotaRepository {
   buscarPorSorteioENumero(sorteioId: string, numero: number): Promise<Cota | null>;
   listarPorSorteio(sorteioId: string): Promise<Cota[]>;
   contarPagasPorSorteio(sorteioId: string): Promise<number>;
+  criarEmLote(cotas: Cota[]): Promise<void>;
   salvar(cota: Cota): Promise<void>;
 }
 

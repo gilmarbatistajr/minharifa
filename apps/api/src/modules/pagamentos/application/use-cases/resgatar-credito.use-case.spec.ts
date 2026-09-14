@@ -15,7 +15,9 @@ describe('ResgatarCreditoUseCase', () => {
     return new Sorteio(
       'sorteio-2',
       grupoId,
-      'premio-2',
+      'Sorteio de teste',
+      'Descrição de teste',
+      ['premio-2'],
       new Date(),
       new Date(),
       new Date(),
@@ -35,9 +37,10 @@ describe('ResgatarCreditoUseCase', () => {
     };
     const sorteioRepository: SorteioRepository = {
       buscarPorId: jest.fn().mockResolvedValue(sorteio),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
     const mapaCotasPorNumero = new Map(cotas.map((cota) => [cota.numero, cota]));
@@ -48,6 +51,7 @@ describe('ResgatarCreditoUseCase', () => {
         .mockImplementation(async (_sorteioId: string, numero: number) => mapaCotasPorNumero.get(numero) ?? null),
       listarPorSorteio: jest.fn(),
       contarPagasPorSorteio: jest.fn(),
+      criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
 

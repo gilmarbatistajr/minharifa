@@ -16,6 +16,7 @@ describe('ReservarCotaUseCase', () => {
       buscarPorSorteioENumero: jest.fn().mockImplementation(async () => estado),
       listarPorSorteio: jest.fn().mockImplementation(async () => [estado]),
       contarPagasPorSorteio: jest.fn().mockResolvedValue(0),
+      criarEmLote: jest.fn(),
       salvar: jest.fn().mockImplementation(async (cota: Cota) => {
         estado = cota;
       }),
@@ -95,6 +96,7 @@ describe('ReservarCotaUseCase', () => {
       buscarPorSorteioENumero: jest.fn().mockResolvedValue(null),
       listarPorSorteio: jest.fn().mockResolvedValue([]),
       contarPagasPorSorteio: jest.fn().mockResolvedValue(0),
+      criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
     const useCase = new ReservarCotaUseCase(repositorio);

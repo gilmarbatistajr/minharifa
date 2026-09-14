@@ -5,7 +5,21 @@ import { SorteioRepository } from '../../../sorteios/domain/repositories/sorteio
 import { ContarSorteiosDoGrupoUseCase } from './contar-sorteios-grupo.use-case';
 
 function criarSorteio(id: string, status: Sorteio['status']): Sorteio {
-  return new Sorteio(id, 'grupo-1', 'premio-1', new Date(), new Date(), new Date(), 100, 50, status, null, null);
+  return new Sorteio(
+    id,
+    'grupo-1',
+    'Sorteio de teste',
+    'Descrição de teste',
+    ['premio-1'],
+    new Date(),
+    new Date(),
+    new Date(),
+    100,
+    50,
+    status,
+    null,
+    null,
+  );
 }
 
 describe('ContarSorteiosDoGrupoUseCase', () => {
@@ -19,9 +33,10 @@ describe('ContarSorteiosDoGrupoUseCase', () => {
     };
     const sorteioRepository: SorteioRepository = {
       buscarPorId: jest.fn(),
-      buscarPorPremioId: jest.fn(),
+      listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn().mockResolvedValue(sorteios),
       listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn(),
     };
 

@@ -39,9 +39,9 @@ export class EditarPremioUseCase {
       throw new Error('Prêmio não encontrado.');
     }
 
-    const sorteioVinculado = await this.sorteioRepository.buscarPorPremioId(input.premioId);
+    const sorteiosVinculados = await this.sorteioRepository.listarPorPremioId(input.premioId);
 
-    if (sorteioVinculado && STATUS_SORTEIO_EM_ANDAMENTO.includes(sorteioVinculado.status)) {
+    if (sorteiosVinculados.some((sorteio) => STATUS_SORTEIO_EM_ANDAMENTO.includes(sorteio.status))) {
       throw new Error('O prêmio não pode ser editado enquanto o sorteio estiver em andamento.');
     }
 

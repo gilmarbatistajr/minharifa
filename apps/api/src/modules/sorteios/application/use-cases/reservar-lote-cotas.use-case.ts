@@ -1,0 +1,96 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
+import { Cota } from '../../domain/entities/cota.entity';
+
+export interface ReservarLoteCotasInput {
+  sorteioId: string;
+  compradorId: string;
+  numeros?: number[];
+  quantidadeAleatoria?: number;
+}
+
+export interface ReservarLoteCotasOutput {
+  numeros: number[];
+  reservaExpiraEm: Date;
+}
+
+const MINUTOS_EXPIRACAO_PADRAO = 2;
+
+function embaralhar<T>(itens: T[]): T[] {
+  const copia = [...itens];
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+/**
+ * Cobre a tela "Escolha sua cota": reserva várias cotas de uma vez, seja
+ * por números escolhidos manualmente, seja por uma quantidade aleatória
+ * dentro das cotas disponíveis (compra em lote).
+ */
+@Injectable()
+export class ReservarLoteCotasUseCase {
+  constructor(
+    @Inject(COTA_REPOSITORY)
+    private readonly cotaRepository: CotaRepository,
+  ) {}
+
+  async executar(
+    input: ReservarLoteCotasInput,
+    agora: Date = new Date(),
+  ): Promise<ReservarLoteCotasOutput> {
+    const numerosManuais = input.numeros ?? [];
+
+    if (numerosManuais.length === 0 && !input.quantidadeAleatoria) {
+      throw new Error('Informe os números desejados ou a quantidade para escolha aleatória.');
+    }
+
+    if (numerosManuais.length > 0 && input.quantidadeAleatoria) {
+      throw new Error(
+        'Escolha apenas uma forma de seleção: números específicos ou quantidade aleatória.',
+      );
+    }
+
+    const todasAsCotas = await this.cotaRepository.listarPorSorteio(input.sorteioId);
+
+    let cotasParaReservar: Cota[];
+
+    if (numerosManuais.length > 0) {
+      cotasParaReservar = numerosManuais.map((numero) => {
+        const cota = todasAsCotas.find((candidata) => candidata.numero === numero);
+        if (!cota) {
+          throw new Error(`Cota ${numero} não existe nesse sorteio.`);
+        }
+        return cota;
+      });
+    } else {
+      const disponiveis = todasAsCotas.filter((cota) => cota.podeSerReservadaPor(agora));
+      if (disponiveis.length < input.quantidadeAleatoria!) {
+        throw new Error(`Restam apenas ${disponiveis.length} cota(s) disponível(is).`);
+      }
+      cotasParaReservar = embaralhar(disponiveis).slice(0, input.quantidadeAleatoria!);
+    }
+
+    // Valida todas antes de mutar qualquer uma: se uma cota do lote manual
+    // não estiver disponível, nenhuma das outras deve ser alterada.
+    const indisponivel = cotasParaReservar.find((cota) => !cota.podeSerReservadaPor(agora));
+    if (indisponivel) {
+      throw new Error(`Cota ${indisponivel.numero} não está disponível para reserva.`);
+    }
+
+    for (const cota of cotasParaReservar) {
+      cota.reservarPara(input.compradorId, agora, MINUTOS_EXPIRACAO_PADRAO);
+    }
+
+    for (const cota of cotasParaReservar) {
+      await this.cotaRepository.salvar(cota);
+    }
+
+    return {
+      numeros: cotasParaReservar.map((cota) => cota.numero).sort((a, b) => a - b),
+      reservaExpiraEm: cotasParaReservar[0].reservaExpiraEm as Date,
+    };
+  }
+}

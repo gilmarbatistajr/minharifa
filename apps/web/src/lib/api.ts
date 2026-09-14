@@ -129,7 +129,9 @@ export type StatusSorteio =
 export interface Sorteio {
   id: string;
   grupoId: string;
-  premioId: string;
+  nome: string;
+  descricao: string;
+  premioIds: string[];
   dataAberturaVendas: string;
   dataEncerramentoVendas: string;
   dataRealizacao: string;
@@ -215,6 +217,29 @@ export const gruposApi = {
   contarSorteios: (token: string, grupoId: string) =>
     request<ContagemSorteios>(`/grupos/${grupoId}/sorteios/contagem`, { token }),
 
+  cadastrarSorteio: (
+    token: string,
+    grupoId: string,
+    dados: {
+      nome: string;
+      descricao: string;
+      premioIds: string[];
+      quantidadeCotas: number;
+      valorCota: number;
+      dataAberturaVendas: string;
+      dataEncerramentoVendas: string;
+      dataRealizacao: string;
+    },
+  ) =>
+    request<{ sorteioId: string }>(`/grupos/${grupoId}/sorteios`, {
+      method: 'POST',
+      token,
+      body: dados,
+    }),
+
+  listarSorteiosDoGrupo: (token: string, grupoId: string) =>
+    request<Sorteio[]>(`/grupos/${grupoId}/sorteios`, { token }),
+
   gerarLinkConvite: (token: string, grupoId: string) =>
     request<{ codigo: string }>(`/grupos/${grupoId}/links-convite`, { method: 'POST', token }),
 
@@ -274,12 +299,34 @@ export const premiosApi = {
 
 // ---------- Sorteios / cotas ----------
 
+export type StatusCota = 'DISPONIVEL' | 'RESERVADA' | 'PAGA' | 'CANCELADA_REEMBOLSADA';
+
+export interface CotaResumo {
+  numero: number;
+  status: StatusCota;
+  minhaCota: boolean;
+}
+
 export const sorteiosApi = {
+  listarCotas: (token: string, sorteioId: string) =>
+    request<CotaResumo[]>(`/sorteios/${sorteioId}/cotas`, { token }),
+
   reservarCota: (token: string, sorteioId: string, numero: number) =>
     request<{ cotaId: string; reservaExpiraEm: string }>(`/sorteios/${sorteioId}/cotas/reservar`, {
       method: 'POST',
       token,
       body: { sorteioId, numero },
+    }),
+
+  reservarLote: (
+    token: string,
+    sorteioId: string,
+    escolha: { numeros: number[] } | { quantidadeAleatoria: number },
+  ) =>
+    request<{ numeros: number[]; reservaExpiraEm: string }>(`/sorteios/${sorteioId}/cotas/reservar-lote`, {
+      method: 'POST',
+      token,
+      body: escolha,
     }),
 
   cancelar: (token: string, sorteioId: string) =>

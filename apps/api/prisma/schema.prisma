@@ -118,7 +118,7 @@ model Premio {
   valorOpcaoDinheiro Decimal?      @db.Decimal(10, 2)
   criadoEm           DateTime      @default(now())
 
-  sorteio Sorteio?
+  sorteios Sorteio[]
 
   @@map("premios")
 }
@@ -136,8 +136,9 @@ model Sorteio {
   id                       String        @id @default(uuid())
   grupoId                  String
   grupo                    Grupo         @relation(fields: [grupoId], references: [id])
-  premioId                 String        @unique
-  premio                   Premio        @relation(fields: [premioId], references: [id])
+  nome                     String
+  descricao                String
+  premios                  Premio[]
   dataAberturaVendas       DateTime
   dataEncerramentoVendas   DateTime
   dataRealizacao           DateTime

@@ -29,12 +29,22 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { label, error, hint, className = '', ...props },
+  { label, error, hint, className = '', type, onWheel, ...props },
   ref,
 ) {
   return (
     <FieldWrapper label={label} error={error} hint={hint}>
-      <input ref={ref} className={`${inputClasses} ${error ? 'border-red-400' : ''} ${className}`} {...props} />
+      <input
+        ref={ref}
+        type={type}
+        className={`${inputClasses} ${error ? 'border-red-400' : ''} ${className}`}
+        // Inputs numéricos focados mudam de valor ao rolar a página com a
+        // roda do mouse (comportamento nativo do Chrome) — isso já causou
+        // um valor errado sem o usuário perceber, então tiramos o foco
+        // para o scroll da página passar batido em vez de alterar o campo.
+        onWheel={type === 'number' ? (evento) => evento.currentTarget.blur() : onWheel}
+        {...props}
+      />
     </FieldWrapper>
   );
 });
