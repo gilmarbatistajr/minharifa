@@ -34,7 +34,7 @@ describe('BuscarGrupoUseCase', () => {
     expect(resultado.agenteChatbot).toEqual({
       ativo: true,
       avisaCotasRestantes: true,
-      avisaNovoSorteio: false,
+      avisaNovaCampanha: false,
       avisaResultado: true,
     });
   });

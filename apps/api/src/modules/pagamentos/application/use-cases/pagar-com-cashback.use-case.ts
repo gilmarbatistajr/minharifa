@@ -3,11 +3,11 @@ import { randomUUID } from 'crypto';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 import {
   COMPRADOR_REPOSITORY,
   CompradorRepository,
@@ -19,7 +19,7 @@ import {
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 
 export interface PagarComCashbackInput {
-  sorteioId: string;
+  campanhaId: string;
   numeroCota: number;
   compradorId: string;
 }
@@ -39,8 +39,8 @@ export class PagarComCashbackUseCase {
   constructor(
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(COMPRADOR_REPOSITORY)
     private readonly compradorRepository: CompradorRepository,
     @Inject(PAGAMENTO_REPOSITORY)
@@ -48,7 +48,7 @@ export class PagarComCashbackUseCase {
   ) {}
 
   async executar(input: PagarComCashbackInput, agora: Date = new Date()): Promise<PagarComCashbackOutput> {
-    const cota = await this.cotaRepository.buscarPorSorteioENumero(input.sorteioId, input.numeroCota);
+    const cota = await this.cotaRepository.buscarPorCampanhaENumero(input.campanhaId, input.numeroCota);
 
     if (
       !cota ||
@@ -59,9 +59,9 @@ export class PagarComCashbackUseCase {
       throw new Error('Esta cota não está reservada para você.');
     }
 
-    const sorteio = await this.sorteioRepository.buscarPorId(input.sorteioId);
-    if (!sorteio) {
-      throw new Error('Sorteio não encontrado.');
+    const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
+    if (!campanha) {
+      throw new Error('Campanha não encontrada.');
     }
 
     const comprador = await this.compradorRepository.buscarPorId(input.compradorId);
@@ -70,7 +70,7 @@ export class PagarComCashbackUseCase {
     }
 
     const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
-    const valorTotal = pagamentoExistente ? pagamentoExistente.valor : sorteio.valorCota;
+    const valorTotal = pagamentoExistente ? pagamentoExistente.valor : campanha.valorCota;
     const valorJaAplicado = pagamentoExistente ? pagamentoExistente.valorCashbackAplicado : 0;
     const valorEmAberto = valorTotal - valorJaAplicado;
 

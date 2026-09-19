@@ -12,7 +12,7 @@ export default function HomePage() {
 
       <main className="mx-auto flex max-w-3xl flex-col items-center gap-8 px-6 pb-20 text-center">
         <p className="max-w-md text-balance text-white/70">
-          Sorteios por cotas numeradas para o seu grupo de WhatsApp — cadastro, cobrança e
+          Campanhas por cotas numeradas para o seu grupo de WhatsApp — cadastro, cobrança e
           resultado, tudo em um só lugar.
         </p>
 
@@ -37,13 +37,13 @@ export default function HomePage() {
         </div>
 
         <p className="text-xs text-white/40">
-          Recebeu um link de convite de um sorteio pelo WhatsApp? Abra-o diretamente para ir para o cadastro.
+          Recebeu um link de convite de uma campanha pelo WhatsApp? Abra-o diretamente para ir para o cadastro.
         </p>
       </main>
 
       <footer className="flex justify-center gap-2 pb-10 text-xs text-white/30">
         <IconUser className="h-3.5 w-3.5" />
-        <span>Minha Rifa — plataforma de sorteios online</span>
+        <span>Minha Rifa — plataforma de campanhas online</span>
       </footer>
     </div>
   );

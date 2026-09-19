@@ -7,7 +7,7 @@ export class ConfigurarAvisosAgenteChatbotDto {
 
   @IsOptional()
   @IsBoolean()
-  avisaNovoSorteio?: boolean;
+  avisaNovaCampanha?: boolean;
 
   @IsOptional()
   @IsBoolean()

@@ -5,6 +5,7 @@
  */
 export interface NotificationSender {
   enviarEmail(destinatario: string, assunto: string, mensagem: string): Promise<void>;
+  enviarWhatsapp(telefone: string, mensagem: string): Promise<void>;
 }
 
 export const NOTIFICATION_SENDER = Symbol('NOTIFICATION_SENDER');

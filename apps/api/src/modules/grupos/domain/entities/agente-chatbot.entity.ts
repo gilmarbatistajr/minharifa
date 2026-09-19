@@ -1,6 +1,6 @@
 export interface AvisosAgenteChatbot {
   avisaCotasRestantes?: boolean;
-  avisaNovoSorteio?: boolean;
+  avisaNovaCampanha?: boolean;
   avisaResultado?: boolean;
 }
 
@@ -10,7 +10,7 @@ export class AgenteChatbot {
     public readonly grupoId: string,
     public ativo: boolean,
     public avisaCotasRestantes: boolean,
-    public avisaNovoSorteio: boolean,
+    public avisaNovaCampanha: boolean,
     public avisaResultado: boolean,
   ) {}
 
@@ -26,8 +26,8 @@ export class AgenteChatbot {
     if (avisos.avisaCotasRestantes !== undefined) {
       this.avisaCotasRestantes = avisos.avisaCotasRestantes;
     }
-    if (avisos.avisaNovoSorteio !== undefined) {
-      this.avisaNovoSorteio = avisos.avisaNovoSorteio;
+    if (avisos.avisaNovaCampanha !== undefined) {
+      this.avisaNovaCampanha = avisos.avisaNovaCampanha;
     }
     if (avisos.avisaResultado !== undefined) {
       this.avisaResultado = avisos.avisaResultado;

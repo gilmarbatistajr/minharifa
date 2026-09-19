@@ -1,5 +1,5 @@
-import { Cota } from '../../../sorteios/domain/entities/cota.entity';
-import { CotaRepository } from '../../../sorteios/domain/repositories/cota.repository';
+import { Cota } from '../../../campanhas/domain/entities/cota.entity';
+import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
 import { EscolhaPosCancelamento } from '../../domain/entities/escolha-pos-cancelamento.entity';
 import { EscolhaPosCancelamentoRepository } from '../../domain/repositories/escolha-pos-cancelamento.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
@@ -11,7 +11,7 @@ describe('EscolherReembolsoUseCase', () => {
   function criarEscolha(): EscolhaPosCancelamento {
     return new EscolhaPosCancelamento(
       'escolha-1',
-      'sorteio-1',
+      'campanha-1',
       'comprador-maria',
       3,
       150,
@@ -31,9 +31,11 @@ describe('EscolherReembolsoUseCase', () => {
     };
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
-      buscarPorSorteioENumero: jest.fn(),
-      listarPorSorteio: jest.fn().mockResolvedValue(cotas),
-      contarPagasPorSorteio: jest.fn(),
+      buscarPorCampanhaENumero: jest.fn(),
+      listarPorCampanha: jest.fn().mockResolvedValue(cotas),
+      contarPagasPorCampanha: jest.fn(),
+      contarPagasAgrupadoPorComprador: jest.fn(),
+      contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
@@ -56,9 +58,9 @@ describe('EscolherReembolsoUseCase', () => {
   it('estorna os pagamentos e marca as cotas como canceladas e reembolsadas', async () => {
     const escolha = criarEscolha();
     const cotas = [
-      new Cota('cota-1', 'sorteio-1', 1, 'PAGA', 'comprador-maria', new Date(), null),
-      new Cota('cota-2', 'sorteio-1', 2, 'PAGA', 'comprador-maria', new Date(), null),
-      new Cota('cota-3', 'sorteio-1', 3, 'PAGA', 'outro-comprador', new Date(), null),
+      new Cota('cota-1', 'campanha-1', 1, 'PAGA', 'comprador-maria', new Date(), null),
+      new Cota('cota-2', 'campanha-1', 2, 'PAGA', 'comprador-maria', new Date(), null),
+      new Cota('cota-3', 'campanha-1', 3, 'PAGA', 'outro-comprador', new Date(), null),
     ];
     const pagamento = new Pagamento('pagamento-1', 'cota-1', 'comprador-maria', 50, 0, 'PIX', 'APROVADO', 'txn-1', new Date());
     const deps = criarDependencias(escolha, cotas, pagamento);

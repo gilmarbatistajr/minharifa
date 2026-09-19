@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SorteiosModule } from '../sorteios/sorteios.module';
-import { PremiosModule } from '../premios/premios.module';
+import { CampanhasModule } from '../campanhas/campanhas.module';
 import { GRUPO_REPOSITORY } from './domain/repositories/grupo.repository';
 import { AGENTE_CHATBOT_REPOSITORY } from './domain/repositories/agente-chatbot.repository';
 import { LINK_CONVITE_REPOSITORY } from './domain/repositories/link-convite.repository';
@@ -14,17 +13,19 @@ import { CriarAgenteChatbotUseCase } from './application/use-cases/criar-agente-
 import { ConfigurarAvisosAgenteChatbotUseCase } from './application/use-cases/configurar-avisos-agente-chatbot.use-case';
 import { DesativarAgenteChatbotUseCase } from './application/use-cases/desativar-agente-chatbot.use-case';
 import { ListarCompradoresDoGrupoUseCase } from './application/use-cases/listar-compradores-grupo.use-case';
-import { ContarSorteiosDoGrupoUseCase } from './application/use-cases/contar-sorteios-grupo.use-case';
+import { ContarCampanhasDoGrupoUseCase } from './application/use-cases/contar-campanhas-grupo.use-case';
 import { GerarLinkConviteUseCase } from './application/use-cases/gerar-link-convite.use-case';
 import { ValidarCodigoConviteUseCase } from './application/use-cases/validar-codigo-convite.use-case';
 import { RevogarLinkConviteUseCase } from './application/use-cases/revogar-link-convite.use-case';
-import { ListarSorteiosVisiveisParaCompradorUseCase } from './application/use-cases/listar-sorteios-visiveis-comprador.use-case';
-import { CadastrarSorteioUseCase } from './application/use-cases/cadastrar-sorteio.use-case';
-import { ListarSorteiosDoGrupoUseCase } from './application/use-cases/listar-sorteios-grupo.use-case';
+import { ListarCampanhasDoGrupoUseCase } from './application/use-cases/listar-campanhas-grupo.use-case';
+import { LancarCampanhaUseCase } from './application/use-cases/lancar-campanha.use-case';
+import { RankingCotasCompradasUseCase } from './application/use-cases/ranking-cotas-compradas.use-case';
+import { RankingVencedoresUseCase } from './application/use-cases/ranking-vencedores.use-case';
+import { ListarAlertasAutomaticosUseCase } from './application/use-cases/listar-alertas-automaticos.use-case';
 import { GruposController } from './presentation/grupos.controller';
 
 @Module({
-  imports: [SorteiosModule, PremiosModule],
+  imports: [CampanhasModule],
   controllers: [GruposController],
   providers: [
     { provide: GRUPO_REPOSITORY, useClass: PrismaGrupoRepository },
@@ -37,13 +38,15 @@ import { GruposController } from './presentation/grupos.controller';
     ConfigurarAvisosAgenteChatbotUseCase,
     DesativarAgenteChatbotUseCase,
     ListarCompradoresDoGrupoUseCase,
-    ContarSorteiosDoGrupoUseCase,
+    ContarCampanhasDoGrupoUseCase,
     GerarLinkConviteUseCase,
     ValidarCodigoConviteUseCase,
     RevogarLinkConviteUseCase,
-    ListarSorteiosVisiveisParaCompradorUseCase,
-    CadastrarSorteioUseCase,
-    ListarSorteiosDoGrupoUseCase,
+    ListarCampanhasDoGrupoUseCase,
+    LancarCampanhaUseCase,
+    RankingCotasCompradasUseCase,
+    RankingVencedoresUseCase,
+    ListarAlertasAutomaticosUseCase,
   ],
   exports: [GRUPO_REPOSITORY, LINK_CONVITE_REPOSITORY, ValidarCodigoConviteUseCase],
 })

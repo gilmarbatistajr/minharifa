@@ -15,7 +15,10 @@ describe('SolicitarRecuperacaoSenhaCompradorUseCase', () => {
       criar: jest.fn(),
     };
     const tokenGenerator: TokenGenerator = { gerar: jest.fn().mockReturnValue('token-recuperacao') };
-    const notificationSender: NotificationSender = { enviarEmail: jest.fn().mockResolvedValue(undefined) };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn().mockResolvedValue(undefined),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
 
     return { repositorio, tokenGenerator, notificationSender };
   }

@@ -34,7 +34,7 @@ export default function CadastroAdministradorPage() {
     <AuthLayout
       eyebrow="Painel administrativo"
       title="Criar conta"
-      subtitle="Cadastre-se para organizar sorteios para o seu grupo de WhatsApp."
+      subtitle="Cadastre-se para organizar campanhas para o seu grupo de WhatsApp."
       footer={
         <>
           Já tem conta?{' '}
@@ -47,7 +47,7 @@ export default function CadastroAdministradorPage() {
       {concluido ? (
         <Alert tone="success">
           Conta criada! Enviamos um link de confirmação para o seu e-mail — confirme para liberar a
-          criação de sorteios.{' '}
+          criação de campanhas.{' '}
           <Link href="/admin/entrar" className="font-semibold">
             Ir para o login
           </Link>

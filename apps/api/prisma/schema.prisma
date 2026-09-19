@@ -25,8 +25,9 @@ model Administrador {
   tokenConfirmacaoNovoEmail         String?   @unique
   tokenConfirmacaoNovoEmailExpiraEm DateTime?
 
-  grupos  Grupo[]
-  premios Premio[]
+  grupos    Grupo[]
+  premios   Premio[]
+  campanhas Campanha[]
 
   @@map("administradores")
 }
@@ -42,7 +43,7 @@ model Grupo {
   agenteChatbot     AgenteChatbot?
   linksConvite      LinkConvite[]
   compradores       Comprador[]
-  sorteios          Sorteio[]
+  campanhas         Campanha[]
   creditosPendentes CreditoPendente[]
 
   @@map("grupos")
@@ -54,7 +55,7 @@ model AgenteChatbot {
   grupo               Grupo   @relation(fields: [grupoId], references: [id])
   ativo               Boolean @default(false)
   avisaCotasRestantes Boolean @default(true)
-  avisaNovoSorteio    Boolean @default(true)
+  avisaNovaCampanha   Boolean @default(true)
   avisaResultado      Boolean @default(true)
 
   @@map("agentes_chatbot")
@@ -118,12 +119,12 @@ model Premio {
   valorOpcaoDinheiro Decimal?      @db.Decimal(10, 2)
   criadoEm           DateTime      @default(now())
 
-  sorteios Sorteio[]
+  campanhas Campanha[]
 
   @@map("premios")
 }
 
-enum StatusSorteio {
+enum StatusVendasCampanha {
   AGUARDANDO_ABERTURA
   VENDAS_ABERTAS
   VENDAS_ENCERRADAS
@@ -132,27 +133,43 @@ enum StatusSorteio {
   CANCELADO
 }
 
-model Sorteio {
-  id                       String        @id @default(uuid())
-  grupoId                  String
-  grupo                    Grupo         @relation(fields: [grupoId], references: [id])
+enum StatusCampanha {
+  NOVO
+  AGUARDANDO_LIBERACAO
+  LIBERADA
+  FINALIZADA
+}
+
+enum FormaVendaCotas {
+  ESCOLHA_NUMERO
+  LOTE_FECHADO
+}
+
+model Campanha {
+  id                       String                @id @default(uuid())
+  administradorId          String
+  administrador            Administrador         @relation(fields: [administradorId], references: [id])
+  grupoId                  String?
+  grupo                    Grupo?                @relation(fields: [grupoId], references: [id])
   nome                     String
   descricao                String
   premios                  Premio[]
-  dataAberturaVendas       DateTime
-  dataEncerramentoVendas   DateTime
-  dataRealizacao           DateTime
+  dataAberturaVendas       DateTime?
+  dataEncerramentoVendas   DateTime?
+  dataRealizacao           DateTime?
   quantidadeCotas          Int
-  valorCota                Decimal       @db.Decimal(10, 2)
-  status                   StatusSorteio @default(AGUARDANDO_ABERTURA)
+  valorCota                Decimal               @db.Decimal(10, 2)
+  formaVenda               FormaVendaCotas       @default(ESCOLHA_NUMERO)
+  status                   StatusCampanha        @default(NOVO)
+  statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
   cotaVencedoraNumero      Int?
   vencedorOptouPorDinheiro Boolean?
-  criadoEm                 DateTime      @default(now())
+  criadoEm                 DateTime              @default(now())
 
   cotas                   Cota[]
   escolhasPosCancelamento EscolhaPosCancelamento[]
 
-  @@map("sorteios")
+  @@map("campanhas")
 }
 
 enum StatusCota {
@@ -164,8 +181,8 @@ enum StatusCota {
 
 model Cota {
   id              String     @id @default(uuid())
-  sorteioId       String
-  sorteio         Sorteio    @relation(fields: [sorteioId], references: [id])
+  campanhaId      String
+  campanha        Campanha   @relation(fields: [campanhaId], references: [id])
   compradorId     String?
   comprador       Comprador? @relation(fields: [compradorId], references: [id])
   numero          Int
@@ -175,7 +192,7 @@ model Cota {
 
   pagamento Pagamento?
 
-  @@unique([sorteioId, numero])
+  @@unique([campanhaId, numero])
   @@map("cotas")
 }
 
@@ -208,20 +225,20 @@ model Pagamento {
   @@map("pagamentos")
 }
 
-// Crédito gerado quando um comprador opta por manter cotas de um sorteio
-// cancelado para o próximo sorteio do mesmo grupo, mas ainda não existe um
-// próximo sorteio no momento da escolha (ver cancelamento-de-sorteio.feature).
+// Crédito gerado quando um comprador opta por manter cotas de uma campanha
+// cancelada para a próxima campanha do mesmo grupo, mas ainda não existe uma
+// próxima campanha no momento da escolha (ver cancelamento-de-sorteio.feature).
 model CreditoPendente {
-  id              String    @id @default(uuid())
-  compradorId     String
-  comprador       Comprador @relation(fields: [compradorId], references: [id])
-  grupoId         String
-  grupo           Grupo     @relation(fields: [grupoId], references: [id])
-  sorteioOrigemId String
-  quantidadeCotas Int
-  valorTotal      Decimal   @db.Decimal(10, 2)
-  utilizado       Boolean   @default(false)
-  criadoEm        DateTime  @default(now())
+  id                String    @id @default(uuid())
+  compradorId       String
+  comprador         Comprador @relation(fields: [compradorId], references: [id])
+  grupoId           String
+  grupo             Grupo     @relation(fields: [grupoId], references: [id])
+  campanhaOrigemId  String
+  quantidadeCotas   Int
+  valorTotal        Decimal   @db.Decimal(10, 2)
+  utilizado         Boolean   @default(false)
+  criadoEm          DateTime  @default(now())
 
   @@map("creditos_pendentes")
 }
@@ -229,17 +246,17 @@ model CreditoPendente {
 enum StatusEscolhaPosCancelamento {
   PENDENTE
   REEMBOLSO
-  CREDITO_PROXIMO_SORTEIO
+  CREDITO_PROXIMA_CAMPANHA
   CASHBACK
 }
 
-// Registra, por comprador, a janela de decisão após o cancelamento de um
-// sorteio: reembolso, manter cotas via crédito, ou (se não se manifestar
+// Registra, por comprador, a janela de decisão após o cancelamento de uma
+// campanha: reembolso, manter cotas via crédito, ou (se não se manifestar
 // no prazo) conversão automática em cashback.
 model EscolhaPosCancelamento {
   id              String                       @id @default(uuid())
-  sorteioId       String
-  sorteio         Sorteio                      @relation(fields: [sorteioId], references: [id])
+  campanhaId      String
+  campanha        Campanha                     @relation(fields: [campanhaId], references: [id])
   compradorId     String
   comprador       Comprador                    @relation(fields: [compradorId], references: [id])
   quantidadeCotas Int

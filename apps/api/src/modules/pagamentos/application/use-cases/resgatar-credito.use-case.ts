@@ -2,11 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 import {
   CREDITO_PENDENTE_REPOSITORY,
   CreditoPendenteRepository,
@@ -15,13 +15,13 @@ import {
 export interface ResgatarCreditoInput {
   creditoId: string;
   compradorId: string;
-  sorteioDestinoId: string;
+  campanhaDestinoId: string;
   numerosCotas: number[];
 }
 
 /**
  * Cobre cancelamento-de-sorteio.feature: "...ela pode escolher os números
- * dessas cotas dentro das disponíveis nesse novo sorteio" — o resgate do
+ * dessas cotas dentro das disponíveis nessa nova campanha" — o resgate do
  * crédito gerado por EscolherManterCotasUseCase.
  */
 @Injectable()
@@ -29,8 +29,8 @@ export class ResgatarCreditoUseCase {
   constructor(
     @Inject(CREDITO_PENDENTE_REPOSITORY)
     private readonly creditoPendenteRepository: CreditoPendenteRepository,
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
   ) {}
@@ -50,16 +50,16 @@ export class ResgatarCreditoUseCase {
       throw new Error('A quantidade de números escolhidos deve ser igual à quantidade de cotas do crédito.');
     }
 
-    const sorteioDestino = await this.sorteioRepository.buscarPorId(input.sorteioDestinoId);
-    if (!sorteioDestino || sorteioDestino.grupoId !== credito.grupoId) {
-      throw new Error('Este crédito não pode ser resgatado nesse sorteio.');
+    const campanhaDestino = await this.campanhaRepository.buscarPorId(input.campanhaDestinoId);
+    if (!campanhaDestino || campanhaDestino.grupoId !== credito.grupoId) {
+      throw new Error('Este crédito não pode ser resgatado nessa campanha.');
     }
 
     for (const numero of input.numerosCotas) {
-      const cota = await this.cotaRepository.buscarPorSorteioENumero(input.sorteioDestinoId, numero);
+      const cota = await this.cotaRepository.buscarPorCampanhaENumero(input.campanhaDestinoId, numero);
 
       if (!cota) {
-        throw new Error(`Cota ${numero} não existe nesse sorteio.`);
+        throw new Error(`Cota ${numero} não existe nessa campanha.`);
       }
 
       cota.pagarComCredito(input.compradorId, agora);

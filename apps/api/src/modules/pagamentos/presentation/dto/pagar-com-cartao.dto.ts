@@ -17,7 +17,7 @@ class DadosCartaoDto {
 
 export class PagarComCartaoDto {
   @IsUUID()
-  sorteioId!: string;
+  campanhaId!: string;
 
   @IsInt()
   @IsPositive()

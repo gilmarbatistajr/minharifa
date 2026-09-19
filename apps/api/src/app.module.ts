@@ -4,7 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { AuthModule } from './shared/auth/auth.module';
-import { SorteiosModule } from './modules/sorteios/sorteios.module';
+import { CampanhasModule } from './modules/campanhas/campanhas.module';
 import { AdministradoresModule } from './modules/administradores/administradores.module';
 import { GruposModule } from './modules/grupos/grupos.module';
 import { CompradoresModule } from './modules/compradores/compradores.module';
@@ -18,7 +18,7 @@ import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
     PrismaModule,
     SharedServicesModule,
     AuthModule,
-    SorteiosModule,
+    CampanhasModule,
     AdministradoresModule,
     GruposModule,
     CompradoresModule,

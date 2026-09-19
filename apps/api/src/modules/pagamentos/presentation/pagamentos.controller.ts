@@ -7,7 +7,7 @@ import { GerarCobrancaPixUseCase } from '../application/use-cases/gerar-cobranca
 import { PagarComCartaoUseCase } from '../application/use-cases/pagar-com-cartao.use-case';
 import { PagarComCashbackUseCase } from '../application/use-cases/pagar-com-cashback.use-case';
 import { ConfirmarPagamentoWebhookUseCase } from '../application/use-cases/confirmar-pagamento-webhook.use-case';
-import { IniciarCancelamentoSorteioUseCase } from '../application/use-cases/iniciar-cancelamento-sorteio.use-case';
+import { IniciarCancelamentoCampanhaUseCase } from '../application/use-cases/iniciar-cancelamento-campanha.use-case';
 import { EscolherReembolsoUseCase } from '../application/use-cases/escolher-reembolso.use-case';
 import { EscolherManterCotasUseCase } from '../application/use-cases/escolher-manter-cotas.use-case';
 import { ResgatarCreditoUseCase } from '../application/use-cases/resgatar-credito.use-case';
@@ -23,7 +23,7 @@ export class PagamentosController {
     private readonly pagarComCartaoUseCase: PagarComCartaoUseCase,
     private readonly pagarComCashbackUseCase: PagarComCashbackUseCase,
     private readonly confirmarPagamentoWebhookUseCase: ConfirmarPagamentoWebhookUseCase,
-    private readonly iniciarCancelamentoSorteioUseCase: IniciarCancelamentoSorteioUseCase,
+    private readonly iniciarCancelamentoCampanhaUseCase: IniciarCancelamentoCampanhaUseCase,
     private readonly escolherReembolsoUseCase: EscolherReembolsoUseCase,
     private readonly escolherManterCotasUseCase: EscolherManterCotasUseCase,
     private readonly resgatarCreditoUseCase: ResgatarCreditoUseCase,
@@ -33,7 +33,7 @@ export class PagamentosController {
   @Post('pagamentos/pix')
   async gerarCobrancaPix(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: GerarCobrancaPixDto) {
     return this.gerarCobrancaPixUseCase.executar({
-      sorteioId: dto.sorteioId,
+      campanhaId: dto.campanhaId,
       numeroCota: dto.numeroCota,
       compradorId: usuario.compradorId!,
     });
@@ -43,7 +43,7 @@ export class PagamentosController {
   @Post('pagamentos/cartao')
   async pagarComCartao(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: PagarComCartaoDto) {
     return this.pagarComCartaoUseCase.executar({
-      sorteioId: dto.sorteioId,
+      campanhaId: dto.campanhaId,
       numeroCota: dto.numeroCota,
       compradorId: usuario.compradorId!,
       dadosCartao: dto.dadosCartao,
@@ -54,7 +54,7 @@ export class PagamentosController {
   @Post('pagamentos/cashback')
   async pagarComCashback(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: GerarCobrancaPixDto) {
     return this.pagarComCashbackUseCase.executar({
-      sorteioId: dto.sorteioId,
+      campanhaId: dto.campanhaId,
       numeroCota: dto.numeroCota,
       compradorId: usuario.compradorId!,
     });
@@ -66,13 +66,13 @@ export class PagamentosController {
   }
 
   @UseGuards(AdministradorGuard)
-  @Post('sorteios/:sorteioId/cancelamento')
+  @Post('campanhas/:campanhaId/cancelamento')
   async iniciarCancelamento(
     @CurrentUser() usuario: PrincipalAutenticado,
-    @Param('sorteioId') sorteioId: string,
+    @Param('campanhaId') campanhaId: string,
   ) {
-    return this.iniciarCancelamentoSorteioUseCase.executar({
-      sorteioId,
+    return this.iniciarCancelamentoCampanhaUseCase.executar({
+      campanhaId,
       administradorId: usuario.administradorId!,
     });
   }
@@ -105,7 +105,7 @@ export class PagamentosController {
     return this.resgatarCreditoUseCase.executar({
       creditoId,
       compradorId: usuario.compradorId!,
-      sorteioDestinoId: dto.sorteioDestinoId,
+      campanhaDestinoId: dto.campanhaDestinoId,
       numerosCotas: dto.numerosCotas,
     });
   }

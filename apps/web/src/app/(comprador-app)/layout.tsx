@@ -6,7 +6,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { useAuth, useSessaoComprador } from '../../lib/auth';
 
 const NAV_ITEMS = [
-  { href: '/sorteios', label: 'Sorteios', icon: IconTicket },
+  { href: '/campanhas', label: 'Campanhas', icon: IconTicket },
   { href: '/conta', label: 'Conta', icon: IconUser },
 ];
 

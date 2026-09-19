@@ -6,7 +6,7 @@ describe('CreditoPendente', () => {
       'credito-1',
       'comprador-maria',
       'grupo-1',
-      'sorteio-1',
+      'campanha-1',
       3,
       150,
       utilizado,

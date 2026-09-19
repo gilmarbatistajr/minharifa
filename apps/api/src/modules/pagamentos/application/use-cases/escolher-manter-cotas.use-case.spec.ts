@@ -1,5 +1,5 @@
-import { Sorteio } from '../../../sorteios/domain/entities/sorteio.entity';
-import { SorteioRepository } from '../../../sorteios/domain/repositories/sorteio.repository';
+import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
+import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { EscolhaPosCancelamento } from '../../domain/entities/escolha-pos-cancelamento.entity';
 import { EscolhaPosCancelamentoRepository } from '../../domain/repositories/escolha-pos-cancelamento.repository';
 import { CreditoPendenteRepository } from '../../domain/repositories/credito-pendente.repository';
@@ -9,7 +9,7 @@ describe('EscolherManterCotasUseCase', () => {
   function criarEscolha(): EscolhaPosCancelamento {
     return new EscolhaPosCancelamento(
       'escolha-1',
-      'sorteio-1',
+      'campanha-1',
       'comprador-maria',
       3,
       150,
@@ -20,15 +20,15 @@ describe('EscolherManterCotasUseCase', () => {
     );
   }
 
-  function criarDependencias(escolha: EscolhaPosCancelamento | null, sorteio: Sorteio | null) {
+  function criarDependencias(escolha: EscolhaPosCancelamento | null, campanha: Campanha | null) {
     const escolhaPosCancelamentoRepository: EscolhaPosCancelamentoRepository = {
       buscarPorId: jest.fn().mockResolvedValue(escolha),
       listarPendentesExpiradas: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
-    const sorteioRepository: SorteioRepository = {
-      buscarPorId: jest.fn().mockResolvedValue(sorteio),
+    const campanhaRepository: CampanhaRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(campanha),
       listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
@@ -41,30 +41,33 @@ describe('EscolherManterCotasUseCase', () => {
       salvar: jest.fn(),
     };
 
-    return { escolhaPosCancelamentoRepository, sorteioRepository, creditoPendenteRepository };
+    return { escolhaPosCancelamentoRepository, campanhaRepository, creditoPendenteRepository };
   }
 
   it('registra um crédito pendente com a quantidade e valor da escolha', async () => {
     const escolha = criarEscolha();
-    const sorteio = new Sorteio(
-      'sorteio-1',
+    const campanha = new Campanha(
+      'campanha-1',
+      'admin-1',
       'grupo-1',
-      'Sorteio de teste',
+      'Campanha de teste',
       'Descrição de teste',
       ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
       100,
-        50,
+      50,
+      'ESCOLHA_NUMERO',
+      'LIBERADA',
       'CANCELADO',
       null,
       null,
     );
-    const deps = criarDependencias(escolha, sorteio);
+    const deps = criarDependencias(escolha, campanha);
     const useCase = new EscolherManterCotasUseCase(
       deps.escolhaPosCancelamentoRepository,
-      deps.sorteioRepository,
+      deps.campanhaRepository,
       deps.creditoPendenteRepository,
     );
 
@@ -74,7 +77,7 @@ describe('EscolherManterCotasUseCase', () => {
     );
 
     expect(resultado.creditoId).toBeDefined();
-    expect(escolha.status).toBe('CREDITO_PROXIMO_SORTEIO');
+    expect(escolha.status).toBe('CREDITO_PROXIMA_CAMPANHA');
     const creditoCriado = (deps.creditoPendenteRepository.criar as jest.Mock).mock.calls[0][0];
     expect(creditoCriado.grupoId).toBe('grupo-1');
     expect(creditoCriado.quantidadeCotas).toBe(3);
@@ -86,7 +89,7 @@ describe('EscolherManterCotasUseCase', () => {
     const deps = criarDependencias(escolha, null);
     const useCase = new EscolherManterCotasUseCase(
       deps.escolhaPosCancelamentoRepository,
-      deps.sorteioRepository,
+      deps.campanhaRepository,
       deps.creditoPendenteRepository,
     );
 

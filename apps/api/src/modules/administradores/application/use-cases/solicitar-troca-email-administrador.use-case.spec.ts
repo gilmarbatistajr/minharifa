@@ -41,7 +41,10 @@ describe('SolicitarTrocaEmailAdministradorUseCase', () => {
       criar: jest.fn(),
     };
     const tokenGenerator: TokenGenerator = { gerar: jest.fn().mockReturnValue('token-novo-email') };
-    const notificationSender: NotificationSender = { enviarEmail: jest.fn().mockResolvedValue(undefined) };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn().mockResolvedValue(undefined),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
 
     return { repositorio, tokenGenerator, notificationSender };
   }

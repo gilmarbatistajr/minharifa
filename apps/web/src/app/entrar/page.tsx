@@ -26,7 +26,7 @@ export default function LoginCompradorPage() {
     try {
       const resultado = await compradoresApi.login({ email, senha });
       entrarComoComprador(resultado);
-      router.push('/sorteios');
+      router.push('/campanhas');
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível entrar.');
     } finally {
@@ -38,7 +38,7 @@ export default function LoginCompradorPage() {
     <AuthLayout
       eyebrow="Área do comprador"
       title="Entrar"
-      subtitle="Acesse sua conta para ver os sorteios que você tem acesso."
+      subtitle="Acesse sua conta para ver as campanhas que você tem acesso."
       footer={
         <>
           Ainda não tem conta?{' '}

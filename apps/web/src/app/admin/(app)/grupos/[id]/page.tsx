@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
@@ -10,15 +10,17 @@ import { Badge } from '../../../../../components/ui/Badge';
 import { CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../../components/ui/Spinner';
-import { IconArrowLeft, IconCopy, IconPlus, IconWhatsapp } from '../../../../../components/ui/icons';
+import { RankingCard } from '../../../../../components/ui/RankingCard';
+import { IconArrowLeft, IconCopy, IconWhatsapp } from '../../../../../components/ui/icons';
 import {
   gruposApi,
   ApiError,
   type CompradorResumo,
   type DetalheGrupo,
-  type Sorteio,
+  type Campanha,
+  type RankingItem,
 } from '../../../../../lib/api';
-import { formatarData, formatarMoeda, formatarStatusSorteio } from '../../../../../lib/format';
+import { formatarData, formatarMoeda, formatarStatusVendasCampanha } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
 const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = {
@@ -31,32 +33,15 @@ const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = 
 };
 
 export default function DetalheGrupoPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex justify-center py-16 text-muted">
-          <Spinner />
-        </div>
-      }
-    >
-      <DetalheGrupoConteudo />
-    </Suspense>
-  );
-}
-
-function DetalheGrupoConteudo() {
   const { id } = useParams<{ id: string }>();
   const { sessao } = useSessaoAdministrador();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  // Muda a cada sorteio criado, forçando o efeito abaixo a refazer o fetch
-  // mesmo permanecendo na mesma rota (o Next não remonta o componente só
-  // por causa de um query param diferente).
-  const sorteioCriado = searchParams.get('sorteioCriado');
 
   const [grupo, setGrupo] = useState<DetalheGrupo | null>(null);
   const [compradores, setCompradores] = useState<CompradorResumo[] | null>(null);
-  const [sorteios, setSorteios] = useState<Sorteio[] | null>(null);
+  const [campanhas, setCampanhas] = useState<Campanha[] | null>(null);
+  const [rankingCotas, setRankingCotas] = useState<RankingItem[] | null>(null);
+  const [rankingVencedores, setRankingVencedores] = useState<RankingItem[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregarGrupo = useCallback(() => {
@@ -68,8 +53,10 @@ function DetalheGrupoConteudo() {
     if (!sessao) return;
     recarregarGrupo();
     gruposApi.listarCompradores(sessao.token, id).then(setCompradores);
-    gruposApi.listarSorteiosDoGrupo(sessao.token, id).then(setSorteios);
-  }, [sessao, id, recarregarGrupo, sorteioCriado]);
+    gruposApi.listarCampanhasDoGrupo(sessao.token, id).then(setCampanhas);
+    gruposApi.rankingCotasCompradas(sessao.token, id).then(setRankingCotas);
+    gruposApi.rankingVencedores(sessao.token, id).then(setRankingVencedores);
+  }, [sessao, id, recarregarGrupo]);
 
   if (!grupo) {
     return (
@@ -100,7 +87,12 @@ function DetalheGrupoConteudo() {
 
       {erro && <Alert tone="error">{erro}</Alert>}
 
-      <SecaoSorteios grupoId={id} sorteios={sorteios} />
+      <SecaoCampanhas campanhas={campanhas} />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RankingCard titulo="🏆 Quem mais comprou cotas (neste grupo)" itens={rankingCotas} rotuloQuantidade="cotas" />
+        <RankingCard titulo="🎉 Quem mais ganhou (neste grupo)" itens={rankingVencedores} rotuloQuantidade="vitórias" />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SecaoAgenteChatbot
@@ -135,54 +127,52 @@ function DetalheGrupoConteudo() {
   );
 }
 
-function SecaoSorteios({ grupoId, sorteios }: { grupoId: string; sorteios: Sorteio[] | null }) {
+function SecaoCampanhas({ campanhas }: { campanhas: Campanha[] | null }) {
   const router = useRouter();
 
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="font-mono text-xs uppercase tracking-wide text-muted">
-          Sorteios {sorteios ? `(${sorteios.length})` : ''}
+          Campanhas {campanhas ? `(${campanhas.length})` : ''}
         </p>
-        <Button
-          variant="secondary"
-          onClick={() => router.push(`/admin/grupos/${grupoId}/sorteios/novo`)}
-        >
-          <IconPlus className="h-4 w-4" /> Criar sorteio
+        <Button variant="secondary" onClick={() => router.push('/admin/campanhas')}>
+          Ver todas as campanhas
         </Button>
       </div>
 
-      {sorteios === null && (
+      {campanhas === null && (
         <div className="flex justify-center py-6 text-muted">
           <Spinner size={18} />
         </div>
       )}
 
-      {sorteios?.length === 0 && (
+      {campanhas?.length === 0 && (
         <EmptyState
-          title="Nenhum sorteio criado ainda"
-          description="Crie o primeiro sorteio deste grupo escolhendo cotas, valor e prêmios."
+          title="Nenhuma campanha lançada para este grupo ainda"
+          description="Crie uma campanha no menu Campanhas e lance-a para este grupo quando estiver pronta."
         />
       )}
 
-      {sorteios && sorteios.length > 0 && (
+      {campanhas && campanhas.length > 0 && (
         <div className="flex flex-col gap-2">
-          {sorteios.map((sorteio) => (
-            <div
-              key={sorteio.id}
-              className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          {campanhas.map((campanha) => (
+            <button
+              key={campanha.id}
+              onClick={() => router.push(`/admin/campanhas/${campanha.id}`)}
+              className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3 text-left transition hover:border-night/30 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p className="font-medium text-night">{sorteio.nome}</p>
+                <p className="font-medium text-night">{campanha.nome}</p>
                 <p className="text-xs text-muted">
-                  {sorteio.quantidadeCotas} cotas de {formatarMoeda(sorteio.valorCota)} · sorteio em{' '}
-                  {formatarData(sorteio.dataRealizacao)}
+                  {campanha.quantidadeCotas} cotas de {formatarMoeda(campanha.valorCota)}
+                  {campanha.dataRealizacao && ` · sorteio em ${formatarData(campanha.dataRealizacao)}`}
                 </p>
               </div>
-              <Badge tone={TOM_STATUS[sorteio.status] ?? 'neutral'}>
-                {formatarStatusSorteio(sorteio.status)}
+              <Badge tone={TOM_STATUS[campanha.statusVendas] ?? 'neutral'}>
+                {formatarStatusVendasCampanha(campanha.statusVendas)}
               </Badge>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -222,7 +212,7 @@ function SecaoAgenteChatbot({
       <Card className="flex flex-col gap-3">
         <p className="font-mono text-xs uppercase tracking-wide text-muted">Agente chatbot</p>
         <p className="text-sm text-muted">
-          Ative o agente para avisar automaticamente o grupo sobre cotas restantes, novos sorteios
+          Ative o agente para avisar automaticamente o grupo sobre cotas restantes, novas campanhas
           e resultados.
         </p>
         <Button
@@ -255,11 +245,11 @@ function SecaoAgenteChatbot({
           }
         />
         <CheckboxField
-          label="Avisar novo sorteio"
-          checked={agenteChatbot.avisaNovoSorteio}
+          label="Avisar nova campanha"
+          checked={agenteChatbot.avisaNovaCampanha}
           onChange={(e) =>
             token &&
-            executar(() => gruposApi.configurarAvisos(token, grupoId, { avisaNovoSorteio: e.target.checked }))
+            executar(() => gruposApi.configurarAvisos(token, grupoId, { avisaNovaCampanha: e.target.checked }))
           }
         />
         <CheckboxField

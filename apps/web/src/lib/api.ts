@@ -62,8 +62,8 @@ export interface ContaAdministrador {
   criadoEm: string;
 }
 
-export interface SorteioResumoDashboard {
-  sorteioId: string;
+export interface CampanhaResumoDashboard {
+  campanhaId: string;
   status: string;
   percentualVendido: number;
   encerrandoEm24h: boolean;
@@ -71,8 +71,8 @@ export interface SorteioResumoDashboard {
 }
 
 export interface VisaoGeralDashboard {
-  temSorteios: boolean;
-  sorteios: SorteioResumoDashboard[];
+  temCampanhas: boolean;
+  campanhas: CampanhaResumoDashboard[];
 }
 
 export interface Grupo {
@@ -91,7 +91,7 @@ export interface DetalheGrupo {
   agenteChatbot: {
     ativo: boolean;
     avisaCotasRestantes: boolean;
-    avisaNovoSorteio: boolean;
+    avisaNovaCampanha: boolean;
     avisaResultado: boolean;
   } | null;
 }
@@ -102,7 +102,7 @@ export interface CompradorResumo {
   telefone: string;
 }
 
-export interface ContagemSorteios {
+export interface ContagemCampanhas {
   finalizados: number;
   emAndamento: number;
 }
@@ -118,7 +118,7 @@ export interface Premio {
   criadoEm: string;
 }
 
-export type StatusSorteio =
+export type StatusVendasCampanha =
   | 'AGUARDANDO_ABERTURA'
   | 'VENDAS_ABERTAS'
   | 'VENDAS_ENCERRADAS'
@@ -126,20 +126,37 @@ export type StatusSorteio =
   | 'FINALIZADO'
   | 'CANCELADO';
 
-export interface Sorteio {
+export type StatusCampanha = 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FINALIZADA';
+
+export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
+
+export interface Campanha {
   id: string;
-  grupoId: string;
+  administradorId: string;
+  grupoId: string | null;
   nome: string;
   descricao: string;
   premioIds: string[];
-  dataAberturaVendas: string;
-  dataEncerramentoVendas: string;
-  dataRealizacao: string;
+  dataAberturaVendas: string | null;
+  dataEncerramentoVendas: string | null;
+  dataRealizacao: string | null;
   quantidadeCotas: number;
   valorCota: number;
-  status: StatusSorteio;
+  formaVenda: FormaVendaCotas;
+  status: StatusCampanha;
+  statusVendas: StatusVendasCampanha;
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
+}
+
+export type Medalha = 'OURO' | 'PRATA' | 'BRONZE';
+
+export interface RankingItem {
+  posicao: number;
+  medalha: Medalha;
+  compradorId: string;
+  nome: string;
+  quantidade: number;
 }
 
 export interface DadosCartao {
@@ -147,6 +164,18 @@ export interface DadosCartao {
   validade: string;
   cvv: string;
   nomeTitular: string;
+}
+
+export interface AlertaAutomaticoGrupo {
+  grupoId: string;
+  nomeGrupo: string;
+  campanhaAtivaNome: string | null;
+  agenteChatbot: {
+    ativo: boolean;
+    avisaCotasRestantes: boolean;
+    avisaNovaCampanha: boolean;
+    avisaResultado: boolean;
+  } | null;
 }
 
 // ---------- Administradores ----------
@@ -182,6 +211,12 @@ export const administradoresApi = {
     request<void>('/administradores/me/email', { method: 'POST', token, body: { novoEmail } }),
 
   dashboard: (token: string) => request<VisaoGeralDashboard>('/administradores/dashboard', { token }),
+
+  rankingCotasCompradas: (token: string) =>
+    request<RankingItem[]>('/administradores/dashboard/ranking/cotas-compradas', { token }),
+
+  rankingVencedores: (token: string) =>
+    request<RankingItem[]>('/administradores/dashboard/ranking/vencedores', { token }),
 };
 
 // ---------- Grupos ----------
@@ -200,7 +235,7 @@ export const gruposApi = {
   configurarAvisos: (
     token: string,
     grupoId: string,
-    avisos: { avisaCotasRestantes?: boolean; avisaNovoSorteio?: boolean; avisaResultado?: boolean },
+    avisos: { avisaCotasRestantes?: boolean; avisaNovaCampanha?: boolean; avisaResultado?: boolean },
   ) =>
     request<void>(`/grupos/${grupoId}/agente-chatbot/avisos`, {
       method: 'PATCH',
@@ -214,31 +249,29 @@ export const gruposApi = {
   listarCompradores: (token: string, grupoId: string) =>
     request<CompradorResumo[]>(`/grupos/${grupoId}/compradores`, { token }),
 
-  contarSorteios: (token: string, grupoId: string) =>
-    request<ContagemSorteios>(`/grupos/${grupoId}/sorteios/contagem`, { token }),
+  contarCampanhas: (token: string, grupoId: string) =>
+    request<ContagemCampanhas>(`/grupos/${grupoId}/campanhas/contagem`, { token }),
 
-  cadastrarSorteio: (
+  listarCampanhasDoGrupo: (token: string, grupoId: string) =>
+    request<Campanha[]>(`/grupos/${grupoId}/campanhas`, { token }),
+
+  lancarCampanha: (
     token: string,
     grupoId: string,
-    dados: {
-      nome: string;
-      descricao: string;
-      premioIds: string[];
-      quantidadeCotas: number;
-      valorCota: number;
-      dataAberturaVendas: string;
-      dataEncerramentoVendas: string;
-      dataRealizacao: string;
-    },
+    campanhaId: string,
+    dados: { dataAberturaVendas: string; dataEncerramentoVendas: string; dataRealizacao: string },
   ) =>
-    request<{ sorteioId: string }>(`/grupos/${grupoId}/sorteios`, {
+    request<{ campanhaId: string }>(`/grupos/${grupoId}/campanhas/${campanhaId}/lancar`, {
       method: 'POST',
       token,
       body: dados,
     }),
 
-  listarSorteiosDoGrupo: (token: string, grupoId: string) =>
-    request<Sorteio[]>(`/grupos/${grupoId}/sorteios`, { token }),
+  rankingCotasCompradas: (token: string, grupoId: string) =>
+    request<RankingItem[]>(`/grupos/${grupoId}/ranking/cotas-compradas`, { token }),
+
+  rankingVencedores: (token: string, grupoId: string) =>
+    request<RankingItem[]>(`/grupos/${grupoId}/ranking/vencedores`, { token }),
 
   gerarLinkConvite: (token: string, grupoId: string) =>
     request<{ codigo: string }>(`/grupos/${grupoId}/links-convite`, { method: 'POST', token }),
@@ -246,7 +279,8 @@ export const gruposApi = {
   validarCodigoConvite: (codigo: string) =>
     request<{ grupoId: string }>(`/grupos/convite/${codigo}`),
 
-  sorteiosVisiveis: (token: string) => request<Sorteio[]>('/grupos/sorteios-visiveis', { token }),
+  listarAlertasAutomaticos: (token: string) =>
+    request<AlertaAutomaticoGrupo[]>('/grupos/alertas-automaticos', { token }),
 };
 
 // ---------- Compradores ----------
@@ -297,7 +331,7 @@ export const premiosApi = {
   ) => request<void>(`/premios/${premioId}`, { method: 'PATCH', token, body: dados }),
 };
 
-// ---------- Sorteios / cotas ----------
+// ---------- Campanhas / cotas ----------
 
 export type StatusCota = 'DISPONIVEL' | 'RESERVADA' | 'PAGA' | 'CANCELADA_REEMBOLSADA';
 
@@ -307,55 +341,82 @@ export interface CotaResumo {
   minhaCota: boolean;
 }
 
-export const sorteiosApi = {
-  listarCotas: (token: string, sorteioId: string) =>
-    request<CotaResumo[]>(`/sorteios/${sorteioId}/cotas`, { token }),
+export const campanhasApi = {
+  criar: (
+    token: string,
+    dados: {
+      nome: string;
+      descricao: string;
+      premioIds: string[];
+      quantidadeCotas: number;
+      valorCota: number;
+      formaVenda: FormaVendaCotas;
+    },
+  ) => request<{ campanhaId: string }>('/campanhas', { method: 'POST', token, body: dados }),
 
-  reservarCota: (token: string, sorteioId: string, numero: number) =>
-    request<{ cotaId: string; reservaExpiraEm: string }>(`/sorteios/${sorteioId}/cotas/reservar`, {
+  listar: (token: string) => request<Campanha[]>('/campanhas', { token }),
+
+  buscar: (token: string, campanhaId: string) => request<Campanha>(`/campanhas/${campanhaId}`, { token }),
+
+  marcarComoRevisada: (token: string, campanhaId: string) =>
+    request<void>(`/campanhas/${campanhaId}/marcar-revisada`, { method: 'POST', token }),
+
+  finalizar: (token: string, campanhaId: string, cotaVencedoraNumero: number) =>
+    request<{ campanhaId: string; compradorVencedorId: string }>(
+      `/campanhas/${campanhaId}/finalizar`,
+      { method: 'POST', token, body: { cotaVencedoraNumero } },
+    ),
+
+  listarCotas: (token: string, campanhaId: string) =>
+    request<CotaResumo[]>(`/campanhas/${campanhaId}/cotas`, { token }),
+
+  reservarCota: (token: string, campanhaId: string, numero: number) =>
+    request<{ cotaId: string; reservaExpiraEm: string }>(`/campanhas/${campanhaId}/cotas/reservar`, {
       method: 'POST',
       token,
-      body: { sorteioId, numero },
+      body: { numero },
     }),
 
   reservarLote: (
     token: string,
-    sorteioId: string,
+    campanhaId: string,
     escolha: { numeros: number[] } | { quantidadeAleatoria: number },
   ) =>
-    request<{ numeros: number[]; reservaExpiraEm: string }>(`/sorteios/${sorteioId}/cotas/reservar-lote`, {
+    request<{ numeros: number[]; reservaExpiraEm: string }>(`/campanhas/${campanhaId}/cotas/reservar-lote`, {
       method: 'POST',
       token,
       body: escolha,
     }),
 
-  cancelar: (token: string, sorteioId: string) =>
-    request<{ cotasLiberadas: number; escolhasGeradas: number }>(`/sorteios/${sorteioId}/cancelamento`, {
+  cancelar: (token: string, campanhaId: string) =>
+    request<{ cotasLiberadas: number; escolhasGeradas: number }>(`/campanhas/${campanhaId}/cancelamento`, {
       method: 'POST',
       token,
     }),
+
+  visiveis: (token: string) => request<Campanha[]>('/campanhas/visiveis', { token }),
 };
 
 // ---------- Pagamentos ----------
 
 export const pagamentosApi = {
-  gerarCobrancaPix: (token: string, sorteioId: string, numeroCota: number) =>
+  gerarCobrancaPix: (token: string, campanhaId: string, numeroCota: number) =>
     request<{ qrCode: string; codigoCopiaCola: string; valor: number; validoAte: string | null }>(
       '/pagamentos/pix',
-      { method: 'POST', token, body: { sorteioId, numeroCota } },
+      { method: 'POST', token, body: { campanhaId, numeroCota } },
     ),
 
-  pagarComCartao: (token: string, sorteioId: string, numeroCota: number, dadosCartao: DadosCartao) =>
+  pagarComCartao: (token: string, campanhaId: string, numeroCota: number, dadosCartao: DadosCartao) =>
     request<{ status: 'APROVADO' | 'RECUSADO' }>('/pagamentos/cartao', {
       method: 'POST',
       token,
-      body: { sorteioId, numeroCota, dadosCartao },
+      body: { campanhaId, numeroCota, dadosCartao },
     }),
 
-  pagarComCashback: (token: string, sorteioId: string, numeroCota: number) =>
+  pagarComCashback: (token: string, campanhaId: string, numeroCota: number) =>
     request<{ pagoIntegralmente: boolean; valorAbatido: number; valorRestante: number }>(
       '/pagamentos/cashback',
-      { method: 'POST', token, body: { sorteioId, numeroCota } },
+      { method: 'POST', token, body: { campanhaId, numeroCota } },
     ),
 };
 
@@ -374,7 +435,7 @@ export const cancelamentosApi = {
   resgatarCredito: (
     token: string,
     creditoId: string,
-    dados: { sorteioDestinoId: string; numerosCotas: number[] },
+    dados: { campanhaDestinoId: string; numerosCotas: number[] },
   ) =>
     request<void>(`/cancelamentos/creditos/${creditoId}/resgatar`, {
       method: 'POST',

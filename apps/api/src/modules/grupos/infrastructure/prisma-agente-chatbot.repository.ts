@@ -10,7 +10,7 @@ function paraDominio(registro: AgenteChatbotPrisma): AgenteChatbot {
     registro.grupoId,
     registro.ativo,
     registro.avisaCotasRestantes,
-    registro.avisaNovoSorteio,
+    registro.avisaNovaCampanha,
     registro.avisaResultado,
   );
 }
@@ -31,7 +31,7 @@ export class PrismaAgenteChatbotRepository implements AgenteChatbotRepository {
         grupoId: agente.grupoId,
         ativo: agente.ativo,
         avisaCotasRestantes: agente.avisaCotasRestantes,
-        avisaNovoSorteio: agente.avisaNovoSorteio,
+        avisaNovaCampanha: agente.avisaNovaCampanha,
         avisaResultado: agente.avisaResultado,
       },
     });
@@ -43,7 +43,7 @@ export class PrismaAgenteChatbotRepository implements AgenteChatbotRepository {
       data: {
         ativo: agente.ativo,
         avisaCotasRestantes: agente.avisaCotasRestantes,
-        avisaNovoSorteio: agente.avisaNovoSorteio,
+        avisaNovaCampanha: agente.avisaNovaCampanha,
         avisaResultado: agente.avisaResultado,
       },
     });

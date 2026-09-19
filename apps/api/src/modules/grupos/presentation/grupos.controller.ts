@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AdministradorGuard } from '../../../shared/auth/guards/administrador.guard';
-import { CompradorGuard } from '../../../shared/auth/guards/comprador.guard';
 import { CurrentUser } from '../../../shared/auth/decorators/current-user.decorator';
 import { PrincipalAutenticado } from '../../../shared/auth/jwt-payload.interface';
 import { CadastrarGrupoUseCase } from '../application/use-cases/cadastrar-grupo.use-case';
@@ -10,16 +9,18 @@ import { CriarAgenteChatbotUseCase } from '../application/use-cases/criar-agente
 import { ConfigurarAvisosAgenteChatbotUseCase } from '../application/use-cases/configurar-avisos-agente-chatbot.use-case';
 import { DesativarAgenteChatbotUseCase } from '../application/use-cases/desativar-agente-chatbot.use-case';
 import { ListarCompradoresDoGrupoUseCase } from '../application/use-cases/listar-compradores-grupo.use-case';
-import { ContarSorteiosDoGrupoUseCase } from '../application/use-cases/contar-sorteios-grupo.use-case';
+import { ContarCampanhasDoGrupoUseCase } from '../application/use-cases/contar-campanhas-grupo.use-case';
 import { GerarLinkConviteUseCase } from '../application/use-cases/gerar-link-convite.use-case';
 import { ValidarCodigoConviteUseCase } from '../application/use-cases/validar-codigo-convite.use-case';
 import { RevogarLinkConviteUseCase } from '../application/use-cases/revogar-link-convite.use-case';
-import { ListarSorteiosVisiveisParaCompradorUseCase } from '../application/use-cases/listar-sorteios-visiveis-comprador.use-case';
-import { CadastrarSorteioUseCase } from '../application/use-cases/cadastrar-sorteio.use-case';
-import { ListarSorteiosDoGrupoUseCase } from '../application/use-cases/listar-sorteios-grupo.use-case';
+import { ListarCampanhasDoGrupoUseCase } from '../application/use-cases/listar-campanhas-grupo.use-case';
+import { LancarCampanhaUseCase } from '../application/use-cases/lancar-campanha.use-case';
+import { RankingCotasCompradasUseCase } from '../application/use-cases/ranking-cotas-compradas.use-case';
+import { RankingVencedoresUseCase } from '../application/use-cases/ranking-vencedores.use-case';
+import { ListarAlertasAutomaticosUseCase } from '../application/use-cases/listar-alertas-automaticos.use-case';
 import { CadastrarGrupoDto } from './dto/cadastrar-grupo.dto';
 import { ConfigurarAvisosAgenteChatbotDto } from './dto/configurar-avisos-agente-chatbot.dto';
-import { CadastrarSorteioDto } from './dto/cadastrar-sorteio.dto';
+import { LancarCampanhaDto } from './dto/lancar-campanha.dto';
 
 @Controller('grupos')
 export class GruposController {
@@ -31,13 +32,15 @@ export class GruposController {
     private readonly configurarAvisosAgenteChatbotUseCase: ConfigurarAvisosAgenteChatbotUseCase,
     private readonly desativarAgenteChatbotUseCase: DesativarAgenteChatbotUseCase,
     private readonly listarCompradoresDoGrupoUseCase: ListarCompradoresDoGrupoUseCase,
-    private readonly contarSorteiosDoGrupoUseCase: ContarSorteiosDoGrupoUseCase,
+    private readonly contarCampanhasDoGrupoUseCase: ContarCampanhasDoGrupoUseCase,
     private readonly gerarLinkConviteUseCase: GerarLinkConviteUseCase,
     private readonly validarCodigoConviteUseCase: ValidarCodigoConviteUseCase,
     private readonly revogarLinkConviteUseCase: RevogarLinkConviteUseCase,
-    private readonly listarSorteiosVisiveisParaCompradorUseCase: ListarSorteiosVisiveisParaCompradorUseCase,
-    private readonly cadastrarSorteioUseCase: CadastrarSorteioUseCase,
-    private readonly listarSorteiosDoGrupoUseCase: ListarSorteiosDoGrupoUseCase,
+    private readonly listarCampanhasDoGrupoUseCase: ListarCampanhasDoGrupoUseCase,
+    private readonly lancarCampanhaUseCase: LancarCampanhaUseCase,
+    private readonly rankingCotasCompradasUseCase: RankingCotasCompradasUseCase,
+    private readonly rankingVencedoresUseCase: RankingVencedoresUseCase,
+    private readonly listarAlertasAutomaticosUseCase: ListarAlertasAutomaticosUseCase,
   ) {}
 
   @UseGuards(AdministradorGuard)
@@ -54,6 +57,16 @@ export class GruposController {
   @Get()
   async listarMeusGrupos(@CurrentUser() usuario: PrincipalAutenticado) {
     return this.listarGruposDoAdministradorUseCase.executar({
+      administradorId: usuario.administradorId!,
+    });
+  }
+
+  // Precisa ficar antes de ":grupoId" entre as rotas GET: ver comentário mais
+  // abaixo sobre por que ":grupoId" tem que ser o último.
+  @UseGuards(AdministradorGuard)
+  @Get('alertas-automaticos')
+  async listarAlertasAutomaticos(@CurrentUser() usuario: PrincipalAutenticado) {
+    return this.listarAlertasAutomaticosUseCase.executar({
       administradorId: usuario.administradorId!,
     });
   }
@@ -109,32 +122,41 @@ export class GruposController {
   }
 
   @UseGuards(AdministradorGuard)
-  @Get(':grupoId/sorteios/contagem')
-  async contarSorteios(
+  @Get(':grupoId/campanhas/contagem')
+  async contarCampanhas(
     @CurrentUser() usuario: PrincipalAutenticado,
     @Param('grupoId') grupoId: string,
   ) {
-    return this.contarSorteiosDoGrupoUseCase.executar({
+    return this.contarCampanhasDoGrupoUseCase.executar({
       administradorId: usuario.administradorId!,
       grupoId,
     });
   }
 
   @UseGuards(AdministradorGuard)
-  @Post(':grupoId/sorteios')
-  async cadastrarSorteio(
+  @Get(':grupoId/campanhas')
+  async listarCampanhasDoGrupo(
     @CurrentUser() usuario: PrincipalAutenticado,
     @Param('grupoId') grupoId: string,
-    @Body() dto: CadastrarSorteioDto,
   ) {
-    return this.cadastrarSorteioUseCase.executar({
+    return this.listarCampanhasDoGrupoUseCase.executar({
       administradorId: usuario.administradorId!,
       grupoId,
-      nome: dto.nome,
-      descricao: dto.descricao,
-      premioIds: dto.premioIds,
-      quantidadeCotas: dto.quantidadeCotas,
-      valorCota: dto.valorCota,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Post(':grupoId/campanhas/:campanhaId/lancar')
+  async lancarCampanha(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('grupoId') grupoId: string,
+    @Param('campanhaId') campanhaId: string,
+    @Body() dto: LancarCampanhaDto,
+  ) {
+    return this.lancarCampanhaUseCase.executar({
+      administradorId: usuario.administradorId!,
+      grupoId,
+      campanhaId,
       dataAberturaVendas: new Date(dto.dataAberturaVendas),
       dataEncerramentoVendas: new Date(dto.dataEncerramentoVendas),
       dataRealizacao: new Date(dto.dataRealizacao),
@@ -142,12 +164,24 @@ export class GruposController {
   }
 
   @UseGuards(AdministradorGuard)
-  @Get(':grupoId/sorteios')
-  async listarSorteiosDoGrupo(
+  @Get(':grupoId/ranking/cotas-compradas')
+  async rankingCotasCompradas(
     @CurrentUser() usuario: PrincipalAutenticado,
     @Param('grupoId') grupoId: string,
   ) {
-    return this.listarSorteiosDoGrupoUseCase.executar({
+    return this.rankingCotasCompradasUseCase.executar({
+      administradorId: usuario.administradorId!,
+      grupoId,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Get(':grupoId/ranking/vencedores')
+  async rankingVencedores(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('grupoId') grupoId: string,
+  ) {
+    return this.rankingVencedoresUseCase.executar({
       administradorId: usuario.administradorId!,
       grupoId,
     });
@@ -176,16 +210,8 @@ export class GruposController {
     return this.validarCodigoConviteUseCase.executar({ codigo });
   }
 
-  @UseGuards(CompradorGuard)
-  @Get('sorteios-visiveis')
-  async listarSorteiosVisiveis(@CurrentUser() usuario: PrincipalAutenticado) {
-    return this.listarSorteiosVisiveisParaCompradorUseCase.executar({
-      grupoId: usuario.grupoId!,
-    });
-  }
-
   // Precisa ficar por último entre as rotas GET: ":grupoId" combina com
-  // qualquer segmento único e sombrearia "convite/:codigo"/"sorteios-visiveis"
+  // qualquer segmento único e sombrearia "convite/:codigo"/"alertas-automaticos"
   // se viesse antes.
   @UseGuards(AdministradorGuard)
   @Get(':grupoId')

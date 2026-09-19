@@ -2,18 +2,18 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 
 export interface ObterVisaoGeralDashboardInput {
   administradorId: string;
 }
 
-export interface SorteioResumoDashboard {
-  sorteioId: string;
+export interface CampanhaResumoDashboard {
+  campanhaId: string;
   status: string;
   percentualVendido: number;
   encerrandoEm24h: boolean;
@@ -21,21 +21,21 @@ export interface SorteioResumoDashboard {
 }
 
 export interface ObterVisaoGeralDashboardOutput {
-  temSorteios: boolean;
-  sorteios: SorteioResumoDashboard[];
+  temCampanhas: boolean;
+  campanhas: CampanhaResumoDashboard[];
 }
 
-const STATUS_ATIVOS = ['VENDAS_ABERTAS', 'COTAS_ESGOTADAS'];
+const STATUS_VENDAS_ATIVOS = ['VENDAS_ABERTAS', 'COTAS_ESGOTADAS'];
 
 /**
- * Cobre dashboard-visao-geral.feature: visão com sorteios ativos, onboarding
- * sem sorteios, atalho "encerrando em 24h" e atalho "aguardando resultado".
+ * Cobre dashboard-visao-geral.feature: visão com campanhas ativas, onboarding
+ * sem campanhas, atalho "encerrando em 24h" e atalho "aguardando resultado".
  */
 @Injectable()
 export class ObterVisaoGeralDashboardUseCase {
   constructor(
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
   ) {}
@@ -44,30 +44,30 @@ export class ObterVisaoGeralDashboardUseCase {
     input: ObterVisaoGeralDashboardInput,
     agora: Date = new Date(),
   ): Promise<ObterVisaoGeralDashboardOutput> {
-    const todosOsSorteios = await this.sorteioRepository.listarPorAdministrador(
+    const todasAsCampanhas = await this.campanhaRepository.listarPorAdministrador(
       input.administradorId,
     );
 
-    if (todosOsSorteios.length === 0) {
-      return { temSorteios: false, sorteios: [] };
+    if (todasAsCampanhas.length === 0) {
+      return { temCampanhas: false, campanhas: [] };
     }
 
-    const sorteiosAtivos = todosOsSorteios.filter((sorteio) =>
-      STATUS_ATIVOS.includes(sorteio.status),
+    const campanhasAtivas = todasAsCampanhas.filter((campanha) =>
+      STATUS_VENDAS_ATIVOS.includes(campanha.statusVendas),
     );
 
-    const resumos: SorteioResumoDashboard[] = [];
-    for (const sorteio of sorteiosAtivos) {
-      const cotasPagas = await this.cotaRepository.contarPagasPorSorteio(sorteio.id);
+    const resumos: CampanhaResumoDashboard[] = [];
+    for (const campanha of campanhasAtivas) {
+      const cotasPagas = await this.cotaRepository.contarPagasPorCampanha(campanha.id);
       resumos.push({
-        sorteioId: sorteio.id,
-        status: sorteio.status,
-        percentualVendido: sorteio.calcularPercentualVendido(cotasPagas),
-        encerrandoEm24h: sorteio.estaEncerrandoEm24h(agora),
-        aguardandoResultado: sorteio.estaAguardandoResultado(),
+        campanhaId: campanha.id,
+        status: campanha.statusVendas,
+        percentualVendido: campanha.calcularPercentualVendido(cotasPagas),
+        encerrandoEm24h: campanha.estaEncerrandoEm24h(agora),
+        aguardandoResultado: campanha.estaAguardandoResultado(),
       });
     }
 
-    return { temSorteios: true, sorteios: resumos };
+    return { temCampanhas: true, campanhas: resumos };
   }
 }

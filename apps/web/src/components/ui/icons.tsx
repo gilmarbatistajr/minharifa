@@ -88,6 +88,15 @@ export function IconWhatsapp({ className = base }: IconProps) {
   );
 }
 
+export function IconBell({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
+      <path d="M6 9a6 6 0 0 1 12 0c0 3.5 1 5 2 6H4c1-1 2-2.5 2-6Z" />
+      <path d="M9.5 19a2.5 2.5 0 0 0 5 0" />
+    </svg>
+  );
+}
+
 export function IconCheck({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>

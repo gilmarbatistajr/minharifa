@@ -28,6 +28,7 @@ describe('CadastrarAdministradorUseCase', () => {
     };
     const notificationSender: NotificationSender = {
       enviarEmail: jest.fn().mockResolvedValue(undefined),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
     };
 
     return { repositorio, passwordHasher, tokenGenerator, notificationSender };

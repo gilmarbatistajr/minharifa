@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 import {
   ESCOLHA_POS_CANCELAMENTO_REPOSITORY,
   EscolhaPosCancelamentoRepository,
@@ -25,18 +25,18 @@ export interface EscolherManterCotasOutput {
 
 /**
  * Cobre cancelamento-de-sorteio.feature: "Comprador escolhe manter a
- * quantidade de cotas para o próximo sorteio" e "Ainda não existe um
- * próximo sorteio no momento da escolha" — em ambos os casos o crédito é
+ * quantidade de cotas para a próxima campanha" e "Ainda não existe uma
+ * próxima campanha no momento da escolha" — em ambos os casos o crédito é
  * registrado; o resgate das cotas específicas acontece em um segundo passo
- * (ResgatarCreditoUseCase), quando um sorteio de destino já existir.
+ * (ResgatarCreditoUseCase), quando uma campanha de destino já existir.
  */
 @Injectable()
 export class EscolherManterCotasUseCase {
   constructor(
     @Inject(ESCOLHA_POS_CANCELAMENTO_REPOSITORY)
     private readonly escolhaPosCancelamentoRepository: EscolhaPosCancelamentoRepository,
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(CREDITO_PENDENTE_REPOSITORY)
     private readonly creditoPendenteRepository: CreditoPendenteRepository,
   ) {}
@@ -48,9 +48,9 @@ export class EscolherManterCotasUseCase {
       throw new Error('Escolha não encontrada.');
     }
 
-    const sorteio = await this.sorteioRepository.buscarPorId(escolha.sorteioId);
-    if (!sorteio) {
-      throw new Error('Sorteio de origem não encontrado.');
+    const campanha = await this.campanhaRepository.buscarPorId(escolha.campanhaId);
+    if (!campanha) {
+      throw new Error('Campanha de origem não encontrada.');
     }
 
     escolha.escolherManterCotas(agora);
@@ -59,8 +59,8 @@ export class EscolherManterCotasUseCase {
     const credito = new CreditoPendente(
       randomUUID(),
       input.compradorId,
-      sorteio.grupoId,
-      escolha.sorteioId,
+      campanha.grupoId!,
+      escolha.campanhaId,
       escolha.quantidadeCotas,
       escolha.valorTotal,
       false,

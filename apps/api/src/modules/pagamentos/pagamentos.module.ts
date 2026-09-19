@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SorteiosModule } from '../sorteios/sorteios.module';
+import { CampanhasModule } from '../campanhas/campanhas.module';
 import { GruposModule } from '../grupos/grupos.module';
 import { CompradoresModule } from '../compradores/compradores.module';
 import { PAGAMENTO_REPOSITORY } from './domain/repositories/pagamento.repository';
@@ -19,7 +19,7 @@ import { GerarCobrancaPixUseCase } from './application/use-cases/gerar-cobranca-
 import { PagarComCartaoUseCase } from './application/use-cases/pagar-com-cartao.use-case';
 import { PagarComCashbackUseCase } from './application/use-cases/pagar-com-cashback.use-case';
 import { ConfirmarPagamentoWebhookUseCase } from './application/use-cases/confirmar-pagamento-webhook.use-case';
-import { IniciarCancelamentoSorteioUseCase } from './application/use-cases/iniciar-cancelamento-sorteio.use-case';
+import { IniciarCancelamentoCampanhaUseCase } from './application/use-cases/iniciar-cancelamento-campanha.use-case';
 import { EscolherReembolsoUseCase } from './application/use-cases/escolher-reembolso.use-case';
 import { EscolherManterCotasUseCase } from './application/use-cases/escolher-manter-cotas.use-case';
 import { ResgatarCreditoUseCase } from './application/use-cases/resgatar-credito.use-case';
@@ -27,7 +27,7 @@ import { ProcessarEscolhasExpiradasUseCase } from './application/use-cases/proce
 import { PagamentosController } from './presentation/pagamentos.controller';
 
 @Module({
-  imports: [SorteiosModule, GruposModule, CompradoresModule],
+  imports: [CampanhasModule, GruposModule, CompradoresModule],
   controllers: [PagamentosController],
   providers: [
     { provide: PAGAMENTO_REPOSITORY, useClass: PrismaPagamentoRepository },
@@ -40,7 +40,7 @@ import { PagamentosController } from './presentation/pagamentos.controller';
     PagarComCartaoUseCase,
     PagarComCashbackUseCase,
     ConfirmarPagamentoWebhookUseCase,
-    IniciarCancelamentoSorteioUseCase,
+    IniciarCancelamentoCampanhaUseCase,
     EscolherReembolsoUseCase,
     EscolherManterCotasUseCase,
     ResgatarCreditoUseCase,

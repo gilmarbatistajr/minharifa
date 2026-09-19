@@ -39,7 +39,7 @@ function Conteudo() {
   if (estado === 'sucesso') {
     return (
       <Alert tone="success">
-        E-mail confirmado! Você já pode criar sorteios.{' '}
+        E-mail confirmado! Você já pode criar campanhas.{' '}
         <Link href="/admin/entrar" className="font-semibold">
           Ir para o login
         </Link>

@@ -8,7 +8,7 @@ describe('ProcessarEscolhasExpiradasUseCase', () => {
   function criarEscolha(): EscolhaPosCancelamento {
     return new EscolhaPosCancelamento(
       'escolha-1',
-      'sorteio-1',
+      'campanha-1',
       'comprador-maria',
       3,
       150,

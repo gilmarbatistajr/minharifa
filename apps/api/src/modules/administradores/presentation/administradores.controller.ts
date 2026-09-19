@@ -13,6 +13,8 @@ import { AlterarSenhaAdministradorUseCase } from '../application/use-cases/alter
 import { SolicitarTrocaEmailAdministradorUseCase } from '../application/use-cases/solicitar-troca-email-administrador.use-case';
 import { ConfirmarNovoEmailAdministradorUseCase } from '../application/use-cases/confirmar-novo-email-administrador.use-case';
 import { ObterVisaoGeralDashboardUseCase } from '../application/use-cases/obter-visao-geral-dashboard.use-case';
+import { RankingCotasCompradasAdministradorUseCase } from '../application/use-cases/ranking-cotas-compradas-administrador.use-case';
+import { RankingVencedoresAdministradorUseCase } from '../application/use-cases/ranking-vencedores-administrador.use-case';
 import { CadastrarAdministradorDto } from './dto/cadastrar-administrador.dto';
 import { LoginAdministradorDto } from './dto/login-administrador.dto';
 import { TokenDto } from './dto/token.dto';
@@ -36,6 +38,8 @@ export class AdministradoresController {
     private readonly solicitarTrocaEmailUseCase: SolicitarTrocaEmailAdministradorUseCase,
     private readonly confirmarNovoEmailUseCase: ConfirmarNovoEmailAdministradorUseCase,
     private readonly obterVisaoGeralDashboardUseCase: ObterVisaoGeralDashboardUseCase,
+    private readonly rankingCotasCompradasAdministradorUseCase: RankingCotasCompradasAdministradorUseCase,
+    private readonly rankingVencedoresAdministradorUseCase: RankingVencedoresAdministradorUseCase,
   ) {}
 
   @Post()
@@ -109,6 +113,22 @@ export class AdministradoresController {
   @Get('dashboard')
   async obterVisaoGeralDashboard(@CurrentUser() usuario: PrincipalAutenticado) {
     return this.obterVisaoGeralDashboardUseCase.executar({
+      administradorId: usuario.administradorId!,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Get('dashboard/ranking/cotas-compradas')
+  async rankingCotasCompradas(@CurrentUser() usuario: PrincipalAutenticado) {
+    return this.rankingCotasCompradasAdministradorUseCase.executar({
+      administradorId: usuario.administradorId!,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Get('dashboard/ranking/vencedores')
+  async rankingVencedores(@CurrentUser() usuario: PrincipalAutenticado) {
+    return this.rankingVencedoresAdministradorUseCase.executar({
       administradorId: usuario.administradorId!,
     });
   }

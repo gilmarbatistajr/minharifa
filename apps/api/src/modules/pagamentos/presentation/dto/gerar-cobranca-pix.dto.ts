@@ -2,7 +2,7 @@ import { IsInt, IsPositive, IsUUID } from 'class-validator';
 
 export class GerarCobrancaPixDto {
   @IsUUID()
-  sorteioId!: string;
+  campanhaId!: string;
 
   @IsInt()
   @IsPositive()

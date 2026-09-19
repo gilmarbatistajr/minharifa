@@ -27,16 +27,16 @@ describe('AgenteChatbot', () => {
     agente.configurarAvisos({ avisaCotasRestantes: false });
 
     expect(agente.avisaCotasRestantes).toBe(false);
-    expect(agente.avisaNovoSorteio).toBe(true);
+    expect(agente.avisaNovaCampanha).toBe(true);
     expect(agente.avisaResultado).toBe(true);
   });
 
   it('configura múltiplos avisos de uma vez', () => {
     const agente = criarAgente();
 
-    agente.configurarAvisos({ avisaNovoSorteio: false, avisaResultado: false });
+    agente.configurarAvisos({ avisaNovaCampanha: false, avisaResultado: false });
 
-    expect(agente.avisaNovoSorteio).toBe(false);
+    expect(agente.avisaNovaCampanha).toBe(false);
     expect(agente.avisaResultado).toBe(false);
     expect(agente.avisaCotasRestantes).toBe(true);
   });

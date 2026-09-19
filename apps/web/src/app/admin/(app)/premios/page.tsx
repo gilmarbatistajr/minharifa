@@ -33,7 +33,7 @@ export default function ListaPremiosPage() {
       <PageHeader
         eyebrow="Catálogo"
         title="Prêmios"
-        description="Cadastre os itens que serão vinculados aos seus sorteios."
+        description="Cadastre os itens que serão vinculados às suas campanhas."
         action={
           !editando && (
             <Button onClick={() => setMostrarFormulario(true)}>
@@ -68,7 +68,7 @@ export default function ListaPremiosPage() {
       {premios?.length === 0 && !editando && (
         <EmptyState
           title="Nenhum prêmio cadastrado"
-          description="Cadastre o item que vai sortear para vincular a um sorteio."
+          description="Cadastre o item que vai sortear para vincular a uma campanha."
           action={
             <Button className="mt-2" onClick={() => setMostrarFormulario(true)}>
               <IconPlus className="h-4 w-4" /> Cadastrar prêmio

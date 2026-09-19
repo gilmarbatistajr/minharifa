@@ -5,7 +5,7 @@ function criarEscolha(
 ): EscolhaPosCancelamento {
   return new EscolhaPosCancelamento(
     'escolha-1',
-    'sorteio-1',
+    'campanha-1',
     'comprador-maria',
     3,
     150,
@@ -52,7 +52,7 @@ describe('EscolhaPosCancelamento', () => {
 
       escolha.escolherManterCotas(agora);
 
-      expect(escolha.status).toBe('CREDITO_PROXIMO_SORTEIO');
+      expect(escolha.status).toBe('CREDITO_PROXIMA_CAMPANHA');
     });
   });
 

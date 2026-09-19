@@ -36,7 +36,7 @@ export class ConfigurarAvisosAgenteChatbotUseCase {
 
     agente.configurarAvisos({
       avisaCotasRestantes: input.avisaCotasRestantes,
-      avisaNovoSorteio: input.avisaNovoSorteio,
+      avisaNovaCampanha: input.avisaNovaCampanha,
       avisaResultado: input.avisaResultado,
     });
 

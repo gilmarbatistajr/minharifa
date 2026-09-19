@@ -1,7 +1,7 @@
-import { Cota } from '../../../sorteios/domain/entities/cota.entity';
-import { CotaRepository } from '../../../sorteios/domain/repositories/cota.repository';
-import { Sorteio } from '../../../sorteios/domain/entities/sorteio.entity';
-import { SorteioRepository } from '../../../sorteios/domain/repositories/sorteio.repository';
+import { Cota } from '../../../campanhas/domain/entities/cota.entity';
+import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
+import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
+import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { PagamentoRepository } from '../../domain/repositories/pagamento.repository';
 import { PaymentGateway } from '../../domain/services/payment-gateway';
 import { PagarComCartaoUseCase } from './pagar-com-cartao.use-case';
@@ -12,7 +12,7 @@ describe('PagarComCartaoUseCase', () => {
   function criarCotaReservada(): Cota {
     return new Cota(
       'cota-1',
-      'sorteio-1',
+      'campanha-1',
       42,
       'RESERVADA',
       'comprador-maria',
@@ -21,36 +21,40 @@ describe('PagarComCartaoUseCase', () => {
     );
   }
 
-  function criarSorteio(): Sorteio {
-    const sorteio = new Sorteio(
-      'sorteio-1',
+  function criarCampanha(): Campanha {
+    return new Campanha(
+      'campanha-1',
+      'admin-1',
       'grupo-1',
-      'Sorteio de teste',
+      'Campanha de teste',
       'Descrição de teste',
       ['premio-1'],
       new Date(),
       new Date(),
       new Date(),
       100,
-        50,
+      50,
+      'ESCOLHA_NUMERO',
+      'LIBERADA',
       'VENDAS_ABERTAS',
       null,
       null,
     );
-    return sorteio;
   }
 
   function criarDependencias(cota: Cota | null, aprovado: boolean) {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
-      buscarPorSorteioENumero: jest.fn().mockResolvedValue(cota),
-      listarPorSorteio: jest.fn(),
-      contarPagasPorSorteio: jest.fn(),
+      buscarPorCampanhaENumero: jest.fn().mockResolvedValue(cota),
+      listarPorCampanha: jest.fn(),
+      contarPagasPorCampanha: jest.fn(),
+      contarPagasAgrupadoPorComprador: jest.fn(),
+      contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
-    const sorteioRepository: SorteioRepository = {
-      buscarPorId: jest.fn().mockResolvedValue(criarSorteio()),
+    const campanhaRepository: CampanhaRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(criarCampanha()),
       listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
@@ -70,24 +74,24 @@ describe('PagarComCartaoUseCase', () => {
       estornar: jest.fn(),
     };
 
-    return { cotaRepository, sorteioRepository, pagamentoRepository, paymentGateway };
+    return { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway };
   }
 
   const agora = new Date('2026-01-01T10:01:00Z');
 
   it('confirma o pagamento da cota quando o cartão é aprovado', async () => {
     const cota = criarCotaReservada();
-    const { cotaRepository, sorteioRepository, pagamentoRepository, paymentGateway } =
+    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
       criarDependencias(cota, true);
     const useCase = new PagarComCartaoUseCase(
       cotaRepository,
-      sorteioRepository,
+      campanhaRepository,
       pagamentoRepository,
       paymentGateway,
     );
 
     const resultado = await useCase.executar(
-      { sorteioId: 'sorteio-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
+      { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
       agora,
     );
 
@@ -99,17 +103,17 @@ describe('PagarComCartaoUseCase', () => {
 
   it('mantém a cota reservada quando o cartão é recusado', async () => {
     const cota = criarCotaReservada();
-    const { cotaRepository, sorteioRepository, pagamentoRepository, paymentGateway } =
+    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
       criarDependencias(cota, false);
     const useCase = new PagarComCartaoUseCase(
       cotaRepository,
-      sorteioRepository,
+      campanhaRepository,
       pagamentoRepository,
       paymentGateway,
     );
 
     const resultado = await useCase.executar(
-      { sorteioId: 'sorteio-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
+      { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
       agora,
     );
 
@@ -119,18 +123,18 @@ describe('PagarComCartaoUseCase', () => {
   });
 
   it('rejeita quando a cota não está reservada para o solicitante', async () => {
-    const { cotaRepository, sorteioRepository, pagamentoRepository, paymentGateway } =
+    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
       criarDependencias(null, true);
     const useCase = new PagarComCartaoUseCase(
       cotaRepository,
-      sorteioRepository,
+      campanhaRepository,
       pagamentoRepository,
       paymentGateway,
     );
 
     await expect(
       useCase.executar(
-        { sorteioId: 'sorteio-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
+        { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria', dadosCartao },
         agora,
       ),
     ).rejects.toThrow('não está reservada para você');

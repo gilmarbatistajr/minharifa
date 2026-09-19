@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
   ESCOLHA_POS_CANCELAMENTO_REPOSITORY,
   EscolhaPosCancelamentoRepository,
@@ -41,8 +41,8 @@ export class EscolherReembolsoUseCase {
 
     escolha.escolherReembolso(agora);
 
-    const cotasDoSorteio = await this.cotaRepository.listarPorSorteio(escolha.sorteioId);
-    const cotasPagas = cotasDoSorteio.filter(
+    const cotasDaCampanha = await this.cotaRepository.listarPorCampanha(escolha.campanhaId);
+    const cotasPagas = cotasDaCampanha.filter(
       (cota) => cota.status === 'PAGA' && cota.compradorId === input.compradorId,
     );
 

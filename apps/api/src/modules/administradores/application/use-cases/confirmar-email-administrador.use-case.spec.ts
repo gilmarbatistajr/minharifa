@@ -4,7 +4,7 @@ import { ConfirmarEmailAdministradorUseCase } from './confirmar-email-administra
 
 /**
  * Cobre login-administrador.feature: "Confirmação de e-mail antes de
- * liberar a criação de sorteios".
+ * liberar a criação de campanhas".
  */
 describe('ConfirmarEmailAdministradorUseCase', () => {
   function criarRepositorio(administrador: Administrador | null): AdministradorRepository {

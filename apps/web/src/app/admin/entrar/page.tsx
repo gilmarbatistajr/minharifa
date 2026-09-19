@@ -37,7 +37,7 @@ export default function LoginAdministradorPage() {
     <AuthLayout
       eyebrow="Painel administrativo"
       title="Entrar"
-      subtitle="Gerencie seus grupos, prêmios e sorteios."
+      subtitle="Gerencie seus grupos, prêmios e campanhas."
       footer={
         <>
           Ainda não tem uma conta de administrador?{' '}

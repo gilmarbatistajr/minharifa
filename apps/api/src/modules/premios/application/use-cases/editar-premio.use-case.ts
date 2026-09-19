@@ -2,16 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PREMIO_REPOSITORY, PremioRepository } from '../../domain/repositories/premio.repository';
 import { DadosAtualizacaoPremio } from '../../domain/entities/premio.entity';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 
 export interface EditarPremioInput extends DadosAtualizacaoPremio {
   administradorId: string;
   premioId: string;
 }
 
-const STATUS_SORTEIO_EM_ANDAMENTO = [
+const STATUS_VENDAS_EM_ANDAMENTO = [
   'AGUARDANDO_ABERTURA',
   'VENDAS_ABERTAS',
   'VENDAS_ENCERRADAS',
@@ -20,16 +20,16 @@ const STATUS_SORTEIO_EM_ANDAMENTO = [
 
 /**
  * Cobre cadastro-de-premio.feature: "Edição de um prêmio ainda não vinculado
- * a um sorteio" e "Tentativa de edição de um prêmio já vinculado a um
- * sorteio em andamento".
+ * a uma campanha" e "Tentativa de edição de um prêmio já vinculado a uma
+ * campanha em andamento".
  */
 @Injectable()
 export class EditarPremioUseCase {
   constructor(
     @Inject(PREMIO_REPOSITORY)
     private readonly premioRepository: PremioRepository,
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
   ) {}
 
   async executar(input: EditarPremioInput): Promise<void> {
@@ -39,10 +39,10 @@ export class EditarPremioUseCase {
       throw new Error('Prêmio não encontrado.');
     }
 
-    const sorteiosVinculados = await this.sorteioRepository.listarPorPremioId(input.premioId);
+    const campanhasVinculadas = await this.campanhaRepository.listarPorPremioId(input.premioId);
 
-    if (sorteiosVinculados.some((sorteio) => STATUS_SORTEIO_EM_ANDAMENTO.includes(sorteio.status))) {
-      throw new Error('O prêmio não pode ser editado enquanto o sorteio estiver em andamento.');
+    if (campanhasVinculadas.some((campanha) => STATUS_VENDAS_EM_ANDAMENTO.includes(campanha.statusVendas))) {
+      throw new Error('O prêmio não pode ser editado enquanto a campanha estiver em andamento.');
     }
 
     premio.atualizar({

@@ -2,7 +2,7 @@ import { ArrayNotEmpty, IsInt, IsUUID } from 'class-validator';
 
 export class ResgatarCreditoDto {
   @IsUUID()
-  sorteioDestinoId!: string;
+  campanhaDestinoId!: string;
 
   @ArrayNotEmpty()
   @IsInt({ each: true })

@@ -1,5 +1,5 @@
-import { Cota } from '../../../sorteios/domain/entities/cota.entity';
-import { CotaRepository } from '../../../sorteios/domain/repositories/cota.repository';
+import { Cota } from '../../../campanhas/domain/entities/cota.entity';
+import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
 import { Comprador } from '../../../compradores/domain/entities/comprador.entity';
 import { CompradorRepository } from '../../../compradores/domain/repositories/comprador.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
@@ -54,9 +54,11 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     };
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn().mockResolvedValue(cota),
-      buscarPorSorteioENumero: jest.fn(),
-      listarPorSorteio: jest.fn(),
-      contarPagasPorSorteio: jest.fn(),
+      buscarPorCampanhaENumero: jest.fn(),
+      listarPorCampanha: jest.fn(),
+      contarPagasPorCampanha: jest.fn(),
+      contarPagasAgrupadoPorComprador: jest.fn(),
+      contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
@@ -73,7 +75,10 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       salvar: jest.fn(),
       criar: jest.fn(),
     };
-    const notificationSender: NotificationSender = { enviarEmail: jest.fn().mockResolvedValue(undefined) };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn().mockResolvedValue(undefined),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
 
     return {
       webhookSignatureValidator,
@@ -116,7 +121,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   it('confirma a cota como paga quando a reserva ainda é válida', async () => {
     const cota = new Cota(
       'cota-1',
-      'sorteio-1',
+      'campanha-1',
       42,
       'RESERVADA',
       'comprador-maria',
@@ -140,7 +145,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   });
 
   it('estorna automaticamente quando o webhook chega após a reserva expirar (cota já disponível)', async () => {
-    const cota = new Cota('cota-1', 'sorteio-1', 42, 'DISPONIVEL', null, null, null);
+    const cota = new Cota('cota-1', 'campanha-1', 42, 'DISPONIVEL', null, null, null);
     const pagamento = criarPagamento();
     const deps = criarDependencias(pagamento, cota);
     const useCase = montarUseCase(deps);
@@ -159,7 +164,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   });
 
   it('estorna automaticamente quando a cota já foi vendida a outra pessoa', async () => {
-    const cota = new Cota('cota-1', 'sorteio-1', 42, 'PAGA', 'comprador-joao', new Date(), null);
+    const cota = new Cota('cota-1', 'campanha-1', 42, 'PAGA', 'comprador-joao', new Date(), null);
     const pagamento = criarPagamento();
     const deps = criarDependencias(pagamento, cota);
     const useCase = montarUseCase(deps);

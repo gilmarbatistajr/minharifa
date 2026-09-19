@@ -88,7 +88,7 @@ function CadastroForm() {
       if (email && senha) {
         const sessao = await compradoresApi.login({ email, senha });
         entrarComoComprador(sessao);
-        router.push('/sorteios');
+        router.push('/campanhas');
       } else {
         router.push('/entrar');
       }
@@ -179,7 +179,7 @@ function CadastroForm() {
         label={
           <>
             Li e aceito o termo de consentimento sobre a retenção dos meus dados para participar
-            dos sorteios deste grupo.
+            das campanhas deste grupo.
           </>
         }
       />
@@ -196,7 +196,7 @@ export default function CadastroCompradorPage() {
     <AuthLayout
       eyebrow="Área do comprador"
       title="Criar conta"
-      subtitle="Preencha seus dados para participar dos sorteios do grupo."
+      subtitle="Preencha seus dados para participar das campanhas do grupo."
       footer={
         <>
           Já tem conta?{' '}

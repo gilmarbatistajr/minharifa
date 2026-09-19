@@ -31,7 +31,7 @@ export default function ListaGruposPage() {
       <PageHeader
         eyebrow="Multi-tenant"
         title="Meus grupos"
-        description="Cada grupo de WhatsApp tem seus próprios compradores e sorteios."
+        description="Cada grupo de WhatsApp tem seus próprios compradores e campanhas."
         action={
           !mostrarFormulario && (
             <Button onClick={() => setMostrarFormulario(true)}>
@@ -61,7 +61,7 @@ export default function ListaGruposPage() {
       {grupos?.length === 0 && !mostrarFormulario && (
         <EmptyState
           title="Nenhum grupo cadastrado"
-          description="Cadastre o grupo de WhatsApp onde os sorteios serão divulgados."
+          description="Cadastre o grupo de WhatsApp onde as campanhas serão divulgadas."
           action={
             <Button className="mt-2" onClick={() => setMostrarFormulario(true)}>
               <IconPlus className="h-4 w-4" /> Criar meu primeiro grupo

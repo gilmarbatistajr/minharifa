@@ -26,7 +26,7 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Minha Rifa',
-  description: 'Gestão de sorteios por cotas numeradas para grupos de WhatsApp.',
+  description: 'Gestão de campanhas por cotas numeradas para grupos de WhatsApp.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

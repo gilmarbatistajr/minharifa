@@ -18,7 +18,7 @@ export interface BuscarGrupoOutput {
   agenteChatbot: {
     ativo: boolean;
     avisaCotasRestantes: boolean;
-    avisaNovoSorteio: boolean;
+    avisaNovaCampanha: boolean;
     avisaResultado: boolean;
   } | null;
 }
@@ -51,7 +51,7 @@ export class BuscarGrupoUseCase {
         ? {
             ativo: agente.ativo,
             avisaCotasRestantes: agente.avisaCotasRestantes,
-            avisaNovoSorteio: agente.avisaNovoSorteio,
+            avisaNovaCampanha: agente.avisaNovaCampanha,
             avisaResultado: agente.avisaResultado,
           }
         : null,

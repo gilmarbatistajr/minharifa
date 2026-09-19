@@ -3,11 +3,11 @@ import { randomUUID } from 'crypto';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
-  SORTEIO_REPOSITORY,
-  SorteioRepository,
-} from '../../../sorteios/domain/repositories/sorteio.repository';
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
 import {
   PAGAMENTO_REPOSITORY,
   PagamentoRepository,
@@ -16,7 +16,7 @@ import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { PAYMENT_GATEWAY, PaymentGateway } from '../../domain/services/payment-gateway';
 
 export interface GerarCobrancaPixInput {
-  sorteioId: string;
+  campanhaId: string;
   numeroCota: number;
   compradorId: string;
 }
@@ -38,8 +38,8 @@ export class GerarCobrancaPixUseCase {
   constructor(
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
-    @Inject(SORTEIO_REPOSITORY)
-    private readonly sorteioRepository: SorteioRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(PAGAMENTO_REPOSITORY)
     private readonly pagamentoRepository: PagamentoRepository,
     @Inject(PAYMENT_GATEWAY)
@@ -47,7 +47,7 @@ export class GerarCobrancaPixUseCase {
   ) {}
 
   async executar(input: GerarCobrancaPixInput, agora: Date = new Date()): Promise<GerarCobrancaPixOutput> {
-    const cota = await this.cotaRepository.buscarPorSorteioENumero(input.sorteioId, input.numeroCota);
+    const cota = await this.cotaRepository.buscarPorCampanhaENumero(input.campanhaId, input.numeroCota);
 
     if (
       !cota ||
@@ -58,13 +58,13 @@ export class GerarCobrancaPixUseCase {
       throw new Error('Esta cota não está reservada para você.');
     }
 
-    const sorteio = await this.sorteioRepository.buscarPorId(input.sorteioId);
-    if (!sorteio) {
-      throw new Error('Sorteio não encontrado.');
+    const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
+    if (!campanha) {
+      throw new Error('Campanha não encontrada.');
     }
 
     const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
-    const valorRestante = pagamentoExistente ? pagamentoExistente.calcularValorRestante() : sorteio.valorCota;
+    const valorRestante = pagamentoExistente ? pagamentoExistente.calcularValorRestante() : campanha.valorCota;
 
     if (valorRestante <= 0) {
       throw new Error('Esta cota já está totalmente paga.');
@@ -80,7 +80,7 @@ export class GerarCobrancaPixUseCase {
         randomUUID(),
         cota.id,
         input.compradorId,
-        sorteio.valorCota,
+        campanha.valorCota,
         0,
         'PIX',
         'PENDENTE',

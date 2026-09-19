@@ -8,17 +8,22 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
-import { administradoresApi, type VisaoGeralDashboard } from '../../../../lib/api';
-import { formatarStatusSorteio } from '../../../../lib/format';
+import { RankingCard } from '../../../../components/ui/RankingCard';
+import { administradoresApi, type VisaoGeralDashboard, type RankingItem } from '../../../../lib/api';
+import { formatarStatusVendasCampanha } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
 
 export default function DashboardPage() {
   const { sessao } = useSessaoAdministrador();
   const [dados, setDados] = useState<VisaoGeralDashboard | null>(null);
+  const [rankingCotas, setRankingCotas] = useState<RankingItem[] | null>(null);
+  const [rankingVencedores, setRankingVencedores] = useState<RankingItem[] | null>(null);
 
   useEffect(() => {
     if (!sessao) return;
     administradoresApi.dashboard(sessao.token).then(setDados);
+    administradoresApi.rankingCotasCompradas(sessao.token).then(setRankingCotas);
+    administradoresApi.rankingVencedores(sessao.token).then(setRankingVencedores);
   }, [sessao]);
 
   return (
@@ -26,7 +31,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Visão geral"
         title={`Olá, ${sessao?.nome?.split(' ')[0] ?? ''}`}
-        description="Acompanhe seus sorteios ativos e o que precisa de atenção agora."
+        description="Acompanhe suas campanhas ativas e o que precisa de atenção agora."
       />
 
       {dados === null && (
@@ -35,10 +40,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {dados?.temSorteios === false && (
+      {dados?.temCampanhas === false && (
         <EmptyState
           title="Seu painel está pronto"
-          description="Cadastre um grupo de WhatsApp e um prêmio para começar a organizar seu primeiro sorteio."
+          description="Cadastre um grupo de WhatsApp e um prêmio para começar a criar sua primeira campanha."
           action={
             <div className="mt-2 flex gap-2">
               <Link href="/admin/grupos">
@@ -52,29 +57,36 @@ export default function DashboardPage() {
         />
       )}
 
-      {dados && dados.sorteios.length > 0 && (
+      {dados && dados.campanhas.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {dados.sorteios.map((sorteio) => (
-            <Card key={sorteio.sorteioId} className="flex flex-col gap-4">
+          {dados.campanhas.map((campanha) => (
+            <Card key={campanha.campanhaId} className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <Badge tone="accent">{formatarStatusSorteio(sorteio.status)}</Badge>
-                {sorteio.encerrandoEm24h && <Badge tone="warning">Encerra em 24h</Badge>}
-                {sorteio.aguardandoResultado && <Badge tone="warning">Aguardando resultado</Badge>}
+                <Badge tone="accent">{formatarStatusVendasCampanha(campanha.status)}</Badge>
+                {campanha.encerrandoEm24h && <Badge tone="warning">Encerra em 24h</Badge>}
+                {campanha.aguardandoResultado && <Badge tone="warning">Aguardando resultado</Badge>}
               </div>
 
               <div>
                 <p className="font-mono text-xs uppercase tracking-wide text-muted">Vendido</p>
-                <p className="font-display text-3xl text-night">{sorteio.percentualVendido}%</p>
+                <p className="font-display text-3xl text-night">{campanha.percentualVendido}%</p>
               </div>
 
               <div className="h-2 overflow-hidden rounded-full bg-mist">
                 <div
                   className="h-full rounded-full bg-accent transition-all"
-                  style={{ width: `${sorteio.percentualVendido}%` }}
+                  style={{ width: `${campanha.percentualVendido}%` }}
                 />
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {dados?.temCampanhas && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RankingCard titulo="🏆 Quem mais comprou cotas" itens={rankingCotas} rotuloQuantidade="cotas" />
+          <RankingCard titulo="🎉 Quem mais ganhou" itens={rankingVencedores} rotuloQuantidade="vitórias" />
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COTA_REPOSITORY,
   CotaRepository,
-} from '../../../sorteios/domain/repositories/cota.repository';
+} from '../../../campanhas/domain/repositories/cota.repository';
 import {
   COMPRADOR_REPOSITORY,
   CompradorRepository,

@@ -16,7 +16,7 @@ export function formatarDataHora(iso: string): string {
   });
 }
 
-const RODULOS_STATUS_SORTEIO: Record<string, string> = {
+const ROTULOS_STATUS_VENDAS_CAMPANHA: Record<string, string> = {
   AGUARDANDO_ABERTURA: 'Aguardando abertura',
   VENDAS_ABERTAS: 'Vendas abertas',
   VENDAS_ENCERRADAS: 'Vendas encerradas',
@@ -25,8 +25,19 @@ const RODULOS_STATUS_SORTEIO: Record<string, string> = {
   CANCELADO: 'Cancelado',
 };
 
-export function formatarStatusSorteio(status: string): string {
-  return RODULOS_STATUS_SORTEIO[status] ?? status;
+export function formatarStatusVendasCampanha(status: string): string {
+  return ROTULOS_STATUS_VENDAS_CAMPANHA[status] ?? status;
+}
+
+const ROTULOS_STATUS_CAMPANHA: Record<string, string> = {
+  NOVO: 'Novo',
+  AGUARDANDO_LIBERACAO: 'Aguardando liberação',
+  LIBERADA: 'Liberada',
+  FINALIZADA: 'Finalizada',
+};
+
+export function formatarStatusCampanha(status: string): string {
+  return ROTULOS_STATUS_CAMPANHA[status] ?? status;
 }
 
 export function formatarCpf(valor: string): string {

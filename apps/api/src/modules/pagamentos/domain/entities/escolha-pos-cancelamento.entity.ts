@@ -1,13 +1,13 @@
 export type StatusEscolhaPosCancelamento =
   | 'PENDENTE'
   | 'REEMBOLSO'
-  | 'CREDITO_PROXIMO_SORTEIO'
+  | 'CREDITO_PROXIMA_CAMPANHA'
   | 'CASHBACK';
 
 export class EscolhaPosCancelamento {
   constructor(
     public readonly id: string,
-    public readonly sorteioId: string,
+    public readonly campanhaId: string,
     public readonly compradorId: string,
     public readonly quantidadeCotas: number,
     public readonly valorTotal: number,
@@ -38,12 +38,12 @@ export class EscolhaPosCancelamento {
     this.decididoEm = agora;
   }
 
-  /** Cobre "Comprador escolhe manter a quantidade de cotas para o próximo sorteio". */
+  /** Cobre "Comprador escolhe manter a quantidade de cotas para a próxima campanha". */
   escolherManterCotas(agora: Date): void {
     this.garantirPendente();
     this.garantirDentroDoPrazo(agora);
 
-    this.status = 'CREDITO_PROXIMO_SORTEIO';
+    this.status = 'CREDITO_PROXIMA_CAMPANHA';
     this.decididoEm = agora;
   }
 

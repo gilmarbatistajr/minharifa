@@ -10,7 +10,7 @@ import { EscolhaPosCancelamentoRepository } from '../domain/repositories/escolha
 function paraDominio(registro: EscolhaPrisma): EscolhaPosCancelamento {
   return new EscolhaPosCancelamento(
     registro.id,
-    registro.sorteioId,
+    registro.campanhaId,
     registro.compradorId,
     registro.quantidadeCotas,
     registro.valorTotal.toNumber(),
@@ -41,7 +41,7 @@ export class PrismaEscolhaPosCancelamentoRepository implements EscolhaPosCancela
     await this.prisma.escolhaPosCancelamento.create({
       data: {
         id: escolha.id,
-        sorteioId: escolha.sorteioId,
+        campanhaId: escolha.campanhaId,
         compradorId: escolha.compradorId,
         quantidadeCotas: escolha.quantidadeCotas,
         valorTotal: escolha.valorTotal,
