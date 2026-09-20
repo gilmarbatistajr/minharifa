@@ -15,6 +15,17 @@ model Administrador {
   emailConfirmado Boolean  @default(false)
   criadoEm        DateTime @default(now())
 
+  telefone String?
+  cpf      String? @unique
+  rg       String?
+
+  // null = administrador dono da conta (proprietário); preenchido = membro
+  // adicional cadastrado pelo dono, compartilhando os mesmos dados (grupos,
+  // campanhas, prêmios, operadores) da conta do proprietário.
+  administradorProprietarioId String?
+  administradorProprietario   Administrador?  @relation("MembrosDaConta", fields: [administradorProprietarioId], references: [id])
+  membros                     Administrador[] @relation("MembrosDaConta")
+
   tokenConfirmacaoEmail         String?   @unique
   tokenConfirmacaoEmailExpiraEm DateTime?
 
@@ -25,11 +36,37 @@ model Administrador {
   tokenConfirmacaoNovoEmail         String?   @unique
   tokenConfirmacaoNovoEmailExpiraEm DateTime?
 
-  grupos    Grupo[]
-  premios   Premio[]
-  campanhas Campanha[]
+  grupos     Grupo[]
+  premios    Premio[]
+  campanhas  Campanha[]
+  operadores Operador[]
+  permissoes PermissaoAdministrador[]
 
   @@map("administradores")
+}
+
+enum RecursoMenuAdmin {
+  CAMPANHAS
+  GRUPOS
+  PREMIOS
+  OPERADORES
+  ALERTAS_AUTOMATICOS
+  ADMINISTRADORES
+}
+
+// Define, por membro administrador (nunca para o proprietário, que tem acesso
+// total), se ele pode criar/editar/remover em cada seção do menu do admin.
+model PermissaoAdministrador {
+  id              String            @id @default(uuid())
+  administradorId String
+  administrador   Administrador     @relation(fields: [administradorId], references: [id], onDelete: Cascade)
+  recurso         RecursoMenuAdmin
+  podeCriar       Boolean           @default(false)
+  podeEditar      Boolean           @default(false)
+  podeRemover     Boolean           @default(false)
+
+  @@unique([administradorId, recurso])
+  @@map("permissoes_administrador")
 }
 
 model Grupo {
@@ -45,8 +82,51 @@ model Grupo {
   compradores       Comprador[]
   campanhas         Campanha[]
   creditosPendentes CreditoPendente[]
+  operadores        Operador[]        @relation("OperadoresGrupos")
 
   @@map("grupos")
+}
+
+model Operador {
+  id              String   @id @default(uuid())
+  administradorId String
+  administrador   Administrador @relation(fields: [administradorId], references: [id])
+  nomeCompleto    String
+  endereco        String
+  cpf             String   @unique
+  rg              String
+  telefone        String
+  login           String   @unique
+  senhaHash       String
+  criadoEm        DateTime @default(now())
+
+  grupos     Grupo[]            @relation("OperadoresGrupos")
+  permissoes PermissaoOperador[]
+
+  @@map("operadores")
+}
+
+enum RecursoMenuOperador {
+  CAMPANHAS
+  GRUPOS
+  PREMIOS
+  ALERTAS_AUTOMATICOS
+}
+
+// Define, por operador, se ele pode criar/editar/remover em cada seção
+// permitida do menu (mais restrita que a de administradores membros — nunca
+// inclui Operadores nem Administradores).
+model PermissaoOperador {
+  id          String              @id @default(uuid())
+  operadorId  String
+  operador    Operador            @relation(fields: [operadorId], references: [id], onDelete: Cascade)
+  recurso     RecursoMenuOperador
+  podeCriar   Boolean             @default(false)
+  podeEditar  Boolean             @default(false)
+  podeRemover Boolean             @default(false)
+
+  @@unique([operadorId, recurso])
+  @@map("permissoes_operador")
 }
 
 model AgenteChatbot {
@@ -114,7 +194,7 @@ model Premio {
   administrador      Administrador @relation(fields: [administradorId], references: [id])
   nome               String
   descricao          String
-  fotoUrl            String
+  fotoUrl            String?
   valor              Decimal       @db.Decimal(10, 2)
   valorOpcaoDinheiro Decimal?      @db.Decimal(10, 2)
   criadoEm           DateTime      @default(now())
@@ -164,6 +244,7 @@ model Campanha {
   statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
   cotaVencedoraNumero      Int?
   vencedorOptouPorDinheiro Boolean?
+  removidaEm               DateTime?
   criadoEm                 DateTime              @default(now())
 
   cotas                   Cota[]

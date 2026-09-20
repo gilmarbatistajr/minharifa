@@ -7,9 +7,6 @@ export class CadastrarPremioDto {
   @IsString()
   descricao!: string;
 
-  @IsString()
-  fotoUrl!: string;
-
   @IsNumber()
   @IsPositive()
   valor!: number;

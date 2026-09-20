@@ -312,4 +312,39 @@ describe('Campanha', () => {
       expect(campanha.permiteLoteFechado()).toBe(true);
     });
   });
+
+  describe('remoção lógica', () => {
+    it('marca a campanha como removida', () => {
+      const campanha = criarCampanha();
+      const agora = new Date('2026-01-05T00:00:00Z');
+
+      campanha.remover(agora);
+
+      expect(campanha.estaRemovida()).toBe(true);
+      expect(campanha.removidaEm).toEqual(agora);
+    });
+
+    it('impede remover uma campanha já removida', () => {
+      const campanha = criarCampanha();
+      campanha.remover(new Date('2026-01-05T00:00:00Z'));
+
+      expect(() => campanha.remover(new Date('2026-01-06T00:00:00Z'))).toThrow('já está removida');
+    });
+
+    it('restaura uma campanha removida', () => {
+      const campanha = criarCampanha();
+      campanha.remover(new Date('2026-01-05T00:00:00Z'));
+
+      campanha.restaurar();
+
+      expect(campanha.estaRemovida()).toBe(false);
+      expect(campanha.removidaEm).toBeNull();
+    });
+
+    it('impede restaurar uma campanha que não está removida', () => {
+      const campanha = criarCampanha();
+
+      expect(() => campanha.restaurar()).toThrow('não está removida');
+    });
+  });
 });

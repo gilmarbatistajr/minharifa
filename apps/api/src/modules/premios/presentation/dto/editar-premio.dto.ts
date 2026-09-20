@@ -10,10 +10,6 @@ export class EditarPremioDto {
   descricao?: string;
 
   @IsOptional()
-  @IsString()
-  fotoUrl?: string;
-
-  @IsOptional()
   @IsNumber()
   @IsPositive()
   valor?: number;

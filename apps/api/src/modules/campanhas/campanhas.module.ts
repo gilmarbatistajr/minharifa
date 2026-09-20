@@ -9,6 +9,8 @@ import { MarcarCampanhaComoRevisadaUseCase } from './application/use-cases/marca
 import { ListarCampanhasDoAdministradorUseCase } from './application/use-cases/listar-campanhas-administrador.use-case';
 import { BuscarCampanhaUseCase } from './application/use-cases/buscar-campanha.use-case';
 import { FinalizarCampanhaUseCase } from './application/use-cases/finalizar-campanha.use-case';
+import { RemoverCampanhaUseCase } from './application/use-cases/remover-campanha.use-case';
+import { RestaurarCampanhaUseCase } from './application/use-cases/restaurar-campanha.use-case';
 import { ListarCampanhasVisiveisParaCompradorUseCase } from './application/use-cases/listar-campanhas-visiveis-comprador.use-case';
 import { ListarCotasDaCampanhaUseCase } from './application/use-cases/listar-cotas-campanha.use-case';
 import { ReservarCotaUseCase } from './application/use-cases/reservar-cota.use-case';
@@ -30,6 +32,8 @@ import { CampanhasController } from './presentation/campanhas.controller';
     ListarCampanhasDoAdministradorUseCase,
     BuscarCampanhaUseCase,
     FinalizarCampanhaUseCase,
+    RemoverCampanhaUseCase,
+    RestaurarCampanhaUseCase,
     ListarCampanhasVisiveisParaCompradorUseCase,
     ListarCotasDaCampanhaUseCase,
     ReservarCotaUseCase,

@@ -47,18 +47,26 @@ describe('Premio', () => {
       expect(premio.valorOpcaoDinheiro).toBe(7800);
     });
 
-    it('atualiza nome, descrição e foto simultaneamente', () => {
+    it('atualiza nome e descrição simultaneamente', () => {
       const premio = criarPremio();
 
       premio.atualizar({
         nome: 'iPhone 16 Pro Max',
         descricao: 'Nova descrição',
-        fotoUrl: 'https://exemplo.com/nova-foto.png',
       });
 
       expect(premio.nome).toBe('iPhone 16 Pro Max');
       expect(premio.descricao).toBe('Nova descrição');
-      expect(premio.fotoUrl).toBe('https://exemplo.com/nova-foto.png');
+    });
+  });
+
+  describe('definirFoto', () => {
+    it('substitui a url da foto do prêmio', () => {
+      const premio = criarPremio();
+
+      premio.definirFoto('/uploads/premios/premio-1.jpg');
+
+      expect(premio.fotoUrl).toBe('/uploads/premios/premio-1.jpg');
     });
   });
 });

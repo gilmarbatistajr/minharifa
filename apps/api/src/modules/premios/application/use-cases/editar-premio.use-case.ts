@@ -48,7 +48,6 @@ export class EditarPremioUseCase {
     premio.atualizar({
       nome: input.nome,
       descricao: input.descricao,
-      fotoUrl: input.fotoUrl,
       valor: input.valor,
       valorOpcaoDinheiro: input.valorOpcaoDinheiro,
     });

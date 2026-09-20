@@ -1,5 +1,17 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
+/**
+ * As imagens enviadas (ex: foto de prêmio) são servidas pela API, não pelo Next — precisa do
+ * domínio completo. Prêmios antigos podem ter uma URL absoluta (cadastrados antes do upload
+ * direto existir), então só prefixamos caminhos relativos.
+ */
+export function urlArquivoApi(caminho: string): string {
+  if (/^https?:\/\//.test(caminho)) {
+    return caminho;
+  }
+  return `${API_URL}${caminho}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -23,6 +35,35 @@ async function request<T>(
     method: options.method ?? 'GET',
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const texto = await response.text();
+  const dados = texto ? JSON.parse(texto) : null;
+
+  if (!response.ok) {
+    const mensagem = Array.isArray(dados?.message)
+      ? dados.message.join(' ')
+      : (dados?.message ?? 'Não foi possível completar a solicitação.');
+    throw new ApiError(mensagem, response.status);
+  }
+
+  return dados as T;
+}
+
+/** Como `request`, mas envia FormData (upload de arquivo) em vez de JSON. */
+async function requestMultipart<T>(
+  path: string,
+  options: { formData: FormData; token?: string | null },
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: options.formData,
   });
 
   const texto = await response.text();
@@ -112,7 +153,7 @@ export interface Premio {
   administradorId: string;
   nome: string;
   descricao: string;
-  fotoUrl: string;
+  fotoUrl: string | null;
   valor: number;
   valorOpcaoDinheiro: number | null;
   criadoEm: string;
@@ -147,6 +188,7 @@ export interface Campanha {
   statusVendas: StatusVendasCampanha;
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
+  removidaEm: string | null;
 }
 
 export type Medalha = 'OURO' | 'PRATA' | 'BRONZE';
@@ -319,7 +361,7 @@ export const compradoresApi = {
 export const premiosApi = {
   cadastrar: (
     token: string,
-    dados: { nome: string; descricao: string; fotoUrl: string; valor: number; valorOpcaoDinheiro?: number },
+    dados: { nome: string; descricao: string; valor: number; valorOpcaoDinheiro?: number },
   ) => request<{ premioId: string }>('/premios', { method: 'POST', token, body: dados }),
 
   listar: (token: string) => request<Premio[]>('/premios', { token }),
@@ -327,8 +369,14 @@ export const premiosApi = {
   editar: (
     token: string,
     premioId: string,
-    dados: Partial<{ nome: string; descricao: string; fotoUrl: string; valor: number; valorOpcaoDinheiro: number }>,
+    dados: Partial<{ nome: string; descricao: string; valor: number; valorOpcaoDinheiro: number }>,
   ) => request<void>(`/premios/${premioId}`, { method: 'PATCH', token, body: dados }),
+
+  enviarFoto: (token: string, premioId: string, arquivo: File) => {
+    const formData = new FormData();
+    formData.append('foto', arquivo);
+    return requestMultipart<{ fotoUrl: string }>(`/premios/${premioId}/foto`, { token, formData });
+  },
 };
 
 // ---------- Campanhas / cotas ----------
@@ -366,6 +414,12 @@ export const campanhasApi = {
       `/campanhas/${campanhaId}/finalizar`,
       { method: 'POST', token, body: { cotaVencedoraNumero } },
     ),
+
+  remover: (token: string, campanhaId: string) =>
+    request<void>(`/campanhas/${campanhaId}/remover`, { method: 'POST', token }),
+
+  restaurar: (token: string, campanhaId: string) =>
+    request<void>(`/campanhas/${campanhaId}/restaurar`, { method: 'POST', token }),
 
   listarCotas: (token: string, campanhaId: string) =>
     request<CotaResumo[]>(`/campanhas/${campanhaId}/cotas`, { token }),
@@ -418,6 +472,132 @@ export const pagamentosApi = {
       '/pagamentos/cashback',
       { method: 'POST', token, body: { campanhaId, numeroCota } },
     ),
+};
+
+// ---------- Administradores membros (equipe com permissões por seção) ----------
+
+export type RecursoMenuAdmin =
+  | 'CAMPANHAS'
+  | 'GRUPOS'
+  | 'PREMIOS'
+  | 'OPERADORES'
+  | 'ALERTAS_AUTOMATICOS'
+  | 'ADMINISTRADORES';
+
+export interface PermissaoRecurso {
+  recurso: RecursoMenuAdmin;
+  podeCriar: boolean;
+  podeEditar: boolean;
+  podeRemover: boolean;
+}
+
+export interface AdministradorMembro {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  cpf: string | null;
+  rg: string | null;
+  permissoes: PermissaoRecurso[];
+  criadoEm: string;
+}
+
+export const administradoresMembrosApi = {
+  cadastrar: (
+    token: string,
+    dados: {
+      nome: string;
+      email: string;
+      telefone: string;
+      cpf: string;
+      rg: string;
+      senha: string;
+      permissoes: PermissaoRecurso[];
+    },
+  ) => request<{ membroId: string }>('/administradores/membros', { method: 'POST', token, body: dados }),
+
+  listar: (token: string) => request<AdministradorMembro[]>('/administradores/membros', { token }),
+
+  buscar: (token: string, membroId: string) =>
+    request<AdministradorMembro>(`/administradores/membros/${membroId}`, { token }),
+
+  editar: (
+    token: string,
+    membroId: string,
+    dados: Partial<{
+      nome: string;
+      email: string;
+      telefone: string;
+      rg: string;
+      permissoes: PermissaoRecurso[];
+    }>,
+  ) => request<void>(`/administradores/membros/${membroId}`, { method: 'PATCH', token, body: dados }),
+
+  excluir: (token: string, membroId: string) =>
+    request<void>(`/administradores/membros/${membroId}`, { method: 'DELETE', token }),
+};
+
+// ---------- Operadores ----------
+
+export type RecursoMenuOperador = 'CAMPANHAS' | 'GRUPOS' | 'PREMIOS' | 'ALERTAS_AUTOMATICOS';
+
+export interface PermissaoRecursoOperador {
+  recurso: RecursoMenuOperador;
+  podeCriar: boolean;
+  podeEditar: boolean;
+  podeRemover: boolean;
+}
+
+export interface Operador {
+  id: string;
+  nomeCompleto: string;
+  endereco: string;
+  cpf: string;
+  rg: string;
+  telefone: string;
+  login: string;
+  grupoIds: string[];
+  permissoes: PermissaoRecursoOperador[];
+  criadoEm: string;
+}
+
+export const operadoresApi = {
+  cadastrar: (
+    token: string,
+    dados: {
+      nomeCompleto: string;
+      endereco: string;
+      cpf: string;
+      rg: string;
+      telefone: string;
+      login: string;
+      senha: string;
+      grupoIds: string[];
+      permissoes: PermissaoRecursoOperador[];
+    },
+  ) => request<{ operadorId: string }>('/operadores', { method: 'POST', token, body: dados }),
+
+  listar: (token: string) => request<Operador[]>('/operadores', { token }),
+
+  buscar: (token: string, operadorId: string) => request<Operador>(`/operadores/${operadorId}`, { token }),
+
+  editar: (
+    token: string,
+    operadorId: string,
+    dados: Partial<{
+      nomeCompleto: string;
+      endereco: string;
+      rg: string;
+      telefone: string;
+      login: string;
+      senha: string;
+      grupoIds: string[];
+      permissoes: PermissaoRecursoOperador[];
+    }>,
+  ) => request<void>(`/operadores/${operadorId}`, { method: 'PATCH', token, body: dados }),
+
+  excluir: (token: string, operadorId: string) =>
+    request<void>(`/operadores/${operadorId}`, { method: 'DELETE', token }),
 };
 
 // ---------- Cancelamento ----------

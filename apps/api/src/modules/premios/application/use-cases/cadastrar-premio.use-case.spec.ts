@@ -20,7 +20,6 @@ describe('CadastrarPremioUseCase', () => {
       administradorId: 'admin-1',
       nome: 'iPhone 16 Pro',
       descricao: 'Um belo iPhone',
-      fotoUrl: 'https://exemplo.com/foto.png',
       valor: 8000,
     });
 
@@ -37,7 +36,6 @@ describe('CadastrarPremioUseCase', () => {
       administradorId: 'admin-1',
       nome: 'iPhone 16 Pro',
       descricao: 'Um belo iPhone',
-      fotoUrl: 'https://exemplo.com/foto.png',
       valor: 8000,
       valorOpcaoDinheiro: 7800,
     });
@@ -55,7 +53,6 @@ describe('CadastrarPremioUseCase', () => {
         administradorId: 'admin-1',
         nome: 'iPhone 16 Pro',
         descricao: 'Um belo iPhone',
-        fotoUrl: 'https://exemplo.com/foto.png',
         valor: -100,
       }),
     ).rejects.toThrow('maior que zero');

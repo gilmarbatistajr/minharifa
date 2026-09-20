@@ -8,6 +8,8 @@ import { ListarCampanhasDoAdministradorUseCase } from '../application/use-cases/
 import { BuscarCampanhaUseCase } from '../application/use-cases/buscar-campanha.use-case';
 import { MarcarCampanhaComoRevisadaUseCase } from '../application/use-cases/marcar-campanha-como-revisada.use-case';
 import { FinalizarCampanhaUseCase } from '../application/use-cases/finalizar-campanha.use-case';
+import { RemoverCampanhaUseCase } from '../application/use-cases/remover-campanha.use-case';
+import { RestaurarCampanhaUseCase } from '../application/use-cases/restaurar-campanha.use-case';
 import { ListarCampanhasVisiveisParaCompradorUseCase } from '../application/use-cases/listar-campanhas-visiveis-comprador.use-case';
 import { ListarCotasDaCampanhaUseCase } from '../application/use-cases/listar-cotas-campanha.use-case';
 import { ReservarCotaUseCase } from '../application/use-cases/reservar-cota.use-case';
@@ -25,6 +27,8 @@ export class CampanhasController {
     private readonly buscarCampanhaUseCase: BuscarCampanhaUseCase,
     private readonly marcarCampanhaComoRevisadaUseCase: MarcarCampanhaComoRevisadaUseCase,
     private readonly finalizarCampanhaUseCase: FinalizarCampanhaUseCase,
+    private readonly removerCampanhaUseCase: RemoverCampanhaUseCase,
+    private readonly restaurarCampanhaUseCase: RestaurarCampanhaUseCase,
     private readonly listarCampanhasVisiveisParaCompradorUseCase: ListarCampanhasVisiveisParaCompradorUseCase,
     private readonly listarCotasDaCampanhaUseCase: ListarCotasDaCampanhaUseCase,
     private readonly reservarCotaUseCase: ReservarCotaUseCase,
@@ -98,6 +102,24 @@ export class CampanhasController {
       administradorId: usuario.administradorId!,
       campanhaId,
       cotaVencedoraNumero: dto.cotaVencedoraNumero,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Post(':campanhaId/remover')
+  async remover(@CurrentUser() usuario: PrincipalAutenticado, @Param('campanhaId') campanhaId: string) {
+    return this.removerCampanhaUseCase.executar({
+      administradorId: usuario.administradorId!,
+      campanhaId,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Post(':campanhaId/restaurar')
+  async restaurar(@CurrentUser() usuario: PrincipalAutenticado, @Param('campanhaId') campanhaId: string) {
+    return this.restaurarCampanhaUseCase.executar({
+      administradorId: usuario.administradorId!,
+      campanhaId,
     });
   }
 

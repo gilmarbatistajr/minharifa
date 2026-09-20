@@ -42,7 +42,29 @@ export class Campanha {
     public statusVendas: StatusVendasCampanha,
     public cotaVencedoraNumero: number | null,
     public vencedorOptouPorDinheiro: boolean | null,
+    public removidaEm: Date | null = null,
   ) {}
+
+  estaRemovida(): boolean {
+    return this.removidaEm !== null;
+  }
+
+  /** Remoção lógica: a campanha some das ações do dia a dia mas continua visível na listagem. */
+  remover(agora: Date): void {
+    if (this.estaRemovida()) {
+      throw new Error('Campanha já está removida.');
+    }
+
+    this.removidaEm = agora;
+  }
+
+  restaurar(): void {
+    if (!this.estaRemovida()) {
+      throw new Error('Campanha não está removida.');
+    }
+
+    this.removidaEm = null;
+  }
 
   /** Regra de negócio: só campanhas ESCOLHA_NUMERO aceitam seleção manual de números. */
   permiteEscolhaManual(): boolean {

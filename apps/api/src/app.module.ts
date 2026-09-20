@@ -10,6 +10,7 @@ import { GruposModule } from './modules/grupos/grupos.module';
 import { CompradoresModule } from './modules/compradores/compradores.module';
 import { PremiosModule } from './modules/premios/premios.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
+import { OperadoresModule } from './modules/operadores/operadores.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
     CompradoresModule,
     PremiosModule,
     PagamentosModule,
+    OperadoresModule,
   ],
 })
 export class AppModule {}

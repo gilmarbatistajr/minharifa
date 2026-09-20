@@ -27,6 +27,7 @@ type RegistroCampanha = {
   statusVendas: string;
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
+  removidaEm: Date | null;
 };
 
 function paraDominio(registro: RegistroCampanha): Campanha {
@@ -47,6 +48,7 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.statusVendas as StatusVendasCampanha,
     registro.cotaVencedoraNumero,
     registro.vencedorOptouPorDinheiro,
+    registro.removidaEm,
   );
 }
 
@@ -120,6 +122,7 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         statusVendas: campanha.statusVendas,
         cotaVencedoraNumero: campanha.cotaVencedoraNumero,
         vencedorOptouPorDinheiro: campanha.vencedorOptouPorDinheiro,
+        removidaEm: campanha.removidaEm,
       },
     });
   }

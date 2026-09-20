@@ -9,13 +9,16 @@ import { Alert } from '../../../../../components/ui/Alert';
 import { Badge } from '../../../../../components/ui/Badge';
 import { Spinner } from '../../../../../components/ui/Spinner';
 import { TextField, SelectField } from '../../../../../components/ui/Field';
-import { IconArrowLeft } from '../../../../../components/ui/icons';
+import { IconArrowLeft, IconGift } from '../../../../../components/ui/icons';
 import {
   campanhasApi,
   gruposApi,
+  premiosApi,
+  urlArquivoApi,
   ApiError,
   type Campanha,
   type Grupo,
+  type Premio,
 } from '../../../../../lib/api';
 import { formatarData, formatarMoeda, formatarStatusCampanha, formatarStatusVendasCampanha } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
@@ -39,12 +42,14 @@ export default function DetalheCampanhaPage() {
   const router = useRouter();
 
   const [campanha, setCampanha] = useState<Campanha | null>(null);
+  const [premios, setPremios] = useState<Premio[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
   const recarregar = useCallback(() => {
     if (!sessao) return;
     campanhasApi.buscar(sessao.token, id).then(setCampanha);
+    premiosApi.listar(sessao.token).then(setPremios);
   }, [sessao, id]);
 
   useEffect(() => {
@@ -65,6 +70,41 @@ export default function DetalheCampanhaPage() {
     }
   }
 
+  async function remover() {
+    if (!sessao) return;
+    if (
+      !window.confirm(
+        'Remover esta campanha? Ela some das ações do dia a dia, mas continua visível na lista de campanhas — você pode restaurá-la depois.',
+      )
+    ) {
+      return;
+    }
+    setErro(null);
+    setCarregando(true);
+    try {
+      await campanhasApi.remover(sessao.token, id);
+      recarregar();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível remover a campanha.');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function restaurar() {
+    if (!sessao) return;
+    setErro(null);
+    setCarregando(true);
+    try {
+      await campanhasApi.restaurar(sessao.token, id);
+      recarregar();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível restaurar a campanha.');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   if (!campanha) {
     return (
       <div className="flex justify-center py-16 text-muted">
@@ -77,6 +117,9 @@ export default function DetalheCampanhaPage() {
     campanha.status === 'LIBERADA' &&
     campanha.dataRealizacao !== null &&
     new Date(campanha.dataRealizacao) <= new Date();
+
+  const premiosDaCampanha = premios?.filter((premio) => campanha.premioIds.includes(premio.id)) ?? [];
+  const premioPrincipal = premiosDaCampanha[0] ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,16 +134,72 @@ export default function DetalheCampanhaPage() {
         eyebrow="Campanha"
         title={campanha.nome}
         description={
-          <Badge tone={TOM_STATUS[campanha.status] ?? 'neutral'}>{formatarStatusCampanha(campanha.status)}</Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={TOM_STATUS[campanha.status] ?? 'neutral'}>{formatarStatusCampanha(campanha.status)}</Badge>
+            {campanha.removidaEm && <Badge tone="danger">Removida</Badge>}
+          </div>
         }
         action={
-          <Button variant="secondary" onClick={() => router.push(`/admin/campanhas/${id}/sorteio`)}>
-            Ver sorteio
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => router.push(`/admin/campanhas/${id}/sorteio`)}>
+              Ver sorteio
+            </Button>
+            {campanha.removidaEm ? (
+              <Button variant="secondary" loading={carregando} onClick={restaurar}>
+                Restaurar campanha
+              </Button>
+            ) : (
+              <Button variant="danger" loading={carregando} onClick={remover}>
+                Remover campanha
+              </Button>
+            )}
+          </div>
         }
       />
 
       {erro && <Alert tone="error">{erro}</Alert>}
+
+      {campanha.removidaEm && (
+        <Alert tone="error">
+          Esta campanha foi removida em {formatarData(campanha.removidaEm)}. Ela continua na lista de campanhas,
+          mas as ações abaixo ficam bloqueadas até ser restaurada.
+        </Alert>
+      )}
+
+      <Card className="flex flex-col gap-4 sm:flex-row">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-mist sm:w-32">
+          {premioPrincipal?.fotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- imagem vem da própria API ou de host externo
+            <img
+              src={urlArquivoApi(premioPrincipal.fotoUrl)}
+              alt={premioPrincipal.nome}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-muted">
+              <IconGift className="h-8 w-8" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">
+              {premioPrincipal ? premioPrincipal.nome : 'Sem prêmio associado'}
+            </p>
+            <p className="text-xs text-muted">
+              A imagem exibida na campanha é a foto do prêmio associado.{' '}
+              <button
+                type="button"
+                onClick={() => router.push('/admin/premios')}
+                className="font-medium text-accent-ink hover:text-accent-ink-hover"
+              >
+                Editar em Prêmios
+              </button>
+              .
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <Card className="flex flex-col gap-3">
         <p className="text-sm text-muted">{campanha.descricao}</p>
@@ -143,7 +242,7 @@ export default function DetalheCampanhaPage() {
         )}
       </Card>
 
-      {campanha.status === 'NOVO' && (
+      {!campanha.removidaEm && campanha.status === 'NOVO' && (
         <Card className="flex flex-col gap-3">
           <p className="text-sm text-muted">
             Revise o conteúdo da campanha acima. Depois de marcada como revisada, ela fica pronta para ser
@@ -155,7 +254,7 @@ export default function DetalheCampanhaPage() {
         </Card>
       )}
 
-      {campanha.status === 'AGUARDANDO_LIBERACAO' && (
+      {!campanha.removidaEm && campanha.status === 'AGUARDANDO_LIBERACAO' && (
         <FormularioLancar
           campanhaId={id}
           token={sessao?.token}
@@ -164,7 +263,7 @@ export default function DetalheCampanhaPage() {
         />
       )}
 
-      {podeFinalizar && (
+      {!campanha.removidaEm && podeFinalizar && (
         <FormularioFinalizar campanhaId={id} token={sessao?.token} aoConcluir={recarregar} aoErro={setErro} />
       )}
 

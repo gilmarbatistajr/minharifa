@@ -5,6 +5,7 @@ import { PrismaPremioRepository } from './infrastructure/prisma-premio.repositor
 import { CadastrarPremioUseCase } from './application/use-cases/cadastrar-premio.use-case';
 import { EditarPremioUseCase } from './application/use-cases/editar-premio.use-case';
 import { ListarPremiosDoAdministradorUseCase } from './application/use-cases/listar-premios-administrador.use-case';
+import { AtualizarFotoPremioUseCase } from './application/use-cases/atualizar-foto-premio.use-case';
 import { PremiosController } from './presentation/premios.controller';
 
 @Module({
@@ -16,6 +17,7 @@ import { PremiosController } from './presentation/premios.controller';
     CadastrarPremioUseCase,
     EditarPremioUseCase,
     ListarPremiosDoAdministradorUseCase,
+    AtualizarFotoPremioUseCase,
   ],
   exports: [PREMIO_REPOSITORY],
 })

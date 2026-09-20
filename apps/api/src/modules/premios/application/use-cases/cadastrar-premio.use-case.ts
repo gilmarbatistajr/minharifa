@@ -7,7 +7,6 @@ export interface CadastrarPremioInput {
   administradorId: string;
   nome: string;
   descricao: string;
-  fotoUrl: string;
   valor: number;
   valorOpcaoDinheiro?: number;
 }
@@ -37,7 +36,7 @@ export class CadastrarPremioUseCase {
       input.administradorId,
       input.nome,
       input.descricao,
-      input.fotoUrl,
+      null,
       input.valor,
       input.valorOpcaoDinheiro ?? null,
       agora,

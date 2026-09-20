@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -9,9 +9,29 @@ import { TextField, TextAreaField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { IconGift, IconPlus } from '../../../../components/ui/icons';
-import { premiosApi, ApiError, type Premio } from '../../../../lib/api';
+import { premiosApi, urlArquivoApi, ApiError, type Premio } from '../../../../lib/api';
 import { formatarMoeda } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
+
+const TIPOS_IMAGEM_PERMITIDOS = [
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+];
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 3 * 1024 * 1024;
+
+/** Alguns navegadores (principalmente com fotos HEIC do iPhone) deixam `File.type` vazio — cai para a extensão. */
+function obterTipoArquivo(arquivo: File): string {
+  if (arquivo.type) return arquivo.type;
+  const extensao = arquivo.name.split('.').pop()?.toLowerCase();
+  if (extensao === 'heic') return 'image/heic';
+  if (extensao === 'heif') return 'image/heif';
+  return '';
+}
 
 export default function ListaPremiosPage() {
   const { sessao } = useSessaoAdministrador();
@@ -80,10 +100,14 @@ export default function ListaPremiosPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {premios?.map((premio) => (
           <Card key={premio.id} className="flex flex-col gap-3">
-            <div className="relative h-32 w-full overflow-hidden rounded-xl bg-mist">
-              {premio.fotoUrl && (
-                // eslint-disable-next-line @next/next/no-img-element -- fotos de prêmio vêm de qualquer host externo
-                <img src={premio.fotoUrl} alt={premio.nome} className="h-full w-full object-cover" />
+            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-mist">
+              {premio.fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- fotos de prêmio vêm da API ou de host externo
+                <img src={urlArquivoApi(premio.fotoUrl)} alt={premio.nome} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-muted">
+                  <IconGift className="h-8 w-8" />
+                </div>
               )}
             </div>
             <div className="flex items-start justify-between gap-2">
@@ -120,15 +144,42 @@ function FormularioPremio({
   aoConcluir: () => void;
   aoCancelar: () => void;
 }) {
+  const inputFotoRef = useRef<HTMLInputElement>(null);
   const [nome, setNome] = useState(premio?.nome ?? '');
   const [descricao, setDescricao] = useState(premio?.descricao ?? '');
-  const [fotoUrl, setFotoUrl] = useState(premio?.fotoUrl ?? '');
   const [valor, setValor] = useState(premio ? String(premio.valor) : '');
   const [valorOpcaoDinheiro, setValorOpcaoDinheiro] = useState(
     premio?.valorOpcaoDinheiro ? String(premio.valorOpcaoDinheiro) : '',
   );
+  const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
+  const [previewFoto, setPreviewFoto] = useState<string | null>(
+    premio?.fotoUrl ? urlArquivoApi(premio.fotoUrl) : null,
+  );
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+
+  function aoSelecionarFoto(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0] ?? null;
+    evento.target.value = '';
+    if (!arquivo) return;
+
+    setErro(null);
+
+    const tipo = obterTipoArquivo(arquivo);
+    if (!TIPOS_IMAGEM_PERMITIDOS.includes(tipo)) {
+      setErro('A imagem deve estar em um dos formatos: JPEG, PNG, SVG, WEBP, GIF ou HEIC.');
+      return;
+    }
+    if (arquivo.size > TAMANHO_MAXIMO_IMAGEM_BYTES) {
+      setErro('A imagem deve ter no máximo 3MB.');
+      return;
+    }
+
+    // Corrige o content-type quando o navegador não identifica HEIC/HEIF corretamente.
+    const arquivoCorrigido = tipo !== arquivo.type ? new File([arquivo], arquivo.name, { type: tipo }) : arquivo;
+    setArquivoFoto(arquivoCorrigido);
+    setPreviewFoto(URL.createObjectURL(arquivoCorrigido));
+  }
 
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault();
@@ -139,15 +190,21 @@ function FormularioPremio({
       const dados = {
         nome,
         descricao,
-        fotoUrl,
         valor: Number(valor),
         valorOpcaoDinheiro: valorOpcaoDinheiro ? Number(valorOpcaoDinheiro) : undefined,
       };
+
+      let premioId = premio?.id;
       if (premio) {
         await premiosApi.editar(token, premio.id, dados);
       } else {
-        await premiosApi.cadastrar(token, dados);
+        premioId = (await premiosApi.cadastrar(token, dados)).premioId;
       }
+
+      if (arquivoFoto && premioId) {
+        await premiosApi.enviarFoto(token, premioId, arquivoFoto);
+      }
+
       aoConcluir();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível salvar o prêmio.');
@@ -168,12 +225,36 @@ function FormularioPremio({
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
         />
-        <TextField
-          label="URL da foto"
-          required
-          value={fotoUrl}
-          onChange={(e) => setFotoUrl(e.target.value)}
-        />
+
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-night">Foto</p>
+          <p className="mb-2 text-xs text-muted">
+            JPEG, PNG, SVG, WEBP, GIF ou HEIC, até 3MB, qualquer dimensão — exibida como um quadrado (1080x1080).
+            Prévia de HEIC pode não aparecer em alguns navegadores, mas o arquivo é enviado normalmente.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-mist">
+              {previewFoto ? (
+                // eslint-disable-next-line @next/next/no-img-element -- prévia local ou foto já hospedada
+                <img src={previewFoto} alt="Foto do prêmio" className="h-full w-full object-cover" />
+              ) : (
+                <IconGift className="h-8 w-8 text-muted" />
+              )}
+            </div>
+            <div>
+              <input
+                ref={inputFotoRef}
+                type="file"
+                accept="image/jpeg,image/png,image/svg+xml,image/webp,image/gif,image/heic,image/heif"
+                className="hidden"
+                onChange={aoSelecionarFoto}
+              />
+              <Button type="button" variant="secondary" onClick={() => inputFotoRef.current?.click()}>
+                {previewFoto ? 'Trocar foto' : 'Selecionar foto'}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField

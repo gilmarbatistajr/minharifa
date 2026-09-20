@@ -13,6 +13,7 @@ import {
   campanhasApi,
   gruposApi,
   premiosApi,
+  urlArquivoApi,
   type Campanha,
   type DetalheGrupo,
   type Premio,
@@ -183,8 +184,12 @@ export default function SorteioCampanhaPage() {
       <Card className="flex flex-col gap-4 sm:flex-row">
         <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-xl bg-mist sm:h-32 sm:w-32">
           {premioPrincipal?.fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos de prêmio vêm de qualquer host externo
-            <img src={premioPrincipal.fotoUrl} alt={premioPrincipal.nome} className="h-full w-full object-cover" />
+            // eslint-disable-next-line @next/next/no-img-element -- fotos de prêmio vêm da API ou de host externo
+            <img
+              src={urlArquivoApi(premioPrincipal.fotoUrl)}
+              alt={premioPrincipal.nome}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted">
               <IconGift className="h-8 w-8" />

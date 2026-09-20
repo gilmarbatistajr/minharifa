@@ -1,12 +1,32 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { AdministradorGuard } from '../../../shared/auth/guards/administrador.guard';
 import { CurrentUser } from '../../../shared/auth/decorators/current-user.decorator';
 import { PrincipalAutenticado } from '../../../shared/auth/jwt-payload.interface';
 import { CadastrarPremioUseCase } from '../application/use-cases/cadastrar-premio.use-case';
 import { EditarPremioUseCase } from '../application/use-cases/editar-premio.use-case';
 import { ListarPremiosDoAdministradorUseCase } from '../application/use-cases/listar-premios-administrador.use-case';
+import { AtualizarFotoPremioUseCase } from '../application/use-cases/atualizar-foto-premio.use-case';
+import { TIPOS_IMAGEM_PERMITIDOS } from '../domain/services/validacoes-imagem-premio';
 import { CadastrarPremioDto } from './dto/cadastrar-premio.dto';
 import { EditarPremioDto } from './dto/editar-premio.dto';
+
+// Teto de segurança acima do limite de negócio (3MB, validado no use case
+// com mensagem amigável) — só existe para não deixar a memória do processo
+// exposta a uploads absurdamente grandes.
+const TAMANHO_MAXIMO_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 @UseGuards(AdministradorGuard)
 @Controller('premios')
@@ -15,6 +35,7 @@ export class PremiosController {
     private readonly cadastrarPremioUseCase: CadastrarPremioUseCase,
     private readonly editarPremioUseCase: EditarPremioUseCase,
     private readonly listarPremiosDoAdministradorUseCase: ListarPremiosDoAdministradorUseCase,
+    private readonly atualizarFotoPremioUseCase: AtualizarFotoPremioUseCase,
   ) {}
 
   @Post()
@@ -42,6 +63,37 @@ export class PremiosController {
       administradorId: usuario.administradorId!,
       premioId,
       ...dto,
+    });
+  }
+
+  @Post(':premioId/foto')
+  @UseInterceptors(
+    FileInterceptor('foto', {
+      storage: memoryStorage(),
+      limits: { fileSize: TAMANHO_MAXIMO_UPLOAD_BYTES },
+      fileFilter: (_req, arquivo, callback) => {
+        if (!TIPOS_IMAGEM_PERMITIDOS.includes(arquivo.mimetype)) {
+          callback(new BadRequestException('A imagem deve estar em um dos formatos: JPEG, PNG, SVG, WEBP, GIF ou HEIC.'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async atualizarFoto(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('premioId') premioId: string,
+    @UploadedFile() arquivo: Express.Multer.File,
+  ) {
+    if (!arquivo) {
+      throw new BadRequestException('Envie um arquivo de imagem no campo "foto".');
+    }
+
+    return this.atualizarFotoPremioUseCase.executar({
+      administradorId: usuario.administradorId!,
+      premioId,
+      buffer: arquivo.buffer,
+      mimetype: arquivo.mimetype,
     });
   }
 }

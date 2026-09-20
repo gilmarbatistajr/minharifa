@@ -11,3 +11,4 @@ cypress/videos/
 cypress/screenshots/
 .turbo/
 *.tsbuildinfo
+apps/api/uploads/
