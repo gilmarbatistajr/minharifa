@@ -21,6 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       tipo: payload.tipo,
       administradorId: payload.tipo === 'administrador' ? payload.sub : undefined,
       compradorId: payload.tipo === 'comprador' ? payload.sub : undefined,
+      operadorId: payload.tipo === 'operador' ? payload.sub : undefined,
       grupoId: payload.grupoId,
     };
   }

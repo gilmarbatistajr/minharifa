@@ -1,7 +1,16 @@
 'use client';
 
 import { AppShell } from '../../../components/layout/AppShell';
-import { IconDashboard, IconTicket, IconGift, IconGroup, IconBell, IconUser } from '../../../components/ui/icons';
+import {
+  IconDashboard,
+  IconTicket,
+  IconGift,
+  IconGroup,
+  IconBell,
+  IconUser,
+  IconHeadset,
+  IconShield,
+} from '../../../components/ui/icons';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useAuth, useSessaoAdministrador } from '../../../lib/auth';
 
@@ -10,6 +19,8 @@ const NAV_ITEMS = [
   { href: '/admin/campanhas', label: 'Campanhas', icon: IconTicket },
   { href: '/admin/grupos', label: 'Grupos', icon: IconGroup },
   { href: '/admin/premios', label: 'Prêmios', icon: IconGift },
+  { href: '/admin/operadores', label: 'Operadores', icon: IconHeadset },
+  { href: '/admin/administradores', label: 'Administradores', icon: IconShield },
   { href: '/admin/alertas', label: 'Alertas automáticos', icon: IconBell },
   { href: '/admin/conta', label: 'Conta', icon: IconUser },
 ];

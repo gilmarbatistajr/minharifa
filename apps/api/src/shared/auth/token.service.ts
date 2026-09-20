@@ -15,4 +15,9 @@ export class TokenService {
     const payload: JwtPayload = { sub: compradorId, tipo: 'comprador', grupoId };
     return this.jwtService.sign(payload);
   }
+
+  gerarTokenOperador(operadorId: string): string {
+    const payload: JwtPayload = { sub: operadorId, tipo: 'operador' };
+    return this.jwtService.sign(payload);
+  }
 }

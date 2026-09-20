@@ -1,4 +1,4 @@
-export type TipoPrincipal = 'administrador' | 'comprador';
+export type TipoPrincipal = 'administrador' | 'comprador' | 'operador';
 
 export interface JwtPayload {
   sub: string;
@@ -10,5 +10,6 @@ export interface PrincipalAutenticado {
   tipo: TipoPrincipal;
   administradorId?: string;
   compradorId?: string;
+  operadorId?: string;
   grupoId?: string;
 }
