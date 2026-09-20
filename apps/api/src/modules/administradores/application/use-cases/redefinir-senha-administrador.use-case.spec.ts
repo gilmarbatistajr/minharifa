@@ -13,11 +13,14 @@ describe('RedefinirSenhaAdministradorUseCase', () => {
     return {
       buscarPorId: jest.fn(),
       buscarPorEmail: jest.fn(),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn().mockResolvedValue(administrador),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
       criar: jest.fn(),
+      remover: jest.fn(),
     };
   }
 

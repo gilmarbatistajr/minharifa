@@ -10,11 +10,14 @@ describe('AtualizarNomeAdministradorUseCase', () => {
     return {
       buscarPorId: jest.fn().mockResolvedValue(administrador),
       buscarPorEmail: jest.fn(),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn(),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
       criar: jest.fn(),
+      remover: jest.fn(),
     };
   }
 

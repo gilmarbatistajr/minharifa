@@ -12,11 +12,14 @@ describe('SolicitarRecuperacaoSenhaAdministradorUseCase', () => {
     const repositorio: AdministradorRepository = {
       buscarPorId: jest.fn(),
       buscarPorEmail: jest.fn().mockResolvedValue(administrador),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn(),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
       criar: jest.fn(),
+      remover: jest.fn(),
     };
     const tokenGenerator: TokenGenerator = { gerar: jest.fn().mockReturnValue('token-recuperacao') };
     const notificationSender: NotificationSender = {

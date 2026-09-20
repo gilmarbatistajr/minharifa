@@ -13,11 +13,14 @@ describe('CadastrarAdministradorUseCase', () => {
     const repositorio: AdministradorRepository = {
       buscarPorId: jest.fn(),
       buscarPorEmail: jest.fn().mockResolvedValue(existente),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn(),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
+      remover: jest.fn(),
     };
     const passwordHasher: PasswordHasher = {
       hash: jest.fn().mockResolvedValue('hash-da-senha'),

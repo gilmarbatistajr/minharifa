@@ -16,11 +16,17 @@ import { ConfirmarNovoEmailAdministradorUseCase } from './application/use-cases/
 import { ObterVisaoGeralDashboardUseCase } from './application/use-cases/obter-visao-geral-dashboard.use-case';
 import { RankingCotasCompradasAdministradorUseCase } from './application/use-cases/ranking-cotas-compradas-administrador.use-case';
 import { RankingVencedoresAdministradorUseCase } from './application/use-cases/ranking-vencedores-administrador.use-case';
+import { CadastrarAdministradorMembroUseCase } from './application/use-cases/cadastrar-administrador-membro.use-case';
+import { EditarAdministradorMembroUseCase } from './application/use-cases/editar-administrador-membro.use-case';
+import { ListarAdministradoresMembrosUseCase } from './application/use-cases/listar-administradores-membros.use-case';
+import { BuscarAdministradorMembroUseCase } from './application/use-cases/buscar-administrador-membro.use-case';
+import { ExcluirAdministradorMembroUseCase } from './application/use-cases/excluir-administrador-membro.use-case';
 import { AdministradoresController } from './presentation/administradores.controller';
+import { AdministradoresMembrosController } from './presentation/administradores-membros.controller';
 
 @Module({
   imports: [CampanhasModule, CompradoresModule],
-  controllers: [AdministradoresController],
+  controllers: [AdministradoresController, AdministradoresMembrosController],
   providers: [
     { provide: ADMINISTRADOR_REPOSITORY, useClass: PrismaAdministradorRepository },
     CadastrarAdministradorUseCase,
@@ -36,6 +42,11 @@ import { AdministradoresController } from './presentation/administradores.contro
     ObterVisaoGeralDashboardUseCase,
     RankingCotasCompradasAdministradorUseCase,
     RankingVencedoresAdministradorUseCase,
+    CadastrarAdministradorMembroUseCase,
+    EditarAdministradorMembroUseCase,
+    ListarAdministradoresMembrosUseCase,
+    BuscarAdministradorMembroUseCase,
+    ExcluirAdministradorMembroUseCase,
   ],
 })
 export class AdministradoresModule {}

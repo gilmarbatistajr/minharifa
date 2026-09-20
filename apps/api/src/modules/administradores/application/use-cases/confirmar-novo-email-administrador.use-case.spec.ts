@@ -7,11 +7,14 @@ describe('ConfirmarNovoEmailAdministradorUseCase', () => {
     return {
       buscarPorId: jest.fn(),
       buscarPorEmail: jest.fn(),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn(),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn().mockResolvedValue(administrador),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
       criar: jest.fn(),
+      remover: jest.fn(),
     };
   }
 

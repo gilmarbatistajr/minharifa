@@ -31,11 +31,14 @@ describe('LoginAdministradorUseCase', () => {
     const repositorio: AdministradorRepository = {
       buscarPorId: jest.fn(),
       buscarPorEmail: jest.fn().mockResolvedValue(administrador),
+      buscarPorCpf: jest.fn(),
       buscarPorTokenConfirmacaoEmail: jest.fn(),
       buscarPorTokenRecuperacaoSenha: jest.fn(),
       buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
       salvar: jest.fn(),
       criar: jest.fn(),
+      remover: jest.fn(),
     };
     const passwordHasher: PasswordHasher = {
       hash: jest.fn(),

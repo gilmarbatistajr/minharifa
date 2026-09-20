@@ -191,4 +191,80 @@ describe('Administrador', () => {
       ).toThrow('Não há troca de e-mail pendente');
     });
   });
+
+  describe('conta e membros', () => {
+    it('proprietário: contaId retorna o próprio id e ehMembro é falso', () => {
+      const admin = criarAdministrador();
+
+      expect(admin.contaId()).toBe('admin-1');
+      expect(admin.ehMembro()).toBe(false);
+    });
+
+    it('membro: contaId retorna o id do proprietário e ehMembro é verdadeiro', () => {
+      const membro = new Administrador(
+        'membro-1',
+        'Maria',
+        'maria@example.com',
+        'hash',
+        true,
+        new Date(),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        'dono-1',
+      );
+
+      expect(membro.contaId()).toBe('dono-1');
+      expect(membro.ehMembro()).toBe(true);
+      expect(membro.pertenceAMesmaConta('dono-1')).toBe(true);
+      expect(membro.pertenceAMesmaConta('outra-conta')).toBe(false);
+    });
+
+    it('atualizarComoMembro altera apenas os campos informados', () => {
+      const membro = new Administrador(
+        'membro-1',
+        'Maria',
+        'maria@example.com',
+        'hash',
+        true,
+        new Date(),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        '31999998888',
+        '52998224725',
+        'MG-1',
+        'dono-1',
+        [],
+      );
+
+      membro.atualizarComoMembro({
+        telefone: '31988887777',
+        permissoes: [{ recurso: 'GRUPOS', podeCriar: true, podeEditar: true, podeRemover: true }],
+      });
+
+      expect(membro.telefone).toBe('31988887777');
+      expect(membro.nome).toBe('Maria');
+      expect(membro.permissoes).toEqual([
+        { recurso: 'GRUPOS', podeCriar: true, podeEditar: true, podeRemover: true },
+      ]);
+    });
+
+    it('atualizarComoMembro rejeita nome vazio', () => {
+      const membro = criarAdministrador();
+
+      expect(() => membro.atualizarComoMembro({ nome: '   ' })).toThrow('não pode ser vazio');
+    });
+  });
 });
