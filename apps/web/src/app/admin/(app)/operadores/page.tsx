@@ -233,6 +233,22 @@ function FormularioOperador({
     setGrupoIds((atual) => (atual.includes(grupoId) ? atual.filter((id) => id !== grupoId) : [...atual, grupoId]));
   }
 
+  const todasPermissoesMarcadas = permissoes.every(
+    (permissao) => permissao.podeCriar && permissao.podeEditar && permissao.podeRemover,
+  );
+
+  function alternarTodasPermissoes() {
+    const novoValor = !todasPermissoesMarcadas;
+    setPermissoes((atual) =>
+      atual.map((permissao) => ({
+        ...permissao,
+        podeCriar: novoValor,
+        podeEditar: novoValor,
+        podeRemover: novoValor,
+      })),
+    );
+  }
+
   function alternarPermissao(recurso: RecursoMenuOperador, campo: 'podeCriar' | 'podeEditar' | 'podeRemover') {
     setPermissoes((atual) =>
       atual.map((permissao) =>
@@ -372,10 +388,19 @@ function FormularioOperador({
         <div className="h-px bg-line" />
 
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-night">Permissões por seção do menu</p>
-          <p className="text-xs text-muted">
-            Defina o que este operador pode criar, editar ou remover em cada seção.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium text-night">Permissões por seção do menu</p>
+              <p className="text-xs text-muted">
+                Defina o que este operador pode criar, editar ou remover em cada seção.
+              </p>
+            </div>
+            <CheckboxField
+              label="Marcar todos"
+              checked={todasPermissoesMarcadas}
+              onChange={alternarTodasPermissoes}
+            />
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse text-sm">
