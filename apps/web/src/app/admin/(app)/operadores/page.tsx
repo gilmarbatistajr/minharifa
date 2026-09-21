@@ -9,7 +9,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { TextField, CheckboxField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
-import { IconHeadset, IconPlus } from '../../../../components/ui/icons';
+import { IconHeadset, IconPlus, IconPencil, IconTrash } from '../../../../components/ui/icons';
 import {
   operadoresApi,
   gruposApi,
@@ -176,11 +176,23 @@ export default function ListaOperadoresPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setOperadorEmEdicao(operador)}>
-                Editar
+              <Button
+                variant="secondary"
+                className="flex-1"
+                aria-label="Editar"
+                title="Editar"
+                onClick={() => setOperadorEmEdicao(operador)}
+              >
+                <IconPencil className="h-4 w-4" />
               </Button>
-              <Button variant="danger" onClick={() => excluir(operador)}>
-                Excluir
+              <Button
+                variant="danger"
+                className="flex-1"
+                aria-label="Excluir"
+                title="Excluir"
+                onClick={() => excluir(operador)}
+              >
+                <IconTrash className="h-4 w-4" />
               </Button>
             </div>
           </Card>

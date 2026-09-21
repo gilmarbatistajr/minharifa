@@ -9,7 +9,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { TextField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
-import { IconShield, IconPlus } from '../../../../components/ui/icons';
+import { IconShield, IconPlus, IconPencil, IconTrash } from '../../../../components/ui/icons';
 import {
   administradoresMembrosApi,
   ApiError,
@@ -158,11 +158,23 @@ export default function ListaAdministradoresPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="secondary" className="flex-1" onClick={() => setMembroEmEdicao(membro)}>
-                  Editar
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  aria-label="Editar"
+                  title="Editar"
+                  onClick={() => setMembroEmEdicao(membro)}
+                >
+                  <IconPencil className="h-4 w-4" />
                 </Button>
-                <Button variant="danger" onClick={() => excluir(membro)}>
-                  Excluir
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  aria-label="Excluir"
+                  title="Excluir"
+                  onClick={() => excluir(membro)}
+                >
+                  <IconTrash className="h-4 w-4" />
                 </Button>
               </div>
             </Card>

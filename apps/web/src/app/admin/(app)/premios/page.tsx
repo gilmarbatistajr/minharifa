@@ -8,7 +8,7 @@ import { Alert } from '../../../../components/ui/Alert';
 import { TextField, TextAreaField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
-import { IconGift, IconPlus } from '../../../../components/ui/icons';
+import { IconGift, IconPlus, IconPencil, IconTrash } from '../../../../components/ui/icons';
 import { premiosApi, urlArquivoApi, ApiError, type Premio } from '../../../../lib/api';
 import { formatarMoeda } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
@@ -145,11 +145,23 @@ export default function ListaPremiosPage() {
               </p>
             )}
             <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setPremioEmEdicao(premio)}>
-                Editar
+              <Button
+                variant="secondary"
+                className="flex-1"
+                aria-label="Editar"
+                title="Editar"
+                onClick={() => setPremioEmEdicao(premio)}
+              >
+                <IconPencil className="h-4 w-4" />
               </Button>
-              <Button variant="danger" onClick={() => excluir(premio)}>
-                Excluir
+              <Button
+                variant="danger"
+                className="flex-1"
+                aria-label="Excluir"
+                title="Excluir"
+                onClick={() => excluir(premio)}
+              >
+                <IconTrash className="h-4 w-4" />
               </Button>
             </div>
           </Card>
