@@ -12,7 +12,14 @@ describe('ReservarLoteCotasUseCase', () => {
     );
   }
 
-  function criarCampanha(formaVenda: FormaVendaCotas): Campanha {
+  function criarCampanha(
+    formaVenda: FormaVendaCotas,
+    opcoes: {
+      quantidadeMinimaPorCompra?: number;
+      quantidadeMaximaPorCompra?: number | null;
+      expiracaoReservaMinutos?: number | null;
+    } = {},
+  ): Campanha {
     return new Campanha(
       'campanha-1',
       'admin-1',
@@ -30,10 +37,19 @@ describe('ReservarLoteCotasUseCase', () => {
       'VENDAS_ABERTAS',
       null,
       null,
+      null,
+      '',
+      opcoes.quantidadeMinimaPorCompra ?? 1,
+      opcoes.quantidadeMaximaPorCompra ?? null,
+      opcoes.expiracaoReservaMinutos === undefined ? 2 : opcoes.expiracaoReservaMinutos,
     );
   }
 
-  function criarRepositorios(cotas: Cota[], formaVenda: FormaVendaCotas = 'ESCOLHA_NUMERO') {
+  function criarRepositorios(
+    cotas: Cota[],
+    formaVenda: FormaVendaCotas = 'ESCOLHA_NUMERO',
+    opcoesCampanha?: Parameters<typeof criarCampanha>[1],
+  ) {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
       buscarPorCampanhaENumero: jest.fn(),
@@ -45,7 +61,7 @@ describe('ReservarLoteCotasUseCase', () => {
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const campanhaRepository: CampanhaRepository = {
-      buscarPorId: jest.fn().mockResolvedValue(criarCampanha(formaVenda)),
+      buscarPorId: jest.fn().mockResolvedValue(criarCampanha(formaVenda, opcoesCampanha)),
       listarPorPremioId: jest.fn(),
       listarPorGrupo: jest.fn(),
       listarPorAdministrador: jest.fn(),
@@ -212,5 +228,49 @@ describe('ReservarLoteCotasUseCase', () => {
         agora,
       ),
     ).rejects.toThrow('só permite escolha manual de números');
+  });
+
+  it('rejeita compra abaixo da quantidade mínima configurada na campanha', async () => {
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(10), 'LOTE_FECHADO', {
+      quantidadeMinimaPorCompra: 3,
+    });
+    const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 2 },
+        agora,
+      ),
+    ).rejects.toThrow('A compra mínima nesta campanha é de 3 cota(s).');
+    expect(cotaRepository.salvar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita compra acima da quantidade máxima configurada na campanha', async () => {
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(10), 'ESCOLHA_NUMERO', {
+      quantidadeMaximaPorCompra: 2,
+    });
+    const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1, 2, 3] },
+        agora,
+      ),
+    ).rejects.toThrow('A compra máxima nesta campanha é de 2 cota(s).');
+    expect(cotaRepository.salvar).not.toHaveBeenCalled();
+  });
+
+  it('reserva sem data de expiração quando a campanha está configurada sem expiração automática', async () => {
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(10), 'ESCOLHA_NUMERO', {
+      expiracaoReservaMinutos: null,
+    });
+    const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
+
+    const resultado = await useCase.executar(
+      { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1] },
+      agora,
+    );
+
+    expect(resultado.reservaExpiraEm).toBeNull();
   });
 });

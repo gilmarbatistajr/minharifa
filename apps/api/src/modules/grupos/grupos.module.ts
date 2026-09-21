@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CampanhasModule } from '../campanhas/campanhas.module';
 import { GRUPO_REPOSITORY } from './domain/repositories/grupo.repository';
 import { AGENTE_CHATBOT_REPOSITORY } from './domain/repositories/agente-chatbot.repository';
@@ -25,7 +25,9 @@ import { ListarAlertasAutomaticosUseCase } from './application/use-cases/listar-
 import { GruposController } from './presentation/grupos.controller';
 
 @Module({
-  imports: [CampanhasModule],
+  // forwardRef: CampanhasModule agora importa OperadoresModule (que importa
+  // GruposModule), fechando o ciclo Grupos -> Campanhas -> Operadores -> Grupos.
+  imports: [forwardRef(() => CampanhasModule)],
   controllers: [GruposController],
   providers: [
     { provide: GRUPO_REPOSITORY, useClass: PrismaGrupoRepository },

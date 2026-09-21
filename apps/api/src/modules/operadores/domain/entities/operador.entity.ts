@@ -37,6 +37,11 @@ export class Operador {
     return this.administradorId === administradorId;
   }
 
+  /** Regra de negócio: só pode editar (ex.: finalizar uma campanha) quem tem permissão de edição no recurso. */
+  podeEditarRecurso(recurso: RecursoMenuOperador): boolean {
+    return this.permissoes.some((permissao) => permissao.recurso === recurso && permissao.podeEditar);
+  }
+
   /** Cobre cadastro-de-operador.feature: edição de dados cadastrais e dos grupos associados. */
   atualizar(dados: DadosAtualizacaoOperador): void {
     if (dados.nomeCompleto !== undefined) {

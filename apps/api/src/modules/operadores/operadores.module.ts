@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { GruposModule } from '../grupos/grupos.module';
 import { OPERADOR_REPOSITORY } from './domain/repositories/operador.repository';
 import { PrismaOperadorRepository } from './infrastructure/prisma-operador.repository';
@@ -11,7 +11,9 @@ import { LoginOperadorUseCase } from './application/use-cases/login-operador.use
 import { OperadoresController } from './presentation/operadores.controller';
 
 @Module({
-  imports: [GruposModule],
+  // forwardRef: GruposModule importa CampanhasModule, que agora importa este
+  // módulo de volta (FinalizarCampanhaUseCase resolve o operador que finaliza).
+  imports: [forwardRef(() => GruposModule)],
   controllers: [OperadoresController],
   providers: [
     { provide: OPERADOR_REPOSITORY, useClass: PrismaOperadorRepository },

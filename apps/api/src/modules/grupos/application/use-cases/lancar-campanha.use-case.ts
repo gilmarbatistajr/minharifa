@@ -16,8 +16,8 @@ export interface LancarCampanhaInput {
   grupoId: string;
   campanhaId: string;
   dataAberturaVendas: Date;
-  dataEncerramentoVendas: Date;
-  dataRealizacao: Date;
+  dataEncerramentoVendas: Date | null;
+  dataRealizacao: Date | null;
 }
 
 export interface LancarCampanhaOutput {

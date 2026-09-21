@@ -12,10 +12,8 @@ export interface ReservarLoteCotasInput {
 
 export interface ReservarLoteCotasOutput {
   numeros: number[];
-  reservaExpiraEm: Date;
+  reservaExpiraEm: Date | null;
 }
-
-const MINUTOS_EXPIRACAO_PADRAO = 2;
 
 function embaralhar<T>(itens: T[]): T[] {
   const copia = [...itens];
@@ -69,6 +67,16 @@ export class ReservarLoteCotasUseCase {
       throw new Error('Esta campanha só permite escolha manual de números, não compra em lote.');
     }
 
+    const quantidadeDesejada = numerosManuais.length > 0 ? numerosManuais.length : input.quantidadeAleatoria!;
+
+    if (quantidadeDesejada < campanha.quantidadeMinimaPorCompra) {
+      throw new Error(`A compra mínima nesta campanha é de ${campanha.quantidadeMinimaPorCompra} cota(s).`);
+    }
+
+    if (campanha.quantidadeMaximaPorCompra !== null && quantidadeDesejada > campanha.quantidadeMaximaPorCompra) {
+      throw new Error(`A compra máxima nesta campanha é de ${campanha.quantidadeMaximaPorCompra} cota(s).`);
+    }
+
     const todasAsCotas = await this.cotaRepository.listarPorCampanha(input.campanhaId);
 
     let cotasParaReservar: Cota[];
@@ -97,7 +105,7 @@ export class ReservarLoteCotasUseCase {
     }
 
     for (const cota of cotasParaReservar) {
-      cota.reservarPara(input.compradorId, agora, MINUTOS_EXPIRACAO_PADRAO);
+      cota.reservarPara(input.compradorId, agora, campanha.expiracaoReservaMinutos);
     }
 
     for (const cota of cotasParaReservar) {
@@ -106,7 +114,7 @@ export class ReservarLoteCotasUseCase {
 
     return {
       numeros: cotasParaReservar.map((cota) => cota.numero).sort((a, b) => a - b),
-      reservaExpiraEm: cotasParaReservar[0].reservaExpiraEm as Date,
+      reservaExpiraEm: cotasParaReservar[0].reservaExpiraEm,
     };
   }
 }

@@ -28,6 +28,14 @@ type RegistroCampanha = {
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
   removidaEm: Date | null;
+  telefoneSuporte: string;
+  quantidadeMinimaPorCompra: number;
+  quantidadeMaximaPorCompra: number | null;
+  expiracaoReservaMinutos: number | null;
+  reservaExigeEmail: boolean;
+  reservaExigeNome: boolean;
+  reservaExigeTelefone: boolean;
+  reservaExigeConfirmacaoTelefone: boolean;
 };
 
 function paraDominio(registro: RegistroCampanha): Campanha {
@@ -49,6 +57,14 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.cotaVencedoraNumero,
     registro.vencedorOptouPorDinheiro,
     registro.removidaEm,
+    registro.telefoneSuporte,
+    registro.quantidadeMinimaPorCompra,
+    registro.quantidadeMaximaPorCompra,
+    registro.expiracaoReservaMinutos,
+    registro.reservaExigeEmail,
+    registro.reservaExigeNome,
+    registro.reservaExigeTelefone,
+    registro.reservaExigeConfirmacaoTelefone,
   );
 }
 
@@ -105,6 +121,14 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         formaVenda: campanha.formaVenda,
         status: campanha.status,
         statusVendas: campanha.statusVendas,
+        telefoneSuporte: campanha.telefoneSuporte,
+        quantidadeMinimaPorCompra: campanha.quantidadeMinimaPorCompra,
+        quantidadeMaximaPorCompra: campanha.quantidadeMaximaPorCompra,
+        expiracaoReservaMinutos: campanha.expiracaoReservaMinutos,
+        reservaExigeEmail: campanha.reservaExigeEmail,
+        reservaExigeNome: campanha.reservaExigeNome,
+        reservaExigeTelefone: campanha.reservaExigeTelefone,
+        reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
       },
     });
   }

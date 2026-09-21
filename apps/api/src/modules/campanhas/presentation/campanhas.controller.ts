@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AdministradorGuard } from '../../../shared/auth/guards/administrador.guard';
+import { AdministradorOuOperadorGuard } from '../../../shared/auth/guards/administrador-ou-operador.guard';
 import { CompradorGuard } from '../../../shared/auth/guards/comprador.guard';
 import { CurrentUser } from '../../../shared/auth/decorators/current-user.decorator';
 import { PrincipalAutenticado } from '../../../shared/auth/jwt-payload.interface';
@@ -42,10 +43,18 @@ export class CampanhasController {
       administradorId: usuario.administradorId!,
       nome: dto.nome,
       descricao: dto.descricao,
+      telefoneSuporte: dto.telefoneSuporte,
       premioIds: dto.premioIds,
       quantidadeCotas: dto.quantidadeCotas,
       valorCota: dto.valorCota,
       formaVenda: dto.formaVenda,
+      quantidadeMinimaPorCompra: dto.quantidadeMinimaPorCompra,
+      quantidadeMaximaPorCompra: dto.quantidadeMaximaPorCompra,
+      expiracaoReservaMinutos: dto.expiracaoReservaMinutos,
+      reservaExigeEmail: dto.reservaExigeEmail,
+      reservaExigeNome: dto.reservaExigeNome,
+      reservaExigeTelefone: dto.reservaExigeTelefone,
+      reservaExigeConfirmacaoTelefone: dto.reservaExigeConfirmacaoTelefone,
     });
   }
 
@@ -91,7 +100,7 @@ export class CampanhasController {
     });
   }
 
-  @UseGuards(AdministradorGuard)
+  @UseGuards(AdministradorOuOperadorGuard)
   @Post(':campanhaId/finalizar')
   async finalizar(
     @CurrentUser() usuario: PrincipalAutenticado,
@@ -99,7 +108,8 @@ export class CampanhasController {
     @Body() dto: FinalizarCampanhaDto,
   ) {
     return this.finalizarCampanhaUseCase.executar({
-      administradorId: usuario.administradorId!,
+      administradorId: usuario.administradorId,
+      operadorId: usuario.operadorId,
       campanhaId,
       cotaVencedoraNumero: dto.cotaVencedoraNumero,
     });

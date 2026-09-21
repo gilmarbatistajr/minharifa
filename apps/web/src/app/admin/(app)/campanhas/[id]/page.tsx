@@ -56,6 +56,14 @@ export default function DetalheCampanhaPage() {
     recarregar();
   }, [recarregar]);
 
+  // Campanha liberada (e não removida) não tem mais nada para editar aqui: as únicas
+  // ações desse estágio (confirmar pagamento, liberar cotas) vivem na tela de sorteio.
+  useEffect(() => {
+    if (campanha && campanha.status === 'LIBERADA' && !campanha.removidaEm) {
+      router.replace(`/admin/campanhas/${id}/sorteio`);
+    }
+  }, [campanha, id, router]);
+
   async function marcarComoRevisada() {
     if (!sessao) return;
     setErro(null);
@@ -105,18 +113,13 @@ export default function DetalheCampanhaPage() {
     }
   }
 
-  if (!campanha) {
+  if (!campanha || (campanha.status === 'LIBERADA' && !campanha.removidaEm)) {
     return (
       <div className="flex justify-center py-16 text-muted">
         <Spinner />
       </div>
     );
   }
-
-  const podeFinalizar =
-    campanha.status === 'LIBERADA' &&
-    campanha.dataRealizacao !== null &&
-    new Date(campanha.dataRealizacao) <= new Date();
 
   const premiosDaCampanha = premios?.filter((premio) => campanha.premioIds.includes(premio.id)) ?? [];
   const premioPrincipal = premiosDaCampanha[0] ?? null;
@@ -263,10 +266,6 @@ export default function DetalheCampanhaPage() {
         />
       )}
 
-      {!campanha.removidaEm && podeFinalizar && (
-        <FormularioFinalizar campanhaId={id} token={sessao?.token} aoConcluir={recarregar} aoErro={setErro} />
-      )}
-
       {campanha.status === 'FINALIZADA' && campanha.cotaVencedoraNumero !== null && (
         <Card className="flex flex-col gap-1">
           <p className="font-mono text-xs uppercase tracking-wide text-muted">Vencedor</p>
@@ -291,8 +290,8 @@ function FormularioLancar({
   const [grupos, setGrupos] = useState<Grupo[] | null>(null);
   const [grupoId, setGrupoId] = useState('');
   const [dataAberturaVendas, setDataAberturaVendas] = useState(daquiA(0));
-  const [dataEncerramentoVendas, setDataEncerramentoVendas] = useState(daquiA(30));
-  const [dataRealizacao, setDataRealizacao] = useState(daquiA(31));
+  const [dataEncerramentoVendas, setDataEncerramentoVendas] = useState('');
+  const [dataRealizacao, setDataRealizacao] = useState('');
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
@@ -310,8 +309,10 @@ function FormularioLancar({
     try {
       await gruposApi.lancarCampanha(token, grupoId, campanhaId, {
         dataAberturaVendas: new Date(dataAberturaVendas).toISOString(),
-        dataEncerramentoVendas: new Date(dataEncerramentoVendas).toISOString(),
-        dataRealizacao: new Date(dataRealizacao).toISOString(),
+        dataEncerramentoVendas: dataEncerramentoVendas
+          ? new Date(dataEncerramentoVendas).toISOString()
+          : undefined,
+        dataRealizacao: dataRealizacao ? new Date(dataRealizacao).toISOString() : undefined,
       });
       aoConcluir();
     } catch (excecao) {
@@ -359,16 +360,16 @@ function FormularioLancar({
             <TextField
               label="Encerramento das vendas"
               type="date"
-              required
               value={dataEncerramentoVendas}
               onChange={(e) => setDataEncerramentoVendas(e.target.value)}
+              hint="Opcional"
             />
             <TextField
               label="Data do sorteio"
               type="date"
-              required
               value={dataRealizacao}
               onChange={(e) => setDataRealizacao(e.target.value)}
+              hint="Opcional"
             />
           </div>
 
@@ -381,55 +382,3 @@ function FormularioLancar({
   );
 }
 
-function FormularioFinalizar({
-  campanhaId,
-  token,
-  aoConcluir,
-  aoErro,
-}: {
-  campanhaId: string;
-  token?: string;
-  aoConcluir: () => void;
-  aoErro: (mensagem: string) => void;
-}) {
-  const [cotaVencedoraNumero, setCotaVencedoraNumero] = useState('');
-  const [enviando, setEnviando] = useState(false);
-
-  async function confirmar() {
-    if (!token) return;
-    const numero = Number(cotaVencedoraNumero);
-    if (!numero || numero < 1) {
-      aoErro('Informe o número da cota vencedora.');
-      return;
-    }
-    setEnviando(true);
-    try {
-      await campanhasApi.finalizar(token, campanhaId, numero);
-      aoConcluir();
-    } catch (excecao) {
-      aoErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível finalizar a campanha.');
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  return (
-    <Card className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-night">Finalizar campanha</p>
-      <p className="text-xs text-muted">A data do sorteio já passou. Informe o número da cota vencedora.</p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <TextField
-          label="Número da cota vencedora"
-          type="number"
-          min={1}
-          value={cotaVencedoraNumero}
-          onChange={(e) => setCotaVencedoraNumero(e.target.value)}
-          className="max-w-[180px]"
-        />
-        <Button loading={enviando} onClick={confirmar}>
-          Confirmar vencedor
-        </Button>
-      </div>
-    </Card>
-  );
-}

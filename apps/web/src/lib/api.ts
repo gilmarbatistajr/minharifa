@@ -171,18 +171,28 @@ export type StatusCampanha = 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FIN
 
 export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
 
+export const EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS = [5, 10, 30, 60, 120] as const;
+
 export interface Campanha {
   id: string;
   administradorId: string;
   grupoId: string | null;
   nome: string;
   descricao: string;
+  telefoneSuporte: string;
   premioIds: string[];
   dataAberturaVendas: string | null;
   dataEncerramentoVendas: string | null;
   dataRealizacao: string | null;
   quantidadeCotas: number;
   valorCota: number;
+  quantidadeMinimaPorCompra: number;
+  quantidadeMaximaPorCompra: number | null;
+  expiracaoReservaMinutos: number | null;
+  reservaExigeEmail: boolean;
+  reservaExigeNome: boolean;
+  reservaExigeTelefone: boolean;
+  reservaExigeConfirmacaoTelefone: boolean;
   formaVenda: FormaVendaCotas;
   status: StatusCampanha;
   statusVendas: StatusVendasCampanha;
@@ -301,7 +311,7 @@ export const gruposApi = {
     token: string,
     grupoId: string,
     campanhaId: string,
-    dados: { dataAberturaVendas: string; dataEncerramentoVendas: string; dataRealizacao: string },
+    dados: { dataAberturaVendas: string; dataEncerramentoVendas?: string; dataRealizacao?: string },
   ) =>
     request<{ campanhaId: string }>(`/grupos/${grupoId}/campanhas/${campanhaId}/lancar`, {
       method: 'POST',
@@ -398,10 +408,18 @@ export const campanhasApi = {
     dados: {
       nome: string;
       descricao: string;
+      telefoneSuporte: string;
       premioIds: string[];
       quantidadeCotas: number;
       valorCota: number;
       formaVenda: FormaVendaCotas;
+      quantidadeMinimaPorCompra?: number;
+      quantidadeMaximaPorCompra?: number | null;
+      expiracaoReservaMinutos?: number | null;
+      reservaExigeEmail?: boolean;
+      reservaExigeNome?: boolean;
+      reservaExigeTelefone?: boolean;
+      reservaExigeConfirmacaoTelefone?: boolean;
     },
   ) => request<{ campanhaId: string }>('/campanhas', { method: 'POST', token, body: dados }),
 
@@ -439,7 +457,7 @@ export const campanhasApi = {
     campanhaId: string,
     escolha: { numeros: number[] } | { quantidadeAleatoria: number },
   ) =>
-    request<{ numeros: number[]; reservaExpiraEm: string }>(`/campanhas/${campanhaId}/cotas/reservar-lote`, {
+    request<{ numeros: number[]; reservaExpiraEm: string | null }>(`/campanhas/${campanhaId}/cotas/reservar-lote`, {
       method: 'POST',
       token,
       body: escolha,

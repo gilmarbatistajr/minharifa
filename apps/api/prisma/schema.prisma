@@ -233,12 +233,20 @@ model Campanha {
   grupo                    Grupo?                @relation(fields: [grupoId], references: [id])
   nome                     String
   descricao                String
+  telefoneSuporte          String                @default("")
   premios                  Premio[]
   dataAberturaVendas       DateTime?
   dataEncerramentoVendas   DateTime?
   dataRealizacao           DateTime?
   quantidadeCotas          Int
   valorCota                Decimal               @db.Decimal(10, 2)
+  quantidadeMinimaPorCompra       Int            @default(1)
+  quantidadeMaximaPorCompra       Int?
+  expiracaoReservaMinutos         Int?           @default(2)
+  reservaExigeEmail               Boolean        @default(true)
+  reservaExigeNome                Boolean        @default(true)
+  reservaExigeTelefone            Boolean        @default(true)
+  reservaExigeConfirmacaoTelefone Boolean        @default(false)
   formaVenda               FormaVendaCotas       @default(ESCOLHA_NUMERO)
   status                   StatusCampanha        @default(NOVO)
   statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)

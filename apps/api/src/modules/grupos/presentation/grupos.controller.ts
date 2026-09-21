@@ -158,8 +158,8 @@ export class GruposController {
       grupoId,
       campanhaId,
       dataAberturaVendas: new Date(dto.dataAberturaVendas),
-      dataEncerramentoVendas: new Date(dto.dataEncerramentoVendas),
-      dataRealizacao: new Date(dto.dataRealizacao),
+      dataEncerramentoVendas: dto.dataEncerramentoVendas ? new Date(dto.dataEncerramentoVendas) : null,
+      dataRealizacao: dto.dataRealizacao ? new Date(dto.dataRealizacao) : null,
     });
   }
 

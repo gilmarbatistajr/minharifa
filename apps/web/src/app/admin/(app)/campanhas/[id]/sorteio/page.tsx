@@ -1,19 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../../components/ui/Card';
 import { Button } from '../../../../../../components/ui/Button';
+import { Alert } from '../../../../../../components/ui/Alert';
 import { Badge } from '../../../../../../components/ui/Badge';
 import { Spinner } from '../../../../../../components/ui/Spinner';
+import { TextField } from '../../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../../components/ui/EmptyState';
-import { IconArrowLeft, IconWhatsapp, IconGift } from '../../../../../../components/ui/icons';
+import { IconArrowLeft, IconWhatsapp, IconGift, IconCheck } from '../../../../../../components/ui/icons';
 import {
   campanhasApi,
   gruposApi,
   premiosApi,
   urlArquivoApi,
+  ApiError,
   type Campanha,
   type DetalheGrupo,
   type Premio,
@@ -85,21 +88,25 @@ export default function SorteioCampanhaPage() {
   const [grupo, setGrupo] = useState<DetalheGrupo | null>(null);
   const [premios, setPremios] = useState<Premio[] | null>(null);
   const [cotas, setCotas] = useState<CotaAdmin[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [mostrarFinalizar, setMostrarFinalizar] = useState(false);
+
+  const recarregar = useCallback(async () => {
+    if (!sessao) return;
+    const [campanhaData, premiosData] = await Promise.all([
+      campanhasApi.buscar(sessao.token, id),
+      premiosApi.listar(sessao.token),
+    ]);
+    setCampanha(campanhaData);
+    setPremios(premiosData);
+    if (campanhaData.grupoId) {
+      setGrupo(await gruposApi.buscar(sessao.token, campanhaData.grupoId));
+    }
+  }, [sessao, id]);
 
   useEffect(() => {
-    if (!sessao) return;
-    (async () => {
-      const [campanhaData, premiosData] = await Promise.all([
-        campanhasApi.buscar(sessao.token, id),
-        premiosApi.listar(sessao.token),
-      ]);
-      setCampanha(campanhaData);
-      setPremios(premiosData);
-      if (campanhaData.grupoId) {
-        setGrupo(await gruposApi.buscar(sessao.token, campanhaData.grupoId));
-      }
-    })();
-  }, [sessao, id]);
+    recarregar();
+  }, [recarregar]);
 
   useEffect(() => {
     if (campanha && cotas === null) {
@@ -113,24 +120,26 @@ export default function SorteioCampanhaPage() {
   );
   const premioPrincipal = premiosDaCampanha[0] ?? null;
 
-  const reservasPorComprador = useMemo(() => {
+  const comprasPorComprador = useMemo(() => {
     if (!cotas) return [];
-    const mapa = new Map<string, { compradorId: string; nome: string; telefone: string; numeros: number[] }>();
+    const mapa = new Map<string, ReservaComprador>();
     for (const cota of cotas) {
-      if (cota.status !== 'RESERVADA' || !cota.compradorId || !cota.compradorNome || !cota.compradorTelefone) {
-        continue;
-      }
-      const existente = mapa.get(cota.compradorId);
-      if (existente) {
-        existente.numeros.push(cota.numero);
+      if (cota.status !== 'RESERVADA' && cota.status !== 'PAGA') continue;
+      if (!cota.compradorId || !cota.compradorNome || !cota.compradorTelefone) continue;
+
+      const existente = mapa.get(cota.compradorId) ?? {
+        compradorId: cota.compradorId,
+        nome: cota.compradorNome,
+        telefone: cota.compradorTelefone,
+        numerosReservados: [],
+        numerosPagos: [],
+      };
+      if (cota.status === 'RESERVADA') {
+        existente.numerosReservados.push(cota.numero);
       } else {
-        mapa.set(cota.compradorId, {
-          compradorId: cota.compradorId,
-          nome: cota.compradorNome,
-          telefone: cota.compradorTelefone,
-          numeros: [cota.numero],
-        });
+        existente.numerosPagos.push(cota.numero);
       }
+      mapa.set(cota.compradorId, existente);
     }
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [cotas]);
@@ -169,16 +178,43 @@ export default function SorteioCampanhaPage() {
   const pctPagas = totalCotas ? (totalPagas / totalCotas) * 100 : 0;
   const pctReservadas = totalCotas ? (totalReservadas / totalCotas) * 100 : 0;
 
+  // Campanha liberada não tem mais uma tela de detalhe própria (redireciona para cá);
+  // voltar deve ir para a lista. Os demais status ainda têm a tela de detalhe.
+  const rotaVoltar =
+    campanha.status === 'LIBERADA' && !campanha.removidaEm ? '/admin/campanhas' : `/admin/campanhas/${id}`;
+
+  // O sorteio só pode ser realizado depois que todas as cotas estiverem pagas —
+  // não há mais nada para reservar ou confirmar.
+  const todasCotasPagas = totalCotas > 0 && totalPagas === totalCotas;
+
   return (
     <div className="flex flex-col gap-6">
       <button
-        onClick={() => router.push(`/admin/campanhas/${id}`)}
+        onClick={() => router.push(rotaVoltar)}
         className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-night"
       >
-        <IconArrowLeft className="h-4 w-4" /> Voltar para a campanha
+        <IconArrowLeft className="h-4 w-4" />{' '}
+        {rotaVoltar === '/admin/campanhas' ? 'Voltar para campanhas' : 'Voltar para a campanha'}
       </button>
 
-      <PageHeader eyebrow="Sorteio" title={campanha.nome} />
+      <PageHeader
+        eyebrow="Sorteio"
+        title={campanha.nome}
+        action={
+          campanha.status === 'LIBERADA' &&
+          !mostrarFinalizar && (
+            <Button
+              disabled={!todasCotasPagas}
+              title={todasCotasPagas ? undefined : 'Só é possível realizar o sorteio com todas as cotas pagas.'}
+              onClick={() => setMostrarFinalizar(true)}
+            >
+              Realizar Sorteio
+            </Button>
+          )
+        }
+      />
+
+      {erro && <Alert tone="error">{erro}</Alert>}
 
       {/* Seção 1 — informações do sorteio */}
       <Card className="flex flex-col gap-4 sm:flex-row">
@@ -238,26 +274,26 @@ export default function SorteioCampanhaPage() {
         </div>
       </Card>
 
-      {/* Seção 3 — histórico de cotas reservadas */}
+      {/* Seção 3 — cotas compradas (reservadas aguardando confirmação e já pagas) */}
       <Card className="flex flex-col gap-4">
-        <p className="text-sm font-medium text-night">Cotas reservadas aguardando confirmação</p>
+        <p className="text-sm font-medium text-night">Cotas compradas</p>
 
-        {reservasPorComprador.length === 0 ? (
+        {comprasPorComprador.length === 0 ? (
           <EmptyState
-            title="Nenhuma cota reservada"
-            description="Assim que compradores reservarem cotas, elas aparecem aqui para você confirmar o pagamento ou liberar."
+            title="Nenhuma cota comprada"
+            description="Assim que compradores reservarem ou pagarem cotas, eles aparecem aqui."
           />
         ) : (
           <>
             {/* Mobile: lista de cards — uma tabela larga não cabe na tela e escondia os botões de ação */}
             <div className="flex flex-col gap-3 sm:hidden">
-              {reservasPorComprador.map((reserva) => (
+              {comprasPorComprador.map((reserva) => (
                 <div key={reserva.compradorId} className="flex flex-col gap-3 rounded-xl border border-line p-4">
                   <div>
                     <p className="font-medium text-night">{reserva.nome}</p>
                     <p className="font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</p>
                   </div>
-                  <NumerosReservados numeros={reserva.numeros} />
+                  <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                   <AcoesReserva
                     reserva={reserva}
                     onConfirmar={confirmarPagamento}
@@ -275,17 +311,17 @@ export default function SorteioCampanhaPage() {
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                     <th className="py-2 pr-4 font-mono font-medium">Comprador</th>
                     <th className="py-2 pr-4 font-mono font-medium">Telefone</th>
-                    <th className="py-2 pr-4 font-mono font-medium">Cotas reservadas</th>
+                    <th className="py-2 pr-4 font-mono font-medium">Cotas</th>
                     <th className="py-2 pr-4 font-mono font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reservasPorComprador.map((reserva) => (
+                  {comprasPorComprador.map((reserva) => (
                     <tr key={reserva.compradorId} className="border-b border-line last:border-0">
                       <td className="py-3 pr-4 font-medium text-night">{reserva.nome}</td>
                       <td className="py-3 pr-4 font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</td>
                       <td className="py-3 pr-4">
-                        <NumerosReservados numeros={reserva.numeros} />
+                        <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                       </td>
                       <td className="py-3 pr-4">
                         <AcoesReserva reserva={reserva} onConfirmar={confirmarPagamento} onLiberar={liberarCotasReservadas} />
@@ -313,7 +349,66 @@ export default function SorteioCampanhaPage() {
           ))}
         </div>
       </Card>
+
+      {campanha.status === 'LIBERADA' && mostrarFinalizar && (
+        <FormularioFinalizar campanhaId={id} token={sessao?.token} aoConcluir={recarregar} aoErro={setErro} />
+      )}
     </div>
+  );
+}
+
+function FormularioFinalizar({
+  campanhaId,
+  token,
+  aoConcluir,
+  aoErro,
+}: {
+  campanhaId: string;
+  token?: string;
+  aoConcluir: () => void;
+  aoErro: (mensagem: string) => void;
+}) {
+  const [cotaVencedoraNumero, setCotaVencedoraNumero] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  async function confirmar() {
+    if (!token) return;
+    const numero = Number(cotaVencedoraNumero);
+    if (!numero || numero < 1) {
+      aoErro('Informe o número da cota vencedora.');
+      return;
+    }
+    setEnviando(true);
+    try {
+      await campanhasApi.finalizar(token, campanhaId, numero);
+      aoConcluir();
+    } catch (excecao) {
+      aoErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível finalizar a campanha.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <p className="text-sm font-medium text-night">Finalizar campanha</p>
+      <p className="text-xs text-muted">
+        Todas as cotas foram pagas. Informe o número da cota vencedora do sorteio.
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <TextField
+          label="Número da cota vencedora"
+          type="number"
+          min={1}
+          value={cotaVencedoraNumero}
+          onChange={(e) => setCotaVencedoraNumero(e.target.value)}
+          className="max-w-[180px]"
+        />
+        <Button loading={enviando} onClick={confirmar}>
+          Confirmar vencedor
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -321,10 +416,11 @@ interface ReservaComprador {
   compradorId: string;
   nome: string;
   telefone: string;
-  numeros: number[];
+  numerosReservados: number[];
+  numerosPagos: number[];
 }
 
-function NumerosReservados({ numeros }: { numeros: number[] }) {
+function ListaNumeros({ label, numeros }: { label: string; numeros: number[] }) {
   const numerosOrdenados = numeros.slice().sort((a, b) => a - b);
   const numerosExibidos = numerosOrdenados.slice(0, 6);
   const restante = numerosOrdenados.length - numerosExibidos.length;
@@ -332,12 +428,21 @@ function NumerosReservados({ numeros }: { numeros: number[] }) {
   return (
     <div>
       <p className="text-xs text-muted">
-        {numerosOrdenados.length} cota{numerosOrdenados.length > 1 ? 's' : ''}
+        {label} · {numerosOrdenados.length} cota{numerosOrdenados.length > 1 ? 's' : ''}
       </p>
       <p className="font-mono text-xs text-night">
         Nº {numerosExibidos.join(', ')}
         {restante > 0 && ` +${restante}`}
       </p>
+    </div>
+  );
+}
+
+function NumerosComprados({ reservados, pagos }: { reservados: number[]; pagos: number[] }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {pagos.length > 0 && <ListaNumeros label="Pagas" numeros={pagos} />}
+      {reservados.length > 0 && <ListaNumeros label="Reservadas" numeros={reservados} />}
     </div>
   );
 }
@@ -353,14 +458,25 @@ function AcoesReserva({
   onLiberar: (compradorId: string) => void;
   fullWidth?: boolean;
 }) {
+  const semReservaPendente = reserva.numerosReservados.length === 0;
+
   return (
     <div className={`flex flex-wrap items-center gap-2 ${fullWidth ? 'flex-col items-stretch' : ''}`}>
-      <Button className="px-3 py-2 text-xs" onClick={() => onConfirmar(reserva.compradorId)}>
-        Confirmar pagamento
-      </Button>
-      <Button variant="danger" className="px-3 py-2 text-xs" onClick={() => onLiberar(reserva.compradorId)}>
-        Liberar cotas reservadas
-      </Button>
+      {semReservaPendente ? (
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-ink">
+          <IconCheck className="h-4 w-4" />
+          Pagamento confirmado
+        </span>
+      ) : (
+        <>
+          <Button className="px-3 py-2 text-xs" onClick={() => onConfirmar(reserva.compradorId)}>
+            Confirmar pagamento
+          </Button>
+          <Button variant="danger" className="px-3 py-2 text-xs" onClick={() => onLiberar(reserva.compradorId)}>
+            Liberar cotas reservadas
+          </Button>
+        </>
+      )}
       <a
         href={linkWhatsapp(reserva.telefone)}
         target="_blank"

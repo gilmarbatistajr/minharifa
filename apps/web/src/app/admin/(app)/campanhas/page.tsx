@@ -114,13 +114,15 @@ export default function ListaCampanhasPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {campanhasFiltradas.map((campanha) => {
           const fotoPremio = campanha.premioIds.map((id) => premiosPorId.get(id)?.fotoUrl).find(Boolean);
+          // Campanha liberada (e não removida) vai direto para o sorteio: não há mais
+          // conteúdo para editar, só confirmar pagamento e liberar cotas.
+          const destino =
+            campanha.status === 'LIBERADA' && !campanha.removidaEm
+              ? `/admin/campanhas/${campanha.id}/sorteio`
+              : `/admin/campanhas/${campanha.id}`;
 
           return (
-            <button
-              key={campanha.id}
-              className="text-left"
-              onClick={() => router.push(`/admin/campanhas/${campanha.id}`)}
-            >
+            <button key={campanha.id} className="text-left" onClick={() => router.push(destino)}>
               <Card
                 className={`flex flex-col gap-3 transition hover:border-night/30 ${
                   campanha.removidaEm ? 'opacity-60' : ''

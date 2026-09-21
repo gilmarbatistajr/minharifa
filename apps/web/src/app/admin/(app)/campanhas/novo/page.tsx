@@ -7,12 +7,21 @@ import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
 import { Alert } from '../../../../../components/ui/Alert';
 import { Spinner } from '../../../../../components/ui/Spinner';
-import { TextField, TextAreaField, CheckboxField } from '../../../../../components/ui/Field';
+import { TextField, TextAreaField, SelectField, CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
 import { IconArrowLeft } from '../../../../../components/ui/icons';
 import { campanhasApi, premiosApi, ApiError, type Premio, type FormaVendaCotas } from '../../../../../lib/api';
-import { formatarMoeda } from '../../../../../lib/format';
+import { formatarMoeda, formatarTelefone } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
+
+const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
+  { valor: 'SEM_EXPIRACAO', label: 'Sem expiração automática' },
+  { valor: '5', label: '5 minutos' },
+  { valor: '10', label: '10 minutos' },
+  { valor: '30', label: '30 minutos' },
+  { valor: '60', label: '1 hora' },
+  { valor: '120', label: '2 horas' },
+];
 
 export default function NovaCampanhaPage() {
   const { sessao } = useSessaoAdministrador();
@@ -20,12 +29,27 @@ export default function NovaCampanhaPage() {
 
   const [premios, setPremios] = useState<Premio[] | null>(null);
 
+  // Informações básicas
   const [nome, setNome] = useState('');
+  const [telefoneSuporte, setTelefoneSuporte] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [premioIds, setPremioIds] = useState<string[]>([]);
+
+  // Cotas
   const [quantidadeCotas, setQuantidadeCotas] = useState('100');
   const [valorCota, setValorCota] = useState('');
+
+  // Forma de venda das cotas
   const [formaVenda, setFormaVenda] = useState<FormaVendaCotas>('ESCOLHA_NUMERO');
+  const [quantidadeMinimaPorCompra, setQuantidadeMinimaPorCompra] = useState('1');
+  const [quantidadeMaximaPorCompra, setQuantidadeMaximaPorCompra] = useState('');
+  const [expiracaoReservaMinutos, setExpiracaoReservaMinutos] = useState('5');
+  const [reservaExigeEmail, setReservaExigeEmail] = useState(true);
+  const [reservaExigeNome, setReservaExigeNome] = useState(true);
+  const [reservaExigeTelefone, setReservaExigeTelefone] = useState(true);
+  const [reservaExigeConfirmacaoTelefone, setReservaExigeConfirmacaoTelefone] = useState(false);
+
+  // Prêmios
+  const [premioIds, setPremioIds] = useState<string[]>([]);
 
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -51,10 +75,19 @@ export default function NovaCampanhaPage() {
       const resultado = await campanhasApi.criar(sessao.token, {
         nome,
         descricao,
+        telefoneSuporte,
         premioIds,
         quantidadeCotas: Number(quantidadeCotas),
         valorCota: Number(valorCota),
         formaVenda,
+        quantidadeMinimaPorCompra: Number(quantidadeMinimaPorCompra),
+        quantidadeMaximaPorCompra: quantidadeMaximaPorCompra ? Number(quantidadeMaximaPorCompra) : null,
+        expiracaoReservaMinutos:
+          expiracaoReservaMinutos === 'SEM_EXPIRACAO' ? null : Number(expiracaoReservaMinutos),
+        reservaExigeEmail,
+        reservaExigeNome,
+        reservaExigeTelefone,
+        reservaExigeConfirmacaoTelefone,
       });
       router.push(`/admin/campanhas/${resultado.campanhaId}`);
     } catch (excecao) {
@@ -82,13 +115,27 @@ export default function NovaCampanhaPage() {
 
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
         <Card className="flex flex-col gap-4">
+          <p className="text-sm font-medium text-night">Informações básicas</p>
+
           <TextField label="Nome da campanha" required value={nome} onChange={(e) => setNome(e.target.value)} />
+          <TextField
+            label="Telefone para suporte"
+            required
+            inputMode="numeric"
+            placeholder="(11) 91234-5678"
+            value={telefoneSuporte}
+            onChange={(e) => setTelefoneSuporte(formatarTelefone(e.target.value))}
+          />
           <TextAreaField
-            label="Descrição"
+            label="Descrição / Regulamento"
             required
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
           />
+        </Card>
+
+        <Card className="flex flex-col gap-4">
+          <p className="text-sm font-medium text-night">Cotas</p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
@@ -112,7 +159,7 @@ export default function NovaCampanhaPage() {
           </div>
         </Card>
 
-        <Card className="flex flex-col gap-3">
+        <Card className="flex flex-col gap-4">
           <p className="text-sm font-medium text-night">Forma de venda das cotas</p>
           <p className="text-xs text-muted">
             Defina como o comprador vai escolher as cotas na tela de compra.
@@ -146,6 +193,71 @@ export default function NovaCampanhaPage() {
                 O comprador escolhe apenas a quantidade; os números são sorteados pelo sistema.
               </p>
             </button>
+          </div>
+
+          <div className="h-px bg-line" />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField
+              label="Quantidade mínima de cotas por compra"
+              type="number"
+              min={1}
+              required
+              value={quantidadeMinimaPorCompra}
+              onChange={(e) => setQuantidadeMinimaPorCompra(e.target.value)}
+            />
+            <TextField
+              label="Quantidade máxima de cotas por compra"
+              type="number"
+              min={1}
+              value={quantidadeMaximaPorCompra}
+              onChange={(e) => setQuantidadeMaximaPorCompra(e.target.value)}
+              hint="Deixe em branco para não limitar."
+            />
+          </div>
+
+          <SelectField
+            label="Expiração da reserva"
+            value={expiracaoReservaMinutos}
+            onChange={(e) => setExpiracaoReservaMinutos(e.target.value)}
+            hint="Tempo que o comprador tem para pagar antes da cota voltar a ficar disponível."
+          >
+            {OPCOES_EXPIRACAO_RESERVA.map((opcao) => (
+              <option key={opcao.valor} value={opcao.valor}>
+                {opcao.label}
+              </option>
+            ))}
+          </SelectField>
+
+          <div className="h-px bg-line" />
+
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium text-night">Dados obrigatórios para reserva</p>
+            <p className="text-xs text-muted">
+              Escolha quais informações o comprador precisa preencher para reservar uma cota.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <CheckboxField
+                label="Email"
+                checked={reservaExigeEmail}
+                onChange={(e) => setReservaExigeEmail(e.target.checked)}
+              />
+              <CheckboxField
+                label="Nome"
+                checked={reservaExigeNome}
+                onChange={(e) => setReservaExigeNome(e.target.checked)}
+              />
+              <CheckboxField
+                label="Telefone"
+                checked={reservaExigeTelefone}
+                onChange={(e) => setReservaExigeTelefone(e.target.checked)}
+              />
+              <CheckboxField
+                label="Confirmação do telefone"
+                checked={reservaExigeConfirmacaoTelefone}
+                onChange={(e) => setReservaExigeConfirmacaoTelefone(e.target.checked)}
+              />
+            </div>
           </div>
         </Card>
 

@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { PremiosModule } from '../premios/premios.module';
+import { OperadoresModule } from '../operadores/operadores.module';
 import { COTA_REPOSITORY } from './domain/repositories/cota.repository';
 import { CAMPANHA_REPOSITORY } from './domain/repositories/campanha.repository';
 import { PrismaCotaRepository } from './infrastructure/prisma-cota.repository';
@@ -21,8 +22,10 @@ import { CampanhasController } from './presentation/campanhas.controller';
   // forwardRef: PremiosModule também depende deste módulo (EditarPremioUseCase
   // valida campanhas vinculadas ao prêmio), e este depende de PremiosModule
   // (CriarCampanhaUseCase valida os prêmios selecionados) — dependência
-  // circular legítima entre os dois agregados.
-  imports: [forwardRef(() => PremiosModule)],
+  // circular legítima entre os dois agregados. OperadoresModule também fecha
+  // um ciclo (Operadores -> Grupos -> Campanhas): FinalizarCampanhaUseCase
+  // precisa resolver o administrador dono a partir do operador que finaliza.
+  imports: [forwardRef(() => PremiosModule), forwardRef(() => OperadoresModule)],
   controllers: [CampanhasController],
   providers: [
     { provide: COTA_REPOSITORY, useClass: PrismaCotaRepository },

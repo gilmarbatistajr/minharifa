@@ -25,7 +25,8 @@ export class Cota {
     return false;
   }
 
-  reservarPara(compradorId: string, agora: Date, minutosExpiracao: number): void {
+  /** `minutosExpiracao` nulo replica a campanha configurada "sem expiração automática": a cota fica reservada até ser paga ou liberada manualmente. */
+  reservarPara(compradorId: string, agora: Date, minutosExpiracao: number | null): void {
     if (!this.podeSerReservadaPor(agora)) {
       throw new Error(`Cota ${this.numero} não está disponível para reserva.`);
     }
@@ -33,7 +34,7 @@ export class Cota {
     this.status = 'RESERVADA';
     this.compradorId = compradorId;
     this.reservadaEm = agora;
-    this.reservaExpiraEm = new Date(agora.getTime() + minutosExpiracao * 60_000);
+    this.reservaExpiraEm = minutosExpiracao === null ? null : new Date(agora.getTime() + minutosExpiracao * 60_000);
   }
 
   confirmarPagamento(): void {

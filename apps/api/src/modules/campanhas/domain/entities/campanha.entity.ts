@@ -22,6 +22,9 @@ export type StatusCampanha = 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FIN
  */
 export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
 
+/** Opções fixas exibidas no formulário de criação da campanha; `null` = sem expiração automática. */
+export const EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS = [5, 10, 30, 60, 120] as const;
+
 const HORAS_ALERTA_ENCERRAMENTO = 24;
 
 export class Campanha {
@@ -43,6 +46,14 @@ export class Campanha {
     public cotaVencedoraNumero: number | null,
     public vencedorOptouPorDinheiro: boolean | null,
     public removidaEm: Date | null = null,
+    public readonly telefoneSuporte: string = '',
+    public readonly quantidadeMinimaPorCompra: number = 1,
+    public readonly quantidadeMaximaPorCompra: number | null = null,
+    public readonly expiracaoReservaMinutos: number | null = 2,
+    public readonly reservaExigeEmail: boolean = true,
+    public readonly reservaExigeNome: boolean = true,
+    public readonly reservaExigeTelefone: boolean = true,
+    public readonly reservaExigeConfirmacaoTelefone: boolean = false,
   ) {}
 
   estaRemovida(): boolean {
@@ -53,6 +64,10 @@ export class Campanha {
   remover(agora: Date): void {
     if (this.estaRemovida()) {
       throw new Error('Campanha já está removida.');
+    }
+
+    if (this.status === 'LIBERADA') {
+      throw new Error('Uma campanha liberada não pode ser removida.');
     }
 
     this.removidaEm = agora;
@@ -93,18 +108,18 @@ export class Campanha {
   lancar(
     grupoId: string,
     dataAberturaVendas: Date,
-    dataEncerramentoVendas: Date,
-    dataRealizacao: Date,
+    dataEncerramentoVendas: Date | null,
+    dataRealizacao: Date | null,
   ): void {
     if (this.status !== 'AGUARDANDO_LIBERACAO') {
       throw new Error('Somente campanhas aguardando liberação podem ser lançadas.');
     }
 
-    if (dataEncerramentoVendas <= dataAberturaVendas) {
+    if (dataEncerramentoVendas && dataEncerramentoVendas <= dataAberturaVendas) {
       throw new Error('A data de encerramento das vendas deve ser depois da abertura.');
     }
 
-    if (dataRealizacao < dataEncerramentoVendas) {
+    if (dataRealizacao && dataEncerramentoVendas && dataRealizacao < dataEncerramentoVendas) {
       throw new Error('A data de realização deve ser igual ou depois do encerramento das vendas.');
     }
 

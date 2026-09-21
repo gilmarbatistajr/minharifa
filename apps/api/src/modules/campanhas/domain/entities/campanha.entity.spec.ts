@@ -143,6 +143,16 @@ describe('Campanha', () => {
         ),
       ).toThrow('data de realização deve ser igual ou depois');
     });
+
+    it('permite lançar sem encerramento das vendas e sem data de realização', () => {
+      const campanha = criarCampanhaAguardandoLiberacao();
+
+      campanha.lancar('grupo-1', new Date('2026-02-01T00:00:00Z'), null, null);
+
+      expect(campanha.status).toBe('LIBERADA');
+      expect(campanha.dataEncerramentoVendas).toBeNull();
+      expect(campanha.dataRealizacao).toBeNull();
+    });
   });
 
   describe('cancelar', () => {
@@ -315,7 +325,7 @@ describe('Campanha', () => {
 
   describe('remoção lógica', () => {
     it('marca a campanha como removida', () => {
-      const campanha = criarCampanha();
+      const campanha = criarCampanha({ status: 'NOVO' });
       const agora = new Date('2026-01-05T00:00:00Z');
 
       campanha.remover(agora);
@@ -325,14 +335,22 @@ describe('Campanha', () => {
     });
 
     it('impede remover uma campanha já removida', () => {
-      const campanha = criarCampanha();
+      const campanha = criarCampanha({ status: 'NOVO' });
       campanha.remover(new Date('2026-01-05T00:00:00Z'));
 
       expect(() => campanha.remover(new Date('2026-01-06T00:00:00Z'))).toThrow('já está removida');
     });
 
+    it('impede remover uma campanha liberada', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA' });
+
+      expect(() => campanha.remover(new Date('2026-01-05T00:00:00Z'))).toThrow(
+        'Uma campanha liberada não pode ser removida.',
+      );
+    });
+
     it('restaura uma campanha removida', () => {
-      const campanha = criarCampanha();
+      const campanha = criarCampanha({ status: 'NOVO' });
       campanha.remover(new Date('2026-01-05T00:00:00Z'));
 
       campanha.restaurar();
@@ -342,7 +360,7 @@ describe('Campanha', () => {
     });
 
     it('impede restaurar uma campanha que não está removida', () => {
-      const campanha = criarCampanha();
+      const campanha = criarCampanha({ status: 'NOVO' });
 
       expect(() => campanha.restaurar()).toThrow('não está removida');
     });
