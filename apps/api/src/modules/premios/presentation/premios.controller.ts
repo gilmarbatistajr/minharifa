@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -19,6 +20,7 @@ import { CadastrarPremioUseCase } from '../application/use-cases/cadastrar-premi
 import { EditarPremioUseCase } from '../application/use-cases/editar-premio.use-case';
 import { ListarPremiosDoAdministradorUseCase } from '../application/use-cases/listar-premios-administrador.use-case';
 import { AtualizarFotoPremioUseCase } from '../application/use-cases/atualizar-foto-premio.use-case';
+import { ExcluirPremioUseCase } from '../application/use-cases/excluir-premio.use-case';
 import { TIPOS_IMAGEM_PERMITIDOS } from '../domain/services/validacoes-imagem-premio';
 import { CadastrarPremioDto } from './dto/cadastrar-premio.dto';
 import { EditarPremioDto } from './dto/editar-premio.dto';
@@ -36,6 +38,7 @@ export class PremiosController {
     private readonly editarPremioUseCase: EditarPremioUseCase,
     private readonly listarPremiosDoAdministradorUseCase: ListarPremiosDoAdministradorUseCase,
     private readonly atualizarFotoPremioUseCase: AtualizarFotoPremioUseCase,
+    private readonly excluirPremioUseCase: ExcluirPremioUseCase,
   ) {}
 
   @Post()
@@ -63,6 +66,14 @@ export class PremiosController {
       administradorId: usuario.administradorId!,
       premioId,
       ...dto,
+    });
+  }
+
+  @Delete(':premioId')
+  async excluir(@CurrentUser() usuario: PrincipalAutenticado, @Param('premioId') premioId: string) {
+    return this.excluirPremioUseCase.executar({
+      administradorId: usuario.administradorId!,
+      premioId,
     });
   }
 

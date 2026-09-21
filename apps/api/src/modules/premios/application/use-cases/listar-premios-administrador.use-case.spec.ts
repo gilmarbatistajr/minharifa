@@ -12,6 +12,7 @@ describe('ListarPremiosDoAdministradorUseCase', () => {
       listarPorAdministrador: jest.fn().mockResolvedValue(premios),
       criar: jest.fn(),
       salvar: jest.fn(),
+      remover: jest.fn(),
     };
     const useCase = new ListarPremiosDoAdministradorUseCase(repositorio);
 

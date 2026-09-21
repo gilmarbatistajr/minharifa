@@ -38,6 +38,7 @@ export default function ListaPremiosPage() {
   const [premios, setPremios] = useState<Premio[] | null>(null);
   const [premioEmEdicao, setPremioEmEdicao] = useState<Premio | null>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   function recarregar() {
     if (!sessao) return;
@@ -47,6 +48,24 @@ export default function ListaPremiosPage() {
   useEffect(recarregar, [sessao]);
 
   const editando = mostrarFormulario || premioEmEdicao !== null;
+
+  async function excluir(premio: Premio) {
+    if (!sessao) return;
+    if (
+      !window.confirm(
+        `Excluir o prêmio "${premio.nome}"? Essa remoção é definitiva e não pode ser desfeita.`,
+      )
+    ) {
+      return;
+    }
+    setErro(null);
+    try {
+      await premiosApi.excluir(sessao.token, premio.id);
+      recarregar();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível excluir o prêmio.');
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,6 +81,8 @@ export default function ListaPremiosPage() {
           )
         }
       />
+
+      {erro && <Alert tone="error">{erro}</Alert>}
 
       {editando && (
         <FormularioPremio
@@ -123,9 +144,14 @@ export default function ListaPremiosPage() {
                 Opção em dinheiro: {formatarMoeda(premio.valorOpcaoDinheiro)}
               </p>
             )}
-            <Button variant="secondary" onClick={() => setPremioEmEdicao(premio)}>
-              Editar
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" className="flex-1" onClick={() => setPremioEmEdicao(premio)}>
+                Editar
+              </Button>
+              <Button variant="danger" onClick={() => excluir(premio)}>
+                Excluir
+              </Button>
+            </div>
           </Card>
         ))}
       </div>

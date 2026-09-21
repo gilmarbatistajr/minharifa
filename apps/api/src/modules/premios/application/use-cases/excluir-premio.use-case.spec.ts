@@ -2,20 +2,11 @@ import { Premio } from '../../domain/entities/premio.entity';
 import { PremioRepository } from '../../domain/repositories/premio.repository';
 import { Campanha, StatusVendasCampanha } from '../../../campanhas/domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
-import { EditarPremioUseCase } from './editar-premio.use-case';
+import { ExcluirPremioUseCase } from './excluir-premio.use-case';
 
-describe('EditarPremioUseCase', () => {
+describe('ExcluirPremioUseCase', () => {
   function criarPremio(administradorId = 'admin-1'): Premio {
-    return new Premio(
-      'premio-1',
-      administradorId,
-      'iPhone 16 Pro',
-      'Um belo iPhone',
-      'https://exemplo.com/foto.png',
-      8000,
-      null,
-      new Date(),
-    );
+    return new Premio('premio-1', administradorId, 'iPhone 16 Pro', 'Um belo iPhone', null, 8000, null, new Date());
   }
 
   function criarDependencias(premio: Premio | null, campanhasVinculadas: Campanha[]) {
@@ -23,8 +14,8 @@ describe('EditarPremioUseCase', () => {
       buscarPorId: jest.fn().mockResolvedValue(premio),
       listarPorAdministrador: jest.fn(),
       criar: jest.fn(),
-      salvar: jest.fn().mockResolvedValue(undefined),
-      remover: jest.fn(),
+      salvar: jest.fn(),
+      remover: jest.fn().mockResolvedValue(undefined),
     };
     const campanhaRepository: CampanhaRepository = {
       buscarPorId: jest.fn(),
@@ -59,56 +50,57 @@ describe('EditarPremioUseCase', () => {
     );
   }
 
-  it('permite editar um prêmio não vinculado a nenhuma campanha', async () => {
+  it('remove um prêmio não vinculado a nenhuma campanha', async () => {
     const premio = criarPremio();
     const { premioRepository, campanhaRepository } = criarDependencias(premio, []);
-    const useCase = new EditarPremioUseCase(premioRepository, campanhaRepository);
+    const useCase = new ExcluirPremioUseCase(premioRepository, campanhaRepository);
 
-    await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 });
+    await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1' });
 
-    expect(premio.valor).toBe(7500);
-    expect(premioRepository.salvar).toHaveBeenCalledWith(premio);
+    expect(premioRepository.remover).toHaveBeenCalledWith('premio-1');
   });
 
-  it('rejeita edição de prêmio vinculado a campanha com vendas abertas', async () => {
-    const premio = criarPremio();
-    const campanha = criarCampanha('VENDAS_ABERTAS');
-    const { premioRepository, campanhaRepository } = criarDependencias(premio, [campanha]);
-    const useCase = new EditarPremioUseCase(premioRepository, campanhaRepository);
-
-    await expect(
-      useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 }),
-    ).rejects.toThrow('não pode ser editado enquanto a campanha estiver em andamento');
-    expect(premioRepository.salvar).not.toHaveBeenCalled();
-  });
-
-  it('permite editar prêmio vinculado apenas a campanhas já finalizadas/canceladas', async () => {
+  it('remove um prêmio vinculado apenas a campanhas já finalizadas/canceladas', async () => {
     const premio = criarPremio();
     const campanha = criarCampanha('FINALIZADO');
     const { premioRepository, campanhaRepository } = criarDependencias(premio, [campanha]);
-    const useCase = new EditarPremioUseCase(premioRepository, campanhaRepository);
+    const useCase = new ExcluirPremioUseCase(premioRepository, campanhaRepository);
 
-    await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 });
+    await useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1' });
 
-    expect(premio.valor).toBe(7500);
+    expect(premioRepository.remover).toHaveBeenCalledWith('premio-1');
+  });
+
+  it('rejeita remoção de prêmio vinculado a campanha com vendas abertas', async () => {
+    const premio = criarPremio();
+    const campanha = criarCampanha('VENDAS_ABERTAS');
+    const { premioRepository, campanhaRepository } = criarDependencias(premio, [campanha]);
+    const useCase = new ExcluirPremioUseCase(premioRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1' }),
+    ).rejects.toThrow('não pode ser removido enquanto estiver vinculado a uma campanha em andamento');
+    expect(premioRepository.remover).not.toHaveBeenCalled();
   });
 
   it('rejeita quando o prêmio não existe', async () => {
     const { premioRepository, campanhaRepository } = criarDependencias(null, []);
-    const useCase = new EditarPremioUseCase(premioRepository, campanhaRepository);
+    const useCase = new ExcluirPremioUseCase(premioRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ administradorId: 'admin-1', premioId: 'inexistente', valor: 7500 }),
+      useCase.executar({ administradorId: 'admin-1', premioId: 'inexistente' }),
     ).rejects.toThrow('Prêmio não encontrado.');
+    expect(premioRepository.remover).not.toHaveBeenCalled();
   });
 
   it('rejeita quando o prêmio pertence a outro administrador', async () => {
     const premio = criarPremio('admin-2');
     const { premioRepository, campanhaRepository } = criarDependencias(premio, []);
-    const useCase = new EditarPremioUseCase(premioRepository, campanhaRepository);
+    const useCase = new ExcluirPremioUseCase(premioRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1', valor: 7500 }),
+      useCase.executar({ administradorId: 'admin-1', premioId: 'premio-1' }),
     ).rejects.toThrow('Prêmio não encontrado.');
+    expect(premioRepository.remover).not.toHaveBeenCalled();
   });
 });

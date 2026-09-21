@@ -377,6 +377,9 @@ export const premiosApi = {
     formData.append('foto', arquivo);
     return requestMultipart<{ fotoUrl: string }>(`/premios/${premioId}/foto`, { token, formData });
   },
+
+  excluir: (token: string, premioId: string) =>
+    request<void>(`/premios/${premioId}`, { method: 'DELETE', token }),
 };
 
 // ---------- Campanhas / cotas ----------

@@ -22,6 +22,7 @@ describe('CriarCampanhaUseCase', () => {
       listarPorAdministrador: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn(),
+      remover: jest.fn(),
     };
     const campanhaRepository: CampanhaRepository = {
       buscarPorId: jest.fn(),

@@ -14,6 +14,7 @@ describe('AtualizarFotoPremioUseCase', () => {
       listarPorAdministrador: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
+      remover: jest.fn(),
     };
     const imageStorage: ImageStorage = { salvar: jest.fn().mockResolvedValue('/uploads/premios/arquivo.jpg') };
 

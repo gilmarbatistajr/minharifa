@@ -9,6 +9,7 @@ describe('CadastrarPremioUseCase', () => {
       listarPorAdministrador: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn(),
+      remover: jest.fn(),
     };
   }
 

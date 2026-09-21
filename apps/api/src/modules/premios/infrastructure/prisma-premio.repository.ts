@@ -58,4 +58,8 @@ export class PrismaPremioRepository implements PremioRepository {
       },
     });
   }
+
+  async remover(id: string): Promise<void> {
+    await this.prisma.premio.delete({ where: { id } });
+  }
 }
