@@ -34,7 +34,7 @@ const FILTROS: { valor: FiltroStatus; label: string }[] = [
   { valor: 'TODAS', label: 'Todas' },
   { valor: 'NOVO', label: 'Novo' },
   { valor: 'AGUARDANDO_LIBERACAO', label: 'Aguardando liberação' },
-  { valor: 'LIBERADA', label: 'Liberada' },
+  { valor: 'LIBERADA', label: 'Vendas abertas' },
   { valor: 'LIBERADA_PARA_SORTEIO', label: 'Liberada para sorteio' },
   { valor: 'FINALIZADA', label: 'Finalizada' },
   { valor: 'REMOVIDA', label: 'Removidas' },
