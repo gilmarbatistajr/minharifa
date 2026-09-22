@@ -25,23 +25,65 @@ export default function DetalheCampanhaPage() {
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [quantidadeLote, setQuantidadeLote] = useState(QUANTIDADE_LOTE_PADRAO);
+  const [loteStaged, setLoteStaged] = useState(false);
 
   const [erro, setErro] = useState<string | null>(null);
   const [reservando, setReservando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+
+  const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
+  const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
 
   async function carregar() {
-    if (!sessao) return;
+    if (!sessao) return null;
     const [campanhas, mapaCotas] = await Promise.all([
       campanhasApi.visiveis(sessao.token),
       campanhasApi.listarCotas(sessao.token, id),
     ]);
-    setCampanha(campanhas.find((c) => c.id === id) ?? null);
+    const campanhaAtual = campanhas.find((c) => c.id === id) ?? null;
+    setCampanha(campanhaAtual);
     setCotas(mapaCotas);
-    setCarregandoDados(false);
+    return { campanha: campanhaAtual, cotas: mapaCotas };
   }
 
+  function irParaPagamentoComCotas(
+    campanhaAtual: Campanha,
+    cotasReservadas: CotaResumo[],
+    metodo: 'push' | 'replace' = 'push',
+  ) {
+    const numeros = cotasReservadas.map((cota) => cota.numero).sort((a, b) => a - b);
+    const expira = cotasReservadas.find((cota) => cota.reservaExpiraEm)?.reservaExpiraEm;
+    const parametros = new URLSearchParams({
+      numeros: numeros.join(','),
+      telefoneSuporte: campanhaAtual.telefoneSuporte,
+      nomeCampanha: campanhaAtual.nome,
+    });
+    if (expira) parametros.set('expira', expira);
+    router[metodo](`/campanhas/${id}/pagamento?${parametros.toString()}`);
+  }
+
+  // Ao acessar a campanha, se o comprador já tem uma reserva ativa (ainda
+  // dentro do prazo de expiração) de um checkout que ele não finalizou, volta
+  // direto para a tela de pagamento em vez de mostrar a seleção de novo.
   useEffect(() => {
-    carregar();
+    let cancelado = false;
+    async function iniciar() {
+      const resultado = await carregar();
+      if (cancelado || !resultado) {
+        setCarregandoDados(false);
+        return;
+      }
+      const reservasAtivas = resultado.cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
+      if (resultado.campanha && reservasAtivas.length > 0) {
+        irParaPagamentoComCotas(resultado.campanha, reservasAtivas, 'replace');
+        return;
+      }
+      setCarregandoDados(false);
+    }
+    iniciar();
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessao, id]);
 
@@ -62,21 +104,47 @@ export default function DetalheCampanhaPage() {
     });
   }
 
-  function ajustarQuantidadeLote(delta: number) {
-    setQuantidadeLote((atual) => Math.max(1, atual + delta));
+  function escolherQuantidadeLote(quantidade: number) {
+    setQuantidadeLote(quantidade);
+    setLoteStaged(false);
   }
 
-  async function confirmarReservaManual() {
+  function ajustarQuantidadeLote(delta: number) {
+    setQuantidadeLote((atual) => Math.max(1, atual + delta));
+    setLoteStaged(false);
+  }
+
+  function sortearLote() {
+    setErro(null);
+    setLoteStaged(true);
+  }
+
+  // Ação única do botão "Confirmar cotas": só agora a reserva é de fato
+  // salva no backend (e passa a aparecer no painel do administrador) — nem
+  // tocar nos números (modo manual) nem sortear a quantidade (modo lote)
+  // reserva nada por conta própria.
+  async function confirmarCotas() {
     if (!sessao) return;
-    if (selecionados.size === 0) {
+    const modoManual = formaVenda === 'ESCOLHA_NUMERO';
+
+    if (modoManual && selecionados.size === 0) {
       setErro('Selecione pelo menos um número disponível.');
       return;
     }
+    if (!modoManual && !loteStaged) {
+      setErro('Toque em "Sortear cotas" antes de confirmar.');
+      return;
+    }
+
     setErro(null);
     setReservando(true);
     try {
-      await campanhasApi.reservarLote(sessao.token, id, { numeros: Array.from(selecionados) });
+      const escolha = modoManual
+        ? { numeros: Array.from(selecionados) }
+        : { quantidadeAleatoria: quantidadeLote };
+      await campanhasApi.reservarLote(sessao.token, id, escolha);
       setSelecionados(new Set());
+      setLoteStaged(false);
       await carregar();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
@@ -85,28 +153,27 @@ export default function DetalheCampanhaPage() {
     }
   }
 
-  async function confirmarReservaLote() {
+  async function cancelarReserva() {
     if (!sessao) return;
+    if (!window.confirm('Tem certeza que deseja cancelar sua reserva? Os números voltam a ficar disponíveis.')) {
+      return;
+    }
     setErro(null);
-    setReservando(true);
+    setCancelando(true);
     try {
-      await campanhasApi.reservarLote(sessao.token, id, { quantidadeAleatoria: quantidadeLote });
+      await campanhasApi.cancelarMinhaReserva(sessao.token, id);
       await carregar();
     } catch (excecao) {
-      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível cancelar a reserva.');
     } finally {
-      setReservando(false);
+      setCancelando(false);
     }
   }
 
   function irParaPagamento() {
-    if (!campanha) return;
-    const parametros = new URLSearchParams({
-      numeros: minhasCotasReservadas.join(','),
-      telefoneSuporte: campanha.telefoneSuporte,
-      nomeCampanha: campanha.nome,
-    });
-    router.push(`/campanhas/${id}/pagamento?${parametros.toString()}`);
+    if (!campanha || !cotas) return;
+    const reservasAtivas = cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
+    irParaPagamentoComCotas(campanha, reservasAtivas);
   }
 
   if (carregandoDados) {
@@ -116,9 +183,6 @@ export default function DetalheCampanhaPage() {
       </div>
     );
   }
-
-  const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
-  const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,11 +217,19 @@ export default function DetalheCampanhaPage() {
         <Card className="flex flex-col gap-4">
           <p className="text-xs text-muted">
             Toque nos números disponíveis para selecionar {selecionados.size > 0 && `(${selecionados.size} selecionado${selecionados.size > 1 ? 's' : ''})`}.
+            A reserva só é salva ao confirmar.
           </p>
 
-          <Button onClick={confirmarReservaManual} loading={reservando} fullWidth>
-            {`Reservar ${selecionados.size || ''} cota${selecionados.size === 1 ? '' : 's'}`.trim()}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button onClick={confirmarCotas} loading={reservando} disabled={selecionados.size === 0} fullWidth>
+              Confirmar cotas
+            </Button>
+            {minhasCotasReservadas.length > 0 && (
+              <Button variant="danger" onClick={cancelarReserva} loading={cancelando} fullWidth>
+                Cancelar reserva
+              </Button>
+            )}
+          </div>
         </Card>
       ) : (
         <Card className="flex flex-col gap-4">
@@ -167,7 +239,7 @@ export default function DetalheCampanhaPage() {
               <button
                 key={quantidade}
                 type="button"
-                onClick={() => setQuantidadeLote(quantidade)}
+                onClick={() => escolherQuantidadeLote(quantidade)}
                 className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                   quantidadeLote === quantidade
                     ? 'border-accent-ink bg-accent text-ink'
@@ -200,11 +272,35 @@ export default function DetalheCampanhaPage() {
           </div>
           <p className="text-center text-xs text-muted">
             Escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório{quantidadeLote === 1 ? '' : 's'} entre os disponíveis.
+            A reserva só é salva ao confirmar.
           </p>
 
-          <Button onClick={confirmarReservaLote} loading={reservando} fullWidth>
-            {`Sortear e reservar ${quantidadeLote} cota${quantidadeLote === 1 ? '' : 's'}`}
-          </Button>
+          {!loteStaged ? (
+            <Button onClick={sortearLote} fullWidth>
+              {`Sortear ${quantidadeLote} cota${quantidadeLote === 1 ? '' : 's'}`}
+            </Button>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <p className="text-center text-xs font-medium text-accent-ink">
+                {quantidadeLote} cota{quantidadeLote === 1 ? '' : 's'} pronta{quantidadeLote === 1 ? '' : 's'} para
+                confirmar.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button onClick={confirmarCotas} loading={reservando} fullWidth>
+                  Confirmar cotas
+                </Button>
+                <Button variant="secondary" onClick={() => setLoteStaged(false)} fullWidth>
+                  Sortear novamente
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {minhasCotasReservadas.length > 0 && (
+            <Button variant="danger" onClick={cancelarReserva} loading={cancelando} fullWidth>
+              Cancelar reserva
+            </Button>
+          )}
         </Card>
       )}
 

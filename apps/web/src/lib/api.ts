@@ -413,6 +413,7 @@ export interface CotaResumo {
   numero: number;
   status: StatusCota;
   minhaCota: boolean;
+  reservaExpiraEm: string | null;
 }
 
 /** Visão administrativa da cota: ao contrário de `CotaResumo` (do comprador), expõe quem é o dono. */
@@ -511,6 +512,12 @@ export const campanhasApi = {
 
   cancelar: (token: string, campanhaId: string) =>
     request<{ cotasLiberadas: number; escolhasGeradas: number }>(`/campanhas/${campanhaId}/cancelamento`, {
+      method: 'POST',
+      token,
+    }),
+
+  cancelarMinhaReserva: (token: string, campanhaId: string) =>
+    request<void>(`/campanhas/${campanhaId}/cotas/cancelar-reserva`, {
       method: 'POST',
       token,
     }),

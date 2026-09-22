@@ -33,6 +33,7 @@ import { AtualizarFotoCampanhaUseCase } from '../application/use-cases/atualizar
 import { ListarCotasParaAdministradorUseCase } from '../application/use-cases/listar-cotas-administrador.use-case';
 import { ConfirmarPagamentoManualUseCase } from '../application/use-cases/confirmar-pagamento-manual.use-case';
 import { LiberarCotasReservadasUseCase } from '../application/use-cases/liberar-cotas-reservadas.use-case';
+import { CancelarMinhaReservaUseCase } from '../application/use-cases/cancelar-minha-reserva.use-case';
 import { TIPOS_IMAGEM_PERMITIDOS } from '../domain/services/validacoes-imagem-campanha';
 import { CriarCampanhaDto } from './dto/criar-campanha.dto';
 import { EditarCampanhaDto } from './dto/editar-campanha.dto';
@@ -62,6 +63,7 @@ export class CampanhasController {
     private readonly listarCotasParaAdministradorUseCase: ListarCotasParaAdministradorUseCase,
     private readonly confirmarPagamentoManualUseCase: ConfirmarPagamentoManualUseCase,
     private readonly liberarCotasReservadasUseCase: LiberarCotasReservadasUseCase,
+    private readonly cancelarMinhaReservaUseCase: CancelarMinhaReservaUseCase,
   ) {}
 
   @UseGuards(AdministradorGuard)
@@ -260,6 +262,19 @@ export class CampanhasController {
       compradorId: usuario.compradorId!,
       numeros: dto.numeros,
       quantidadeAleatoria: dto.quantidadeAleatoria,
+    });
+  }
+
+  @UseGuards(CompradorGuard)
+  @Post(':campanhaId/cotas/cancelar-reserva')
+  async cancelarMinhaReserva(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('campanhaId') campanhaId: string,
+  ) {
+    return this.cancelarMinhaReservaUseCase.executar({
+      campanhaId,
+      grupoId: usuario.grupoId!,
+      compradorId: usuario.compradorId!,
     });
   }
 

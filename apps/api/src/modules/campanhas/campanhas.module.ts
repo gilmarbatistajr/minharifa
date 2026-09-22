@@ -22,6 +22,7 @@ import { AtualizarFotoCampanhaUseCase } from './application/use-cases/atualizar-
 import { ListarCotasParaAdministradorUseCase } from './application/use-cases/listar-cotas-administrador.use-case';
 import { ConfirmarPagamentoManualUseCase } from './application/use-cases/confirmar-pagamento-manual.use-case';
 import { LiberarCotasReservadasUseCase } from './application/use-cases/liberar-cotas-reservadas.use-case';
+import { CancelarMinhaReservaUseCase } from './application/use-cases/cancelar-minha-reserva.use-case';
 import { CampanhasController } from './presentation/campanhas.controller';
 
 @Module({
@@ -53,6 +54,7 @@ import { CampanhasController } from './presentation/campanhas.controller';
     ListarCotasParaAdministradorUseCase,
     ConfirmarPagamentoManualUseCase,
     LiberarCotasReservadasUseCase,
+    CancelarMinhaReservaUseCase,
   ],
   exports: [COTA_REPOSITORY, CAMPANHA_REPOSITORY],
 })

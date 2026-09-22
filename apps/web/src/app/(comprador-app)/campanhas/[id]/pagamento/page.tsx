@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
@@ -106,6 +106,7 @@ function PagamentoPix({
   telefoneSuporte: string;
   nomeCampanha: string;
 }) {
+  const router = useRouter();
   const inputComprovanteRef = useRef<HTMLInputElement>(null);
   const [resultado, setResultado] = useState<{ qrCode: string; codigoCopiaCola: string; valorTotal: number } | null>(
     null,
@@ -113,7 +114,6 @@ function PagamentoPix({
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [copiado, setCopiado] = useState(false);
-  const [comprovante, setComprovante] = useState<File | null>(null);
   const [previewComprovante, setPreviewComprovante] = useState<string | null>(null);
 
   async function gerar() {
@@ -152,7 +152,6 @@ function PagamentoPix({
     }
 
     const arquivoCorrigido = tipo !== arquivo.type ? new File([arquivo], arquivo.name, { type: tipo }) : arquivo;
-    setComprovante(arquivoCorrigido);
     setPreviewComprovante(URL.createObjectURL(arquivoCorrigido));
   }
 
@@ -201,7 +200,7 @@ function PagamentoPix({
             <div>
               <p className="text-sm font-medium text-night">Comprovante de pagamento</p>
               <p className="mb-2 text-xs text-muted">
-                Se preferir, anexe o print ou a foto do comprovante do Pix para enviar pelo WhatsApp.
+                Duas opções independentes e opcionais: anexe o comprovante e/ou envie pelo WhatsApp.
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-mist">
@@ -221,24 +220,24 @@ function PagamentoPix({
                     onChange={aoSelecionarComprovante}
                   />
                   <Button type="button" variant="secondary" onClick={() => inputComprovanteRef.current?.click()}>
-                    {previewComprovante ? 'Trocar comprovante' : 'Selecionar comprovante'}
+                    {previewComprovante ? 'Trocar comprovante' : 'Anexar comprovante'}
                   </Button>
                 </div>
               </div>
             </div>
 
             <a
-              href={comprovante && linkWhatsapp ? linkWhatsapp : undefined}
+              href={linkWhatsapp ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(evento) => {
-                if (!comprovante) {
+                if (!linkWhatsapp) {
                   evento.preventDefault();
-                  setErro('Selecione o comprovante antes de enviar pelo WhatsApp.');
+                  setErro('Número de suporte não disponível para envio pelo WhatsApp.');
                 }
               }}
               className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-                comprovante
+                linkWhatsapp
                   ? 'border-line bg-white text-night hover:border-night/30'
                   : 'cursor-not-allowed border-line bg-mist text-muted'
               }`}
@@ -246,6 +245,10 @@ function PagamentoPix({
               <IconWhatsapp className="h-4 w-4" /> Enviar comprovante pelo WhatsApp
             </a>
           </div>
+
+          <Button type="button" onClick={() => router.push('/campanhas')} fullWidth>
+            Finalizar compra
+          </Button>
         </>
       )}
     </Card>
