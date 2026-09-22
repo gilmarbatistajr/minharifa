@@ -35,10 +35,7 @@ export class FinalizarCampanhaUseCase {
     private readonly operadorRepository: OperadorRepository,
   ) {}
 
-  async executar(
-    input: FinalizarCampanhaInput,
-    agora: Date = new Date(),
-  ): Promise<FinalizarCampanhaOutput> {
+  async executar(input: FinalizarCampanhaInput): Promise<FinalizarCampanhaOutput> {
     const administradorId = await this.resolverAdministradorId(input);
 
     const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
@@ -54,14 +51,11 @@ export class FinalizarCampanhaUseCase {
       throw new Error('A cota vencedora precisa ser uma cota paga por um comprador.');
     }
 
-    campanha.finalizar(
-      {
-        cotaVencedoraNumero: input.cotaVencedoraNumero,
-        vencedorNome: input.vencedorNome,
-        vencedorTelefone: input.vencedorTelefone,
-      },
-      agora,
-    );
+    campanha.finalizar({
+      cotaVencedoraNumero: input.cotaVencedoraNumero,
+      vencedorNome: input.vencedorNome,
+      vencedorTelefone: input.vencedorTelefone,
+    });
     await this.campanhaRepository.salvar(campanha);
 
     return { campanhaId: campanha.id, compradorVencedorId: cotaVencedora.compradorId };

@@ -225,22 +225,18 @@ export class Campanha {
 
   /**
    * Regra de negócio: só uma campanha liberada para sorteio (todas as cotas
-   * já pagas) pode ser finalizada, e só depois da data de realização.
-   * Exige nome e telefone do vencedor, preenchidos manualmente pelo
-   * administrador/operador no momento do sorteio — ficam gravados na
-   * campanha para alimentar o ranking "quem mais ganhou" do dashboard.
+   * já pagas) pode ser finalizada. Exige nome e telefone do vencedor,
+   * preenchidos manualmente pelo administrador/operador no momento do
+   * sorteio — ficam gravados na campanha para alimentar o ranking "quem
+   * mais ganhou" do dashboard.
    */
-  finalizar(dados: DadosFinalizacaoCampanha, agora: Date): void {
+  finalizar(dados: DadosFinalizacaoCampanha): void {
     if (this.status !== 'LIBERADA_PARA_SORTEIO') {
       throw new Error('Somente campanhas liberadas para sorteio podem ser finalizadas.');
     }
 
     if (this.statusVendas === 'FINALIZADO' || this.statusVendas === 'CANCELADO') {
       throw new Error(`Campanha já está ${this.statusVendas.toLowerCase()}, não pode ser finalizada.`);
-    }
-
-    if (!this.dataRealizacao || agora < this.dataRealizacao) {
-      throw new Error('A campanha só pode ser finalizada após a data de realização.');
     }
 
     if (dados.cotaVencedoraNumero < 1 || dados.cotaVencedoraNumero > this.quantidadeCotas) {

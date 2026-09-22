@@ -227,7 +227,7 @@ describe('Campanha', () => {
     it('registra a cota vencedora, nome e telefone e marca a campanha como finalizada nos dois status', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
-      campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'));
+      campanha.finalizar(dadosVencedor);
 
       expect(campanha.status).toBe('FINALIZADA');
       expect(campanha.statusVendas).toBe('FINALIZADO');
@@ -239,68 +239,52 @@ describe('Campanha', () => {
     it('impede finalizar uma campanha que ainda não está liberada para sorteio', () => {
       const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null, dataRealizacao: null });
 
-      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'Somente campanhas liberadas para sorteio',
-      );
+      expect(() => campanha.finalizar(dadosVencedor)).toThrow('Somente campanhas liberadas para sorteio');
     });
 
     it('impede finalizar uma campanha liberada mas com cotas ainda em aberto', () => {
       const campanha = criarCampanha({ status: 'LIBERADA' });
 
-      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'Somente campanhas liberadas para sorteio',
-      );
-    });
-
-    it('impede finalizar antes da data de realização', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO' });
-
-      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-10T23:59:59Z'))).toThrow(
-        'só pode ser finalizada após a data de realização',
-      );
+      expect(() => campanha.finalizar(dadosVencedor)).toThrow('Somente campanhas liberadas para sorteio');
     });
 
     it('impede finalizar uma campanha já finalizada', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'FINALIZADO' });
 
-      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'não pode ser finalizada',
-      );
+      expect(() => campanha.finalizar(dadosVencedor)).toThrow('não pode ser finalizada');
     });
 
     it('impede finalizar uma campanha cancelada', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'CANCELADO' });
 
-      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'não pode ser finalizada',
-      );
+      expect(() => campanha.finalizar(dadosVencedor)).toThrow('não pode ser finalizada');
     });
 
     it('rejeita um número de cota fora do intervalo válido', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
-      expect(() =>
-        campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 0 }, new Date('2026-01-11T00:00:00Z')),
-      ).toThrow('número da cota vencedora é inválido');
-      expect(() =>
-        campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 101 }, new Date('2026-01-11T00:00:00Z')),
-      ).toThrow('número da cota vencedora é inválido');
+      expect(() => campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 0 })).toThrow(
+        'número da cota vencedora é inválido',
+      );
+      expect(() => campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 101 })).toThrow(
+        'número da cota vencedora é inválido',
+      );
     });
 
     it('rejeita quando o nome do vencedor não é informado', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
-      expect(() =>
-        campanha.finalizar({ ...dadosVencedor, vencedorNome: '  ' }, new Date('2026-01-11T00:00:00Z')),
-      ).toThrow('Informe o nome do vencedor.');
+      expect(() => campanha.finalizar({ ...dadosVencedor, vencedorNome: '  ' })).toThrow(
+        'Informe o nome do vencedor.',
+      );
     });
 
     it('rejeita quando o telefone do vencedor não é informado', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
-      expect(() =>
-        campanha.finalizar({ ...dadosVencedor, vencedorTelefone: '  ' }, new Date('2026-01-11T00:00:00Z')),
-      ).toThrow('Informe o telefone do vencedor.');
+      expect(() => campanha.finalizar({ ...dadosVencedor, vencedorTelefone: '  ' })).toThrow(
+        'Informe o telefone do vencedor.',
+      );
     });
   });
 

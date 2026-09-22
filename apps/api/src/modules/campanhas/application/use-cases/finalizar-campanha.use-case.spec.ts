@@ -89,8 +89,6 @@ describe('FinalizarCampanhaUseCase', () => {
     );
   }
 
-  const agora = new Date('2026-01-11T00:00:00Z');
-
   it('finaliza a campanha e retorna o comprador vencedor', async () => {
     const campanha = criarCampanha();
     const cotaVencedora = new Cota('cota-42', 'campanha-1', 42, 'PAGA', 'comprador-maria', new Date(), null);
@@ -99,7 +97,6 @@ describe('FinalizarCampanhaUseCase', () => {
 
     const resultado = await useCase.executar(
       { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-      agora,
     );
 
     expect(resultado).toEqual({ campanhaId: 'campanha-1', compradorVencedorId: 'comprador-maria' });
@@ -118,7 +115,6 @@ describe('FinalizarCampanhaUseCase', () => {
     await expect(
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'inexistente', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        agora,
       ),
     ).rejects.toThrow('Campanha não encontrada.');
   });
@@ -131,7 +127,6 @@ describe('FinalizarCampanhaUseCase', () => {
     await expect(
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        agora,
       ),
     ).rejects.toThrow('Campanha não encontrada.');
   });
@@ -143,7 +138,6 @@ describe('FinalizarCampanhaUseCase', () => {
     await expect(
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 999, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        agora,
       ),
     ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
   });
@@ -156,24 +150,8 @@ describe('FinalizarCampanhaUseCase', () => {
     await expect(
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        agora,
       ),
     ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
-  });
-
-  it('propaga o erro de negócio quando a data de realização ainda não chegou', async () => {
-    const campanha = criarCampanha();
-    const cotaVencedora = new Cota('cota-42', 'campanha-1', 42, 'PAGA', 'comprador-maria', new Date(), null);
-    const deps = criarDependencias(campanha, cotaVencedora);
-    const useCase = montarUseCase(deps);
-
-    await expect(
-      useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        new Date('2026-01-05T00:00:00Z'),
-      ),
-    ).rejects.toThrow('só pode ser finalizada após a data de realização');
-    expect(deps.campanhaRepository.salvar).not.toHaveBeenCalled();
   });
 
   describe('finalização por operador', () => {
@@ -186,7 +164,6 @@ describe('FinalizarCampanhaUseCase', () => {
 
       const resultado = await useCase.executar(
         { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-        agora,
       );
 
       expect(resultado).toEqual({ campanhaId: 'campanha-1', compradorVencedorId: 'comprador-maria' });
@@ -204,7 +181,6 @@ describe('FinalizarCampanhaUseCase', () => {
       await expect(
         useCase.executar(
           { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-          agora,
         ),
       ).rejects.toThrow('Você não tem permissão para finalizar campanhas.');
       expect(deps.campanhaRepository.salvar).not.toHaveBeenCalled();
@@ -217,7 +193,6 @@ describe('FinalizarCampanhaUseCase', () => {
       await expect(
         useCase.executar(
           { operadorId: 'inexistente', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-          agora,
         ),
       ).rejects.toThrow('Operador não encontrado.');
     });
@@ -231,7 +206,6 @@ describe('FinalizarCampanhaUseCase', () => {
       await expect(
         useCase.executar(
           { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
-          agora,
         ),
       ).rejects.toThrow('Campanha não encontrada.');
     });
