@@ -102,7 +102,9 @@ export default function SorteioCampanhaPage() {
     setProcessando(compradorId);
     try {
       await campanhasApi.confirmarPagamentoManual(sessao.token, id, compradorId);
-      await recarregarCotas();
+      // Recarrega a campanha inteira (não só as cotas): confirmar o pagamento pode ser
+      // a última cota em aberto, e o backend libera a campanha para sorteio automaticamente.
+      await recarregar();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível confirmar o pagamento.');
     } finally {
@@ -122,6 +124,7 @@ export default function SorteioCampanhaPage() {
     setErro(null);
     setProcessando(compradorId);
     try {
+      // Liberar cotas nunca completa a campanha, então recarregar só as cotas já basta aqui.
       await campanhasApi.liberarCotasReservadas(sessao.token, id, compradorId);
       await recarregarCotas();
     } catch (excecao) {
@@ -145,14 +148,11 @@ export default function SorteioCampanhaPage() {
   const pctPagas = totalCotas ? (totalPagas / totalCotas) * 100 : 0;
   const pctReservadas = totalCotas ? (totalReservadas / totalCotas) * 100 : 0;
 
-  // Campanha liberada não tem mais uma tela de detalhe própria (redireciona para cá);
-  // voltar deve ir para a lista. Os demais status ainda têm a tela de detalhe.
-  const rotaVoltar =
-    campanha.status === 'LIBERADA' && !campanha.removidaEm ? '/admin/campanhas' : `/admin/campanhas/${id}`;
-
-  // O sorteio só pode ser realizado depois que todas as cotas estiverem pagas —
-  // não há mais nada para reservar ou confirmar.
-  const todasCotasPagas = totalCotas > 0 && totalPagas === totalCotas;
+  // Campanha liberada (ou já liberada para sorteio) não tem mais uma tela de detalhe
+  // própria (redireciona para cá); voltar deve ir para a lista. Os demais status ainda
+  // têm a tela de detalhe.
+  const emSorteio = campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO';
+  const rotaVoltar = emSorteio && !campanha.removidaEm ? '/admin/campanhas' : `/admin/campanhas/${id}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,15 +168,9 @@ export default function SorteioCampanhaPage() {
         eyebrow="Sorteio"
         title={campanha.nome}
         action={
-          campanha.status === 'LIBERADA' &&
+          campanha.status === 'LIBERADA_PARA_SORTEIO' &&
           !mostrarFinalizar && (
-            <Button
-              disabled={!todasCotasPagas}
-              title={todasCotasPagas ? undefined : 'Só é possível realizar o sorteio com todas as cotas pagas.'}
-              onClick={() => setMostrarFinalizar(true)}
-            >
-              Realizar Sorteio
-            </Button>
+            <Button onClick={() => setMostrarFinalizar(true)}>Realizar Sorteio</Button>
           )
         }
       />
@@ -323,7 +317,7 @@ export default function SorteioCampanhaPage() {
         </div>
       </Card>
 
-      {campanha.status === 'LIBERADA' && mostrarFinalizar && (
+      {campanha.status === 'LIBERADA_PARA_SORTEIO' && mostrarFinalizar && (
         <FormularioFinalizar
           campanhaId={id}
           cotas={cotas}
@@ -423,7 +417,7 @@ function FormularioFinalizar({
         />
       </div>
       <Button loading={enviando} onClick={confirmar} className="self-start">
-        Confirmar vencedor
+        Finalizar campanha
       </Button>
     </Card>
   );

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "StatusCampanha" ADD VALUE 'LIBERADA_PARA_SORTEIO';

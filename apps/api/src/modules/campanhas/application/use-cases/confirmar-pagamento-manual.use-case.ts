@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
 import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
+import { atualizarStatusCampanhaAposPagamento } from '../services/atualizar-status-apos-pagamento';
 
 export interface ConfirmarPagamentoManualInput {
   administradorId: string;
@@ -43,5 +44,7 @@ export class ConfirmarPagamentoManualUseCase {
       cota.confirmarPagamento();
       await this.cotaRepository.salvar(cota);
     }
+
+    await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
   }
 }

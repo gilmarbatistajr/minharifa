@@ -1,5 +1,7 @@
 import { Cota } from '../../../campanhas/domain/entities/cota.entity';
 import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
+import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
+import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { Comprador } from '../../../compradores/domain/entities/comprador.entity';
 import { CompradorRepository } from '../../../compradores/domain/repositories/comprador.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
@@ -37,7 +39,12 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     );
   }
 
-  function criarDependencias(pagamentos: Pagamento[], cotasPorId: Record<string, Cota | null>, assinaturaValida = true) {
+  function criarDependencias(
+    pagamentos: Pagamento[],
+    cotasPorId: Record<string, Cota | null>,
+    assinaturaValida = true,
+    campanha: Campanha | null = null,
+  ) {
     const webhookSignatureValidator: WebhookSignatureValidator = {
       validar: jest.fn().mockReturnValue(assinaturaValida),
     };
@@ -51,12 +58,20 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn((id: string) => Promise.resolve(cotasPorId[id] ?? null)),
       buscarPorCampanhaENumero: jest.fn(),
-      listarPorCampanha: jest.fn(),
+      listarPorCampanha: jest.fn().mockResolvedValue(Object.values(cotasPorId).filter((cota): cota is Cota => cota !== null)),
       listarReservadasPorComprador: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       criarEmLote: jest.fn(),
+      salvar: jest.fn().mockResolvedValue(undefined),
+    };
+    const campanhaRepository: CampanhaRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(campanha),
+      listarPorPremioId: jest.fn(),
+      listarPorGrupo: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const paymentGateway: PaymentGateway = {
@@ -81,6 +96,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       webhookSignatureValidator,
       pagamentoRepository,
       cotaRepository,
+      campanhaRepository,
       paymentGateway,
       compradorRepository,
       notificationSender,
@@ -92,6 +108,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       deps.webhookSignatureValidator,
       deps.pagamentoRepository,
       deps.cotaRepository,
+      deps.campanhaRepository,
       deps.paymentGateway,
       deps.compradorRepository,
       deps.notificationSender,
@@ -160,6 +177,41 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     expect(cota2.status).toBe('PAGA');
     expect(pagamento1.status).toBe('APROVADO');
     expect(pagamento2.status).toBe('APROVADO');
+  });
+
+  it('libera a campanha para sorteio quando o webhook confirma a última cota em aberto', async () => {
+    const cota1 = new Cota('cota-1', 'campanha-1', 1, 'RESERVADA', 'comprador-maria', new Date(), new Date('2026-01-01T10:02:00Z'));
+    const pagamento1 = criarPagamento('cota-1');
+    const campanha = new Campanha(
+      'campanha-1',
+      'admin-1',
+      'grupo-1',
+      'Campanha de teste',
+      'Descrição',
+      ['premio-1'],
+      new Date(),
+      new Date(),
+      new Date(),
+      1,
+      50,
+      'ESCOLHA_NUMERO',
+      'LIBERADA',
+      'VENDAS_ABERTAS',
+      null,
+      null,
+    );
+    const deps = criarDependencias([pagamento1], { 'cota-1': cota1 }, true, campanha);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar({
+      payloadBruto: '{}',
+      assinatura: 'assinatura-valida',
+      transacaoId: 'txn-1',
+      statusGateway: 'APROVADO',
+    });
+
+    expect(campanha.status).toBe('LIBERADA_PARA_SORTEIO');
+    expect(deps.campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
   });
 
   it('estorna o lote inteiro quando apenas uma das reservas não é mais válida', async () => {

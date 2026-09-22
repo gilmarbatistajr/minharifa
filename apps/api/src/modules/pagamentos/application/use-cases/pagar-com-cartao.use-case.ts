@@ -15,6 +15,7 @@ import {
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { DadosCartao, PAYMENT_GATEWAY, PaymentGateway } from '../../domain/services/payment-gateway';
 import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
+import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 
 export interface PagarComCartaoInput {
   campanhaId: string;
@@ -111,6 +112,10 @@ export class PagarComCartaoUseCase {
       } else {
         await this.pagamentoRepository.criar(pagamento);
       }
+    }
+
+    if (cobranca.aprovado) {
+      await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
     }
 
     return { status: cobranca.aprovado ? 'APROVADO' : 'RECUSADO' };

@@ -11,6 +11,7 @@ import {
   CREDITO_PENDENTE_REPOSITORY,
   CreditoPendenteRepository,
 } from '../../domain/repositories/credito-pendente.repository';
+import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 
 export interface ResgatarCreditoInput {
   creditoId: string;
@@ -68,5 +69,7 @@ export class ResgatarCreditoUseCase {
 
     credito.marcarComoUtilizado();
     await this.creditoPendenteRepository.salvar(credito);
+
+    await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanhaDestino);
   }
 }

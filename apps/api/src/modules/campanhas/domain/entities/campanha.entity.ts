@@ -11,9 +11,15 @@ export type StatusVendasCampanha =
  * NOVO: acabou de ser criada, ainda sem grupo.
  * AGUARDANDO_LIBERACAO: administrador já revisou o conteúdo.
  * LIBERADA: lançada para um grupo, com vendas em andamento.
+ * LIBERADA_PARA_SORTEIO: todas as cotas foram pagas — pronta para registrar o vencedor.
  * FINALIZADA: vencedor já registrado.
  */
-export type StatusCampanha = 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FINALIZADA';
+export type StatusCampanha =
+  | 'NOVO'
+  | 'AGUARDANDO_LIBERACAO'
+  | 'LIBERADA'
+  | 'LIBERADA_PARA_SORTEIO'
+  | 'FINALIZADA';
 
 /**
  * ESCOLHA_NUMERO: o comprador escolhe manualmente os números que deseja.
@@ -91,14 +97,19 @@ export class Campanha {
     this.fotoUrl = url;
   }
 
-  /** Remoção lógica: a campanha some das ações do dia a dia mas continua visível na listagem. */
+  /**
+   * Remoção lógica: a campanha some das ações do dia a dia mas continua
+   * visível na listagem. Só é permitida antes do lançamento — depois disso
+   * (vendas em andamento, pronta para sorteio ou já finalizada) a campanha
+   * não pode mais ser removida nem editada.
+   */
   remover(agora: Date): void {
     if (this.estaRemovida()) {
       throw new Error('Campanha já está removida.');
     }
 
-    if (this.status === 'LIBERADA') {
-      throw new Error('Uma campanha liberada não pode ser removida.');
+    if (this.status !== 'NOVO' && this.status !== 'AGUARDANDO_LIBERACAO') {
+      throw new Error('Só é possível remover campanhas que ainda não foram lançadas para um grupo.');
     }
 
     this.removidaEm = agora;
@@ -187,6 +198,22 @@ export class Campanha {
     this.status = 'LIBERADA';
   }
 
+  /**
+   * Regra de negócio: quando a última cota de uma campanha liberada é paga,
+   * ela fica pronta para o sorteio — é o que libera os campos de vencedor
+   * (nome, cota premiada, telefone) e o botão de finalizar na tela do
+   * administrador. Quem decide "todas as cotas estão pagas" é a camada de
+   * aplicação (ver `atualizarStatusCampanhaAposPagamento`), que só chama
+   * este método depois de conferir isso.
+   */
+  liberarParaSorteio(): void {
+    if (this.status !== 'LIBERADA') {
+      throw new Error('Somente campanhas liberadas podem ficar prontas para o sorteio.');
+    }
+
+    this.status = 'LIBERADA_PARA_SORTEIO';
+  }
+
   /** Regra de negócio: só é possível cancelar campanhas que ainda não terminaram. */
   cancelar(): void {
     if (this.statusVendas === 'FINALIZADO' || this.statusVendas === 'CANCELADO') {
@@ -197,15 +224,15 @@ export class Campanha {
   }
 
   /**
-   * Regra de negócio: só uma campanha liberada (e ainda não finalizada ou
-   * cancelada) pode ser finalizada, e só depois da data de realização.
+   * Regra de negócio: só uma campanha liberada para sorteio (todas as cotas
+   * já pagas) pode ser finalizada, e só depois da data de realização.
    * Exige nome e telefone do vencedor, preenchidos manualmente pelo
    * administrador/operador no momento do sorteio — ficam gravados na
    * campanha para alimentar o ranking "quem mais ganhou" do dashboard.
    */
   finalizar(dados: DadosFinalizacaoCampanha, agora: Date): void {
-    if (this.status !== 'LIBERADA') {
-      throw new Error('Somente campanhas liberadas podem ser finalizadas.');
+    if (this.status !== 'LIBERADA_PARA_SORTEIO') {
+      throw new Error('Somente campanhas liberadas para sorteio podem ser finalizadas.');
     }
 
     if (this.statusVendas === 'FINALIZADO' || this.statusVendas === 'CANCELADO') {

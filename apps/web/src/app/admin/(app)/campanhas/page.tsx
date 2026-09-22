@@ -17,16 +17,25 @@ const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = 
   NOVO: 'neutral',
   AGUARDANDO_LIBERACAO: 'warning',
   LIBERADA: 'accent',
+  LIBERADA_PARA_SORTEIO: 'warning',
   FINALIZADA: 'neutral',
 };
 
-type FiltroStatus = 'TODAS' | 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FINALIZADA' | 'REMOVIDA';
+type FiltroStatus =
+  | 'TODAS'
+  | 'NOVO'
+  | 'AGUARDANDO_LIBERACAO'
+  | 'LIBERADA'
+  | 'LIBERADA_PARA_SORTEIO'
+  | 'FINALIZADA'
+  | 'REMOVIDA';
 
 const FILTROS: { valor: FiltroStatus; label: string }[] = [
   { valor: 'TODAS', label: 'Todas' },
   { valor: 'NOVO', label: 'Novo' },
   { valor: 'AGUARDANDO_LIBERACAO', label: 'Aguardando liberação' },
   { valor: 'LIBERADA', label: 'Liberada' },
+  { valor: 'LIBERADA_PARA_SORTEIO', label: 'Liberada para sorteio' },
   { valor: 'FINALIZADA', label: 'Finalizada' },
   { valor: 'REMOVIDA', label: 'Removidas' },
 ];
@@ -115,10 +124,11 @@ export default function ListaCampanhasPage() {
         {campanhasFiltradas.map((campanha) => {
           const fotoPremio = campanha.premioIds.map((id) => premiosPorId.get(id)?.fotoUrl).find(Boolean);
           const foto = campanha.fotoUrl ?? fotoPremio;
-          // Campanha liberada (e não removida) vai direto para o sorteio: não há mais
-          // conteúdo para editar, só confirmar pagamento e liberar cotas.
+          // Campanha liberada (ou já liberada para sorteio) e não removida vai direto para
+          // o sorteio: não há mais conteúdo para editar, só confirmar pagamento e liberar cotas.
           const destino =
-            campanha.status === 'LIBERADA' && !campanha.removidaEm
+            (campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO') &&
+            !campanha.removidaEm
               ? `/admin/campanhas/${campanha.id}/sorteio`
               : `/admin/campanhas/${campanha.id}`;
 

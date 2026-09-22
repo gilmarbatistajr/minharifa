@@ -47,7 +47,9 @@ export class ListarAlertasAutomaticosUseCase {
     const resultado: AlertasAutomaticosGrupo[] = [];
     for (const grupo of grupos) {
       const campanhas = await this.campanhaRepository.listarPorGrupo(grupo.id);
-      const campanhaAtiva = campanhas.find((campanha) => campanha.status === 'LIBERADA');
+      const campanhaAtiva = campanhas.find(
+        (campanha) => campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO',
+      );
 
       if (!campanhaAtiva) {
         continue;

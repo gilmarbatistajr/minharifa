@@ -4,6 +4,11 @@ import {
   CotaRepository,
 } from '../../../campanhas/domain/repositories/cota.repository';
 import {
+  CAMPANHA_REPOSITORY,
+  CampanhaRepository,
+} from '../../../campanhas/domain/repositories/campanha.repository';
+import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
+import {
   COMPRADOR_REPOSITORY,
   CompradorRepository,
 } from '../../../compradores/domain/repositories/comprador.repository';
@@ -45,6 +50,8 @@ export class ConfirmarPagamentoWebhookUseCase {
     private readonly pagamentoRepository: PagamentoRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
+    @Inject(CAMPANHA_REPOSITORY)
+    private readonly campanhaRepository: CampanhaRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: PaymentGateway,
     @Inject(COMPRADOR_REPOSITORY)
@@ -100,6 +107,11 @@ export class ConfirmarPagamentoWebhookUseCase {
 
         pagamento.aprovar();
         await this.pagamentoRepository.salvar(pagamento);
+      }
+
+      const campanha = await this.campanhaRepository.buscarPorId(cotasPorPagamento[0].cota!.campanhaId);
+      if (campanha) {
+        await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
       }
       return;
     }

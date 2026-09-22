@@ -167,7 +167,12 @@ export type StatusVendasCampanha =
   | 'FINALIZADO'
   | 'CANCELADO';
 
-export type StatusCampanha = 'NOVO' | 'AGUARDANDO_LIBERACAO' | 'LIBERADA' | 'FINALIZADA';
+export type StatusCampanha =
+  | 'NOVO'
+  | 'AGUARDANDO_LIBERACAO'
+  | 'LIBERADA'
+  | 'LIBERADA_PARA_SORTEIO'
+  | 'FINALIZADA';
 
 export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
 
@@ -199,6 +204,8 @@ export interface Campanha {
   statusVendas: StatusVendasCampanha;
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
+  vencedorNome: string | null;
+  vencedorTelefone: string | null;
   removidaEm: string | null;
 }
 

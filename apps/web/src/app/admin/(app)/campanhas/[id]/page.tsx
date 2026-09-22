@@ -38,6 +38,7 @@ const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = 
   NOVO: 'neutral',
   AGUARDANDO_LIBERACAO: 'warning',
   LIBERADA: 'accent',
+  LIBERADA_PARA_SORTEIO: 'warning',
   FINALIZADA: 'neutral',
 };
 
@@ -89,10 +90,15 @@ export default function DetalheCampanhaPage() {
     recarregar();
   }, [recarregar]);
 
-  // Campanha liberada (e não removida) não tem mais nada para editar aqui: as únicas
-  // ações desse estágio (confirmar pagamento, liberar cotas) vivem na tela de sorteio.
+  // Campanha liberada (ou já liberada para sorteio), e não removida, não tem mais nada
+  // para editar aqui: as únicas ações desses estágios (confirmar pagamento, liberar
+  // cotas, finalizar) vivem na tela de sorteio.
   useEffect(() => {
-    if (campanha && campanha.status === 'LIBERADA' && !campanha.removidaEm) {
+    if (
+      campanha &&
+      (campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO') &&
+      !campanha.removidaEm
+    ) {
       router.replace(`/admin/campanhas/${id}/sorteio`);
     }
   }, [campanha, id, router]);
@@ -163,7 +169,10 @@ export default function DetalheCampanhaPage() {
     }
   }
 
-  if (!campanha || (campanha.status === 'LIBERADA' && !campanha.removidaEm)) {
+  if (
+    !campanha ||
+    ((campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO') && !campanha.removidaEm)
+  ) {
     return (
       <div className="flex justify-center py-16 text-muted">
         <Spinner />
@@ -202,9 +211,12 @@ export default function DetalheCampanhaPage() {
                 Restaurar campanha
               </Button>
             ) : (
-              <Button variant="danger" loading={carregando} onClick={remover}>
-                Remover campanha
-              </Button>
+              // Uma campanha finalizada não pode mais ser removida (nem editada, ver acima).
+              campanha.status !== 'FINALIZADA' && (
+                <Button variant="danger" loading={carregando} onClick={remover}>
+                  Remover campanha
+                </Button>
+              )
             )}
           </div>
         }
@@ -324,7 +336,12 @@ export default function DetalheCampanhaPage() {
       {campanha.status === 'FINALIZADA' && campanha.cotaVencedoraNumero !== null && (
         <Card className="flex flex-col gap-1">
           <p className="font-mono text-xs uppercase tracking-wide text-muted">Vencedor</p>
-          <p className="text-sm text-night">Cota nº {campanha.cotaVencedoraNumero}</p>
+          <p className="text-sm text-night">
+            {campanha.vencedorNome} · Cota nº {campanha.cotaVencedoraNumero}
+          </p>
+          {campanha.vencedorTelefone && (
+            <p className="font-mono text-xs text-muted">{formatarTelefone(campanha.vencedorTelefone)}</p>
+          )}
         </Card>
       )}
     </div>

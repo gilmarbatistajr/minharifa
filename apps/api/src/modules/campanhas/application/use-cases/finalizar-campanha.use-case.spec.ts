@@ -21,7 +21,7 @@ describe('FinalizarCampanhaUseCase', () => {
       100,
       50,
       'ESCOLHA_NUMERO',
-      'LIBERADA',
+      'LIBERADA_PARA_SORTEIO',
       'COTAS_ESGOTADAS',
       null,
       null,

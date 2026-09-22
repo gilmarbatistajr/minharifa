@@ -52,7 +52,7 @@ describe('ResgatarCreditoUseCase', () => {
       buscarPorCampanhaENumero: jest
         .fn()
         .mockImplementation(async (_campanhaId: string, numero: number) => mapaCotasPorNumero.get(numero) ?? null),
-      listarPorCampanha: jest.fn(),
+      listarPorCampanha: jest.fn().mockResolvedValue([]),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

@@ -33,6 +33,7 @@ const ROTULOS_STATUS_CAMPANHA: Record<string, string> = {
   NOVO: 'Novo',
   AGUARDANDO_LIBERACAO: 'Aguardando liberação',
   LIBERADA: 'Liberada',
+  LIBERADA_PARA_SORTEIO: 'Liberada para sorteio',
   FINALIZADA: 'Finalizada',
 };
 

@@ -18,6 +18,7 @@ import {
 } from '../../domain/repositories/pagamento.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
+import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 
 export interface PagarComCashbackInput {
   campanhaId: string;
@@ -124,6 +125,10 @@ export class PagarComCashbackUseCase {
         item.cota.confirmarPagamento();
         await this.cotaRepository.salvar(item.cota);
       }
+    }
+
+    if (pagoIntegralmente) {
+      await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
     }
 
     return {

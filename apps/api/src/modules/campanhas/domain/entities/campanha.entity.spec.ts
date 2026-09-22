@@ -225,7 +225,7 @@ describe('Campanha', () => {
     const dadosVencedor = { cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' };
 
     it('registra a cota vencedora, nome e telefone e marca a campanha como finalizada nos dois status', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
       campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'));
 
@@ -236,16 +236,24 @@ describe('Campanha', () => {
       expect(campanha.vencedorTelefone).toBe('11999999999');
     });
 
-    it('impede finalizar uma campanha que ainda não foi liberada', () => {
+    it('impede finalizar uma campanha que ainda não está liberada para sorteio', () => {
       const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null, dataRealizacao: null });
 
       expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'Somente campanhas liberadas',
+        'Somente campanhas liberadas para sorteio',
+      );
+    });
+
+    it('impede finalizar uma campanha liberada mas com cotas ainda em aberto', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA' });
+
+      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
+        'Somente campanhas liberadas para sorteio',
       );
     });
 
     it('impede finalizar antes da data de realização', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO' });
 
       expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-10T23:59:59Z'))).toThrow(
         'só pode ser finalizada após a data de realização',
@@ -253,7 +261,7 @@ describe('Campanha', () => {
     });
 
     it('impede finalizar uma campanha já finalizada', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'FINALIZADO' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'FINALIZADO' });
 
       expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
         'não pode ser finalizada',
@@ -261,7 +269,7 @@ describe('Campanha', () => {
     });
 
     it('impede finalizar uma campanha cancelada', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'CANCELADO' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'CANCELADO' });
 
       expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
         'não pode ser finalizada',
@@ -269,7 +277,7 @@ describe('Campanha', () => {
     });
 
     it('rejeita um número de cota fora do intervalo válido', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
       expect(() =>
         campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 0 }, new Date('2026-01-11T00:00:00Z')),
@@ -280,7 +288,7 @@ describe('Campanha', () => {
     });
 
     it('rejeita quando o nome do vencedor não é informado', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
       expect(() =>
         campanha.finalizar({ ...dadosVencedor, vencedorNome: '  ' }, new Date('2026-01-11T00:00:00Z')),
@@ -288,11 +296,29 @@ describe('Campanha', () => {
     });
 
     it('rejeita quando o telefone do vencedor não é informado', () => {
-      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
 
       expect(() =>
         campanha.finalizar({ ...dadosVencedor, vencedorTelefone: '  ' }, new Date('2026-01-11T00:00:00Z')),
       ).toThrow('Informe o telefone do vencedor.');
+    });
+  });
+
+  describe('liberarParaSorteio', () => {
+    it('move uma campanha liberada para "liberada para sorteio"', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA' });
+
+      campanha.liberarParaSorteio();
+
+      expect(campanha.status).toBe('LIBERADA_PARA_SORTEIO');
+    });
+
+    it('rejeita liberar para sorteio uma campanha que não está liberada', () => {
+      const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null });
+
+      expect(() => campanha.liberarParaSorteio()).toThrow(
+        'Somente campanhas liberadas podem ficar prontas para o sorteio.',
+      );
     });
   });
 
@@ -409,8 +435,32 @@ describe('Campanha', () => {
       const campanha = criarCampanha({ status: 'LIBERADA' });
 
       expect(() => campanha.remover(new Date('2026-01-05T00:00:00Z'))).toThrow(
-        'Uma campanha liberada não pode ser removida.',
+        'Só é possível remover campanhas que ainda não foram lançadas para um grupo.',
       );
+    });
+
+    it('impede remover uma campanha liberada para sorteio', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO' });
+
+      expect(() => campanha.remover(new Date('2026-01-05T00:00:00Z'))).toThrow(
+        'Só é possível remover campanhas que ainda não foram lançadas para um grupo.',
+      );
+    });
+
+    it('impede remover uma campanha finalizada', () => {
+      const campanha = criarCampanha({ status: 'FINALIZADA', statusVendas: 'FINALIZADO' });
+
+      expect(() => campanha.remover(new Date('2026-01-05T00:00:00Z'))).toThrow(
+        'Só é possível remover campanhas que ainda não foram lançadas para um grupo.',
+      );
+    });
+
+    it('permite remover uma campanha aguardando liberação', () => {
+      const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null });
+
+      campanha.remover(new Date('2026-01-05T00:00:00Z'));
+
+      expect(campanha.estaRemovida()).toBe(true);
     });
 
     it('restaura uma campanha removida', () => {

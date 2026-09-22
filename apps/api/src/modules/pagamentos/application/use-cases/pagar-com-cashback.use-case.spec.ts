@@ -68,7 +68,7 @@ describe('PagarComCashbackUseCase', () => {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
       buscarPorCampanhaENumero: jest.fn(),
-      listarPorCampanha: jest.fn(),
+      listarPorCampanha: jest.fn().mockResolvedValue([]),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),

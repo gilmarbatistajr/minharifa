@@ -42,7 +42,7 @@ describe('ConfirmarPagamentoManualUseCase', () => {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
       buscarPorCampanhaENumero: jest.fn(),
-      listarPorCampanha: jest.fn(),
+      listarPorCampanha: jest.fn().mockResolvedValue([]),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
@@ -64,6 +64,19 @@ describe('ConfirmarPagamentoManualUseCase', () => {
 
     expect(cotas.every((cota) => cota.status === 'PAGA')).toBe(true);
     expect(cotaRepository.salvar).toHaveBeenCalledTimes(3);
+  });
+
+  it('libera a campanha para sorteio quando a confirmação manual paga a última cota em aberto', async () => {
+    const campanha = criarCampanha();
+    const cota = criarCota(1);
+    const { campanhaRepository, cotaRepository } = criarDependencias(campanha, [cota]);
+    (cotaRepository.listarPorCampanha as jest.Mock).mockResolvedValue([cota]);
+    const useCase = new ConfirmarPagamentoManualUseCase(campanhaRepository, cotaRepository);
+
+    await useCase.executar({ administradorId: 'admin-1', campanhaId: 'campanha-1', compradorId: 'comprador-1' });
+
+    expect(campanha.status).toBe('LIBERADA_PARA_SORTEIO');
+    expect(campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
   });
 
   it('rejeita quando a campanha não existe', async () => {
