@@ -393,7 +393,8 @@ function FormularioFinalizar({
     <Card className="flex flex-col gap-3">
       <p className="text-sm font-medium text-night">Finalizar campanha</p>
       <p className="text-xs text-muted">
-        Todas as cotas foram pagas. Informe os dados do vencedor do sorteio.
+        Todas as cotas foram pagas. Informe o número da cota vencedora — o nome e o telefone
+        são preenchidos automaticamente a partir do comprador dela e não podem ser editados.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <TextField
@@ -406,14 +407,14 @@ function FormularioFinalizar({
         <TextField
           label="Nome do vencedor"
           value={vencedorNome}
-          onChange={(e) => setVencedorNome(e.target.value)}
+          disabled
+          hint="Preenchido automaticamente"
         />
         <TextField
           label="Telefone do vencedor"
-          inputMode="numeric"
-          placeholder="(11) 91234-5678"
           value={vencedorTelefone}
-          onChange={(e) => setVencedorTelefone(formatarTelefone(e.target.value))}
+          disabled
+          hint="Preenchido automaticamente"
         />
       </div>
       <Button loading={enviando} onClick={confirmar} className="self-start">
