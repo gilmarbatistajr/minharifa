@@ -18,6 +18,7 @@ describe('ReservarCotaUseCase', () => {
       contarPagasPorCampanha: jest.fn().mockResolvedValue(0),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn().mockImplementation(async (cota: Cota) => {
         estado = cota;
@@ -100,6 +101,7 @@ describe('ReservarCotaUseCase', () => {
       contarPagasPorCampanha: jest.fn().mockResolvedValue(0),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };

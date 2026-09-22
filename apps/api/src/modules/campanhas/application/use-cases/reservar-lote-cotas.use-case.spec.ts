@@ -57,6 +57,7 @@ describe('ReservarLoteCotasUseCase', () => {
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };

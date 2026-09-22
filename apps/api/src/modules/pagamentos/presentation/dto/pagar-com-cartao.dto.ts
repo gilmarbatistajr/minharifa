@@ -1,4 +1,4 @@
-import { IsInt, IsPositive, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { ArrayNotEmpty, IsInt, IsPositive, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class DadosCartaoDto {
@@ -19,9 +19,10 @@ export class PagarComCartaoDto {
   @IsUUID()
   campanhaId!: string;
 
-  @IsInt()
-  @IsPositive()
-  numeroCota!: number;
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  @IsPositive({ each: true })
+  numerosCotas!: number[];
 
   @ValidateNested()
   @Type(() => DadosCartaoDto)

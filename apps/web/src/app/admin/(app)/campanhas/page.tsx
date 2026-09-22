@@ -114,6 +114,7 @@ export default function ListaCampanhasPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {campanhasFiltradas.map((campanha) => {
           const fotoPremio = campanha.premioIds.map((id) => premiosPorId.get(id)?.fotoUrl).find(Boolean);
+          const foto = campanha.fotoUrl ?? fotoPremio;
           // Campanha liberada (e não removida) vai direto para o sorteio: não há mais
           // conteúdo para editar, só confirmar pagamento e liberar cotas.
           const destino =
@@ -129,10 +130,10 @@ export default function ListaCampanhasPage() {
                 }`}
               >
                 <div className="relative -mx-5 -mt-5 aspect-square w-[calc(100%+2.5rem)] overflow-hidden bg-mist">
-                  {fotoPremio ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- imagem do prêmio, vem da API ou de host externo
+                  {foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- imagem da campanha ou do prêmio, vem da API ou de host externo
                     <img
-                      src={urlArquivoApi(fotoPremio)}
+                      src={urlArquivoApi(foto)}
                       alt={campanha.nome}
                       className="h-full w-full object-cover"
                     />

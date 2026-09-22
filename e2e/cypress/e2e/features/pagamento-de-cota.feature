@@ -73,3 +73,16 @@ Funcionalidade: Pagamento da cota reservada
     Quando a assinatura dessa notificação não é válida
     Então o sistema rejeita a notificação
     E não altera o status de nenhuma cota com base nela
+
+  Cenário: Reserva não pode ser paga parcialmente
+    Dado que "Maria" reservou as cotas 10, 11 e 12 do mesmo sorteio
+    Quando ela tenta pagar apenas a cota 10, deixando as cotas 11 e 12 de fora
+    Então o sistema recusa o pagamento
+    E orienta "Maria" a pagar todas as cotas reservadas de uma só vez
+    E nenhuma das três cotas muda de status
+
+  Cenário: Pagamento de um lote de cotas reservadas numa única transação
+    Dado que "Maria" reservou as cotas 10, 11 e 12 do mesmo sorteio, de "R$ 50,00" cada
+    Quando ela escolhe pagar via Pix informando as três cotas
+    Então o sistema gera um único QR Code no valor de "R$ 150,00"
+    E, quando o pagamento é confirmado, as cotas 10, 11 e 12 mudam para "paga" juntas

@@ -27,37 +27,68 @@ export const EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS = [5, 10, 30, 60, 120] as con
 
 const HORAS_ALERTA_ENCERRAMENTO = 24;
 
+export interface DadosAtualizacaoCampanha {
+  nome: string;
+  descricao: string;
+  telefoneSuporte: string;
+  premioIds: string[];
+  quantidadeCotas: number;
+  valorCota: number;
+  formaVenda: FormaVendaCotas;
+  quantidadeMinimaPorCompra: number;
+  quantidadeMaximaPorCompra: number | null;
+  expiracaoReservaMinutos: number | null;
+  reservaExigeEmail: boolean;
+  reservaExigeNome: boolean;
+  reservaExigeTelefone: boolean;
+  reservaExigeConfirmacaoTelefone: boolean;
+}
+
+export interface DadosFinalizacaoCampanha {
+  cotaVencedoraNumero: number;
+  vencedorNome: string;
+  vencedorTelefone: string;
+}
+
 export class Campanha {
   constructor(
     public readonly id: string,
     public readonly administradorId: string,
     public grupoId: string | null,
-    public readonly nome: string,
-    public readonly descricao: string,
-    public readonly premioIds: string[],
+    public nome: string,
+    public descricao: string,
+    public premioIds: string[],
     public dataAberturaVendas: Date | null,
     public dataEncerramentoVendas: Date | null,
     public dataRealizacao: Date | null,
-    public readonly quantidadeCotas: number,
+    public quantidadeCotas: number,
     public valorCota: number,
-    public readonly formaVenda: FormaVendaCotas,
+    public formaVenda: FormaVendaCotas,
     public status: StatusCampanha,
     public statusVendas: StatusVendasCampanha,
     public cotaVencedoraNumero: number | null,
     public vencedorOptouPorDinheiro: boolean | null,
     public removidaEm: Date | null = null,
-    public readonly telefoneSuporte: string = '',
-    public readonly quantidadeMinimaPorCompra: number = 1,
-    public readonly quantidadeMaximaPorCompra: number | null = null,
-    public readonly expiracaoReservaMinutos: number | null = 2,
-    public readonly reservaExigeEmail: boolean = true,
-    public readonly reservaExigeNome: boolean = true,
-    public readonly reservaExigeTelefone: boolean = true,
-    public readonly reservaExigeConfirmacaoTelefone: boolean = false,
+    public telefoneSuporte: string = '',
+    public quantidadeMinimaPorCompra: number = 1,
+    public quantidadeMaximaPorCompra: number | null = null,
+    public expiracaoReservaMinutos: number | null = 2,
+    public reservaExigeEmail: boolean = true,
+    public reservaExigeNome: boolean = true,
+    public reservaExigeTelefone: boolean = true,
+    public reservaExigeConfirmacaoTelefone: boolean = false,
+    public fotoUrl: string | null = null,
+    public vencedorNome: string | null = null,
+    public vencedorTelefone: string | null = null,
   ) {}
 
   estaRemovida(): boolean {
     return this.removidaEm !== null;
+  }
+
+  /** Cobre upload-de-foto-de-campanha: substitui a foto após o upload ser validado e salvo. */
+  definirFoto(url: string): void {
+    this.fotoUrl = url;
   }
 
   /** Remoção lógica: a campanha some das ações do dia a dia mas continua visível na listagem. */
@@ -98,6 +129,32 @@ export class Campanha {
     }
 
     this.status = 'AGUARDANDO_LIBERACAO';
+  }
+
+  /**
+   * Regra de negócio: só uma campanha nova (ainda não revisada) pode ter
+   * todo o seu conteúdo editado — depois de revisada, o único caminho é o
+   * lançamento (que fixa grupo e datas).
+   */
+  atualizar(dados: DadosAtualizacaoCampanha): void {
+    if (this.status !== 'NOVO') {
+      throw new Error('Somente campanhas novas podem ser editadas.');
+    }
+
+    this.nome = dados.nome;
+    this.descricao = dados.descricao;
+    this.telefoneSuporte = dados.telefoneSuporte;
+    this.premioIds = dados.premioIds;
+    this.quantidadeCotas = dados.quantidadeCotas;
+    this.valorCota = dados.valorCota;
+    this.formaVenda = dados.formaVenda;
+    this.quantidadeMinimaPorCompra = dados.quantidadeMinimaPorCompra;
+    this.quantidadeMaximaPorCompra = dados.quantidadeMaximaPorCompra;
+    this.expiracaoReservaMinutos = dados.expiracaoReservaMinutos;
+    this.reservaExigeEmail = dados.reservaExigeEmail;
+    this.reservaExigeNome = dados.reservaExigeNome;
+    this.reservaExigeTelefone = dados.reservaExigeTelefone;
+    this.reservaExigeConfirmacaoTelefone = dados.reservaExigeConfirmacaoTelefone;
   }
 
   /**
@@ -142,8 +199,11 @@ export class Campanha {
   /**
    * Regra de negócio: só uma campanha liberada (e ainda não finalizada ou
    * cancelada) pode ser finalizada, e só depois da data de realização.
+   * Exige nome e telefone do vencedor, preenchidos manualmente pelo
+   * administrador/operador no momento do sorteio — ficam gravados na
+   * campanha para alimentar o ranking "quem mais ganhou" do dashboard.
    */
-  finalizar(cotaVencedoraNumero: number, agora: Date): void {
+  finalizar(dados: DadosFinalizacaoCampanha, agora: Date): void {
     if (this.status !== 'LIBERADA') {
       throw new Error('Somente campanhas liberadas podem ser finalizadas.');
     }
@@ -156,13 +216,23 @@ export class Campanha {
       throw new Error('A campanha só pode ser finalizada após a data de realização.');
     }
 
-    if (cotaVencedoraNumero < 1 || cotaVencedoraNumero > this.quantidadeCotas) {
+    if (dados.cotaVencedoraNumero < 1 || dados.cotaVencedoraNumero > this.quantidadeCotas) {
       throw new Error('O número da cota vencedora é inválido para esta campanha.');
+    }
+
+    if (!dados.vencedorNome.trim()) {
+      throw new Error('Informe o nome do vencedor.');
+    }
+
+    if (!dados.vencedorTelefone.trim()) {
+      throw new Error('Informe o telefone do vencedor.');
     }
 
     this.statusVendas = 'FINALIZADO';
     this.status = 'FINALIZADA';
-    this.cotaVencedoraNumero = cotaVencedoraNumero;
+    this.cotaVencedoraNumero = dados.cotaVencedoraNumero;
+    this.vencedorNome = dados.vencedorNome;
+    this.vencedorTelefone = dados.vencedorTelefone;
   }
 
   /** Cobre o atalho "campanha encerrando em 24h" do dashboard-visao-geral.feature. */

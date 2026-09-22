@@ -8,14 +8,24 @@ import {
   COTA_REPOSITORY,
   CotaRepository,
 } from '../../../campanhas/domain/repositories/cota.repository';
-import { RankingItem, MEDALHAS, TAMANHO_RANKING } from '../../../../shared/domain/ranking';
+import { RankingVencedorItem, MEDALHAS, TAMANHO_RANKING } from '../../../../shared/domain/ranking';
 
 export interface RankingVencedoresInput {
   administradorId: string;
   grupoId: string;
 }
 
-/** Top 3 compradores que mais ganharam campanhas finalizadas no grupo, com medalhas. */
+interface DadosVencedor {
+  nome: string | null;
+  telefone: string | null;
+}
+
+/**
+ * Top 3 compradores que mais ganharam campanhas finalizadas no grupo, com
+ * medalhas. Nome e telefone exibidos são os preenchidos manualmente ao
+ * finalizar a campanha (ver `Campanha.finalizar`); campanhas antigas sem
+ * esses dados caem de volta no cadastro do comprador.
+ */
 @Injectable()
 export class RankingVencedoresUseCase {
   constructor(
@@ -27,7 +37,7 @@ export class RankingVencedoresUseCase {
     private readonly cotaRepository: CotaRepository,
   ) {}
 
-  async executar(input: RankingVencedoresInput): Promise<RankingItem[]> {
+  async executar(input: RankingVencedoresInput): Promise<RankingVencedorItem[]> {
     const grupo = await this.grupoRepository.buscarPorId(input.grupoId);
     if (!grupo || !grupo.pertenceAoAdministrador(input.administradorId)) {
       throw new Error('Grupo não encontrado.');
@@ -39,6 +49,7 @@ export class RankingVencedoresUseCase {
     );
 
     const vitoriasPorComprador = new Map<string, number>();
+    const dadosVencedorPorComprador = new Map<string, DadosVencedor>();
     for (const campanha of finalizadas) {
       const cotaVencedora = await this.cotaRepository.buscarPorCampanhaENumero(
         campanha.id,
@@ -49,21 +60,30 @@ export class RankingVencedoresUseCase {
           cotaVencedora.compradorId,
           (vitoriasPorComprador.get(cotaVencedora.compradorId) ?? 0) + 1,
         );
+        dadosVencedorPorComprador.set(cotaVencedora.compradorId, {
+          nome: campanha.vencedorNome,
+          telefone: campanha.vencedorTelefone,
+        });
       }
     }
 
     const compradores = await this.grupoRepository.listarCompradores(input.grupoId);
-    const nomesPorId = new Map(compradores.map((comprador) => [comprador.id, comprador.nome]));
+    const compradoresPorId = new Map(compradores.map((comprador) => [comprador.id, comprador]));
 
     return Array.from(vitoriasPorComprador.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, TAMANHO_RANKING)
-      .map(([compradorId, quantidade], indice) => ({
-        posicao: indice + 1,
-        medalha: MEDALHAS[indice],
-        compradorId,
-        nome: nomesPorId.get(compradorId) ?? 'Comprador removido',
-        quantidade,
-      }));
+      .map(([compradorId, quantidade], indice) => {
+        const comprador = compradoresPorId.get(compradorId);
+        const dadosVencedor = dadosVencedorPorComprador.get(compradorId);
+        return {
+          posicao: indice + 1,
+          medalha: MEDALHAS[indice],
+          compradorId,
+          nome: dadosVencedor?.nome ?? comprador?.nome ?? 'Comprador removido',
+          telefone: dadosVencedor?.telefone ?? comprador?.telefone ?? '',
+          quantidade,
+        };
+      });
   }
 }

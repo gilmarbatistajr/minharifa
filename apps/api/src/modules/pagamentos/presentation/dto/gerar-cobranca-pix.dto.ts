@@ -1,10 +1,11 @@
-import { IsInt, IsPositive, IsUUID } from 'class-validator';
+import { ArrayNotEmpty, IsInt, IsPositive, IsUUID } from 'class-validator';
 
 export class GerarCobrancaPixDto {
   @IsUUID()
   campanhaId!: string;
 
-  @IsInt()
-  @IsPositive()
-  numeroCota!: number;
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  @IsPositive({ each: true })
+  numerosCotas!: number[];
 }

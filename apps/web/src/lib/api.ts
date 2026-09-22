@@ -180,6 +180,7 @@ export interface Campanha {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  fotoUrl: string | null;
   premioIds: string[];
   dataAberturaVendas: string | null;
   dataEncerramentoVendas: string | null;
@@ -209,6 +210,11 @@ export interface RankingItem {
   compradorId: string;
   nome: string;
   quantidade: number;
+}
+
+/** Ranking de vencedores: nome/telefone são os preenchidos pelo admin/operador ao finalizar a campanha. */
+export interface RankingVencedorItem extends RankingItem {
+  telefone: string;
 }
 
 export interface DadosCartao {
@@ -268,7 +274,7 @@ export const administradoresApi = {
     request<RankingItem[]>('/administradores/dashboard/ranking/cotas-compradas', { token }),
 
   rankingVencedores: (token: string) =>
-    request<RankingItem[]>('/administradores/dashboard/ranking/vencedores', { token }),
+    request<RankingVencedorItem[]>('/administradores/dashboard/ranking/vencedores', { token }),
 };
 
 // ---------- Grupos ----------
@@ -323,7 +329,7 @@ export const gruposApi = {
     request<RankingItem[]>(`/grupos/${grupoId}/ranking/cotas-compradas`, { token }),
 
   rankingVencedores: (token: string, grupoId: string) =>
-    request<RankingItem[]>(`/grupos/${grupoId}/ranking/vencedores`, { token }),
+    request<RankingVencedorItem[]>(`/grupos/${grupoId}/ranking/vencedores`, { token }),
 
   gerarLinkConvite: (token: string, grupoId: string) =>
     request<{ codigo: string }>(`/grupos/${grupoId}/links-convite`, { method: 'POST', token }),
@@ -402,26 +408,38 @@ export interface CotaResumo {
   minhaCota: boolean;
 }
 
+/** Visão administrativa da cota: ao contrário de `CotaResumo` (do comprador), expõe quem é o dono. */
+export interface CotaAdminResumo {
+  numero: number;
+  status: StatusCota;
+  compradorId: string | null;
+  compradorNome: string | null;
+  compradorTelefone: string | null;
+}
+
+export interface DadosFormularioCampanha {
+  nome: string;
+  descricao: string;
+  telefoneSuporte: string;
+  premioIds: string[];
+  quantidadeCotas: number;
+  valorCota: number;
+  formaVenda: FormaVendaCotas;
+  quantidadeMinimaPorCompra?: number;
+  quantidadeMaximaPorCompra?: number | null;
+  expiracaoReservaMinutos?: number | null;
+  reservaExigeEmail?: boolean;
+  reservaExigeNome?: boolean;
+  reservaExigeTelefone?: boolean;
+  reservaExigeConfirmacaoTelefone?: boolean;
+}
+
 export const campanhasApi = {
-  criar: (
-    token: string,
-    dados: {
-      nome: string;
-      descricao: string;
-      telefoneSuporte: string;
-      premioIds: string[];
-      quantidadeCotas: number;
-      valorCota: number;
-      formaVenda: FormaVendaCotas;
-      quantidadeMinimaPorCompra?: number;
-      quantidadeMaximaPorCompra?: number | null;
-      expiracaoReservaMinutos?: number | null;
-      reservaExigeEmail?: boolean;
-      reservaExigeNome?: boolean;
-      reservaExigeTelefone?: boolean;
-      reservaExigeConfirmacaoTelefone?: boolean;
-    },
-  ) => request<{ campanhaId: string }>('/campanhas', { method: 'POST', token, body: dados }),
+  criar: (token: string, dados: DadosFormularioCampanha) =>
+    request<{ campanhaId: string }>('/campanhas', { method: 'POST', token, body: dados }),
+
+  editar: (token: string, campanhaId: string, dados: DadosFormularioCampanha) =>
+    request<void>(`/campanhas/${campanhaId}`, { method: 'PATCH', token, body: dados }),
 
   listar: (token: string) => request<Campanha[]>('/campanhas', { token }),
 
@@ -430,10 +448,14 @@ export const campanhasApi = {
   marcarComoRevisada: (token: string, campanhaId: string) =>
     request<void>(`/campanhas/${campanhaId}/marcar-revisada`, { method: 'POST', token }),
 
-  finalizar: (token: string, campanhaId: string, cotaVencedoraNumero: number) =>
+  finalizar: (
+    token: string,
+    campanhaId: string,
+    dados: { cotaVencedoraNumero: number; vencedorNome: string; vencedorTelefone: string },
+  ) =>
     request<{ campanhaId: string; compradorVencedorId: string }>(
       `/campanhas/${campanhaId}/finalizar`,
-      { method: 'POST', token, body: { cotaVencedoraNumero } },
+      { method: 'POST', token, body: dados },
     ),
 
   remover: (token: string, campanhaId: string) =>
@@ -444,6 +466,23 @@ export const campanhasApi = {
 
   listarCotas: (token: string, campanhaId: string) =>
     request<CotaResumo[]>(`/campanhas/${campanhaId}/cotas`, { token }),
+
+  listarCotasAdmin: (token: string, campanhaId: string) =>
+    request<CotaAdminResumo[]>(`/campanhas/${campanhaId}/cotas/admin`, { token }),
+
+  confirmarPagamentoManual: (token: string, campanhaId: string, compradorId: string) =>
+    request<void>(`/campanhas/${campanhaId}/cotas/confirmar-pagamento`, {
+      method: 'POST',
+      token,
+      body: { compradorId },
+    }),
+
+  liberarCotasReservadas: (token: string, campanhaId: string, compradorId: string) =>
+    request<void>(`/campanhas/${campanhaId}/cotas/liberar`, {
+      method: 'POST',
+      token,
+      body: { compradorId },
+    }),
 
   reservarCota: (token: string, campanhaId: string, numero: number) =>
     request<{ cotaId: string; reservaExpiraEm: string }>(`/campanhas/${campanhaId}/cotas/reservar`, {
@@ -470,28 +509,36 @@ export const campanhasApi = {
     }),
 
   visiveis: (token: string) => request<Campanha[]>('/campanhas/visiveis', { token }),
+
+  enviarFoto: (token: string, campanhaId: string, arquivo: File) => {
+    const formData = new FormData();
+    formData.append('foto', arquivo);
+    return requestMultipart<{ fotoUrl: string }>(`/campanhas/${campanhaId}/foto`, { token, formData });
+  },
 };
 
 // ---------- Pagamentos ----------
 
 export const pagamentosApi = {
-  gerarCobrancaPix: (token: string, campanhaId: string, numeroCota: number) =>
+  // Cobre TODAS as cotas reservadas informadas numa única cobrança/transação — não é
+  // possível pagar só uma parte de um lote reservado (ver regra de negócio no backend).
+  gerarCobrancaPix: (token: string, campanhaId: string, numerosCotas: number[]) =>
     request<{ qrCode: string; codigoCopiaCola: string; valor: number; validoAte: string | null }>(
       '/pagamentos/pix',
-      { method: 'POST', token, body: { campanhaId, numeroCota } },
+      { method: 'POST', token, body: { campanhaId, numerosCotas } },
     ),
 
-  pagarComCartao: (token: string, campanhaId: string, numeroCota: number, dadosCartao: DadosCartao) =>
+  pagarComCartao: (token: string, campanhaId: string, numerosCotas: number[], dadosCartao: DadosCartao) =>
     request<{ status: 'APROVADO' | 'RECUSADO' }>('/pagamentos/cartao', {
       method: 'POST',
       token,
-      body: { campanhaId, numeroCota, dadosCartao },
+      body: { campanhaId, numerosCotas, dadosCartao },
     }),
 
-  pagarComCashback: (token: string, campanhaId: string, numeroCota: number) =>
+  pagarComCashback: (token: string, campanhaId: string, numerosCotas: number[]) =>
     request<{ pagoIntegralmente: boolean; valorAbatido: number; valorRestante: number }>(
       '/pagamentos/cashback',
-      { method: 'POST', token, body: { campanhaId, numeroCota } },
+      { method: 'POST', token, body: { campanhaId, numerosCotas } },
     ),
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
@@ -9,7 +9,7 @@ import { Alert } from '../../../../../components/ui/Alert';
 import { Spinner } from '../../../../../components/ui/Spinner';
 import { TextField, TextAreaField, SelectField, CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
-import { IconArrowLeft } from '../../../../../components/ui/icons';
+import { IconArrowLeft, IconGift } from '../../../../../components/ui/icons';
 import { campanhasApi, premiosApi, ApiError, type Premio, type FormaVendaCotas } from '../../../../../lib/api';
 import { formatarMoeda, formatarTelefone } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
@@ -23,9 +23,30 @@ const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
   { valor: '120', label: '2 horas' },
 ];
 
+const TIPOS_IMAGEM_PERMITIDOS = [
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+];
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 3 * 1024 * 1024;
+
+/** Alguns navegadores (principalmente com fotos HEIC do iPhone) deixam `File.type` vazio — cai para a extensão. */
+function obterTipoArquivo(arquivo: File): string {
+  if (arquivo.type) return arquivo.type;
+  const extensao = arquivo.name.split('.').pop()?.toLowerCase();
+  if (extensao === 'heic') return 'image/heic';
+  if (extensao === 'heif') return 'image/heif';
+  return '';
+}
+
 export default function NovaCampanhaPage() {
   const { sessao } = useSessaoAdministrador();
   const router = useRouter();
+  const inputFotoRef = useRef<HTMLInputElement>(null);
 
   const [premios, setPremios] = useState<Premio[] | null>(null);
 
@@ -33,6 +54,8 @@ export default function NovaCampanhaPage() {
   const [nome, setNome] = useState('');
   const [telefoneSuporte, setTelefoneSuporte] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
+  const [previewFoto, setPreviewFoto] = useState<string | null>(null);
 
   // Cotas
   const [quantidadeCotas, setQuantidadeCotas] = useState('100');
@@ -65,6 +88,29 @@ export default function NovaCampanhaPage() {
     );
   }
 
+  function aoSelecionarFoto(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0] ?? null;
+    evento.target.value = '';
+    if (!arquivo) return;
+
+    setErro(null);
+
+    const tipo = obterTipoArquivo(arquivo);
+    if (!TIPOS_IMAGEM_PERMITIDOS.includes(tipo)) {
+      setErro('A imagem deve estar em um dos formatos: JPEG, PNG, SVG, WEBP, GIF ou HEIC.');
+      return;
+    }
+    if (arquivo.size > TAMANHO_MAXIMO_IMAGEM_BYTES) {
+      setErro('A imagem deve ter no máximo 3MB.');
+      return;
+    }
+
+    // Corrige o content-type quando o navegador não identifica HEIC/HEIF corretamente.
+    const arquivoCorrigido = tipo !== arquivo.type ? new File([arquivo], arquivo.name, { type: tipo }) : arquivo;
+    setArquivoFoto(arquivoCorrigido);
+    setPreviewFoto(URL.createObjectURL(arquivoCorrigido));
+  }
+
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault();
     if (!sessao) return;
@@ -89,6 +135,11 @@ export default function NovaCampanhaPage() {
         reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone,
       });
+
+      if (arquivoFoto) {
+        await campanhasApi.enviarFoto(sessao.token, resultado.campanhaId, arquivoFoto);
+      }
+
       router.push(`/admin/campanhas/${resultado.campanhaId}`);
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível criar a campanha.');
@@ -132,6 +183,36 @@ export default function NovaCampanhaPage() {
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
           />
+
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-night">Imagem</p>
+            <p className="mb-2 text-xs text-muted">
+              JPEG, PNG, SVG, WEBP, GIF ou HEIC, até 3MB, qualquer dimensão — exibida como um quadrado (1080x1080).
+              Prévia de HEIC pode não aparecer em alguns navegadores, mas o arquivo é enviado normalmente.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-mist">
+                {previewFoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- prévia local do arquivo selecionado
+                  <img src={previewFoto} alt="Imagem da campanha" className="h-full w-full object-cover" />
+                ) : (
+                  <IconGift className="h-8 w-8 text-muted" />
+                )}
+              </div>
+              <div>
+                <input
+                  ref={inputFotoRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/svg+xml,image/webp,image/gif,image/heic,image/heif"
+                  className="hidden"
+                  onChange={aoSelecionarFoto}
+                />
+                <Button type="button" variant="secondary" onClick={() => inputFotoRef.current?.click()}>
+                  {previewFoto ? 'Trocar imagem' : 'Selecionar imagem'}
+                </Button>
+              </div>
+            </div>
+          </div>
         </Card>
 
         <Card className="flex flex-col gap-4">

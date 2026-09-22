@@ -77,6 +77,50 @@ describe('Campanha', () => {
     });
   });
 
+  describe('atualizar', () => {
+    const novosDados = {
+      nome: 'Campanha editada',
+      descricao: 'Descrição editada',
+      telefoneSuporte: '5511988887777',
+      premioIds: ['premio-2', 'premio-3'],
+      quantidadeCotas: 200,
+      valorCota: 99,
+      formaVenda: 'LOTE_FECHADO' as const,
+      quantidadeMinimaPorCompra: 2,
+      quantidadeMaximaPorCompra: 10,
+      expiracaoReservaMinutos: 30,
+      reservaExigeEmail: false,
+      reservaExigeNome: false,
+      reservaExigeTelefone: false,
+      reservaExigeConfirmacaoTelefone: true,
+    };
+
+    it('substitui todos os dados editáveis de uma campanha nova', () => {
+      const campanha = criarCampanha({ status: 'NOVO', grupoId: null });
+
+      campanha.atualizar(novosDados);
+
+      expect(campanha.nome).toBe('Campanha editada');
+      expect(campanha.descricao).toBe('Descrição editada');
+      expect(campanha.telefoneSuporte).toBe('5511988887777');
+      expect(campanha.premioIds).toEqual(['premio-2', 'premio-3']);
+      expect(campanha.quantidadeCotas).toBe(200);
+      expect(campanha.valorCota).toBe(99);
+      expect(campanha.formaVenda).toBe('LOTE_FECHADO');
+      expect(campanha.quantidadeMinimaPorCompra).toBe(2);
+      expect(campanha.quantidadeMaximaPorCompra).toBe(10);
+      expect(campanha.expiracaoReservaMinutos).toBe(30);
+      expect(campanha.reservaExigeEmail).toBe(false);
+      expect(campanha.reservaExigeConfirmacaoTelefone).toBe(true);
+    });
+
+    it('rejeita editar uma campanha que não está mais NOVA', () => {
+      const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null });
+
+      expect(() => campanha.atualizar(novosDados)).toThrow('Somente campanhas novas podem ser editadas.');
+    });
+  });
+
   describe('lancar', () => {
     function criarCampanhaAguardandoLiberacao(): Campanha {
       return criarCampanha({
@@ -178,20 +222,24 @@ describe('Campanha', () => {
   });
 
   describe('finalizar', () => {
-    it('registra a cota vencedora e marca a campanha como finalizada nos dois status', () => {
+    const dadosVencedor = { cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' };
+
+    it('registra a cota vencedora, nome e telefone e marca a campanha como finalizada nos dois status', () => {
       const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
 
-      campanha.finalizar(42, new Date('2026-01-11T00:00:00Z'));
+      campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'));
 
       expect(campanha.status).toBe('FINALIZADA');
       expect(campanha.statusVendas).toBe('FINALIZADO');
       expect(campanha.cotaVencedoraNumero).toBe(42);
+      expect(campanha.vencedorNome).toBe('Maria Silva');
+      expect(campanha.vencedorTelefone).toBe('11999999999');
     });
 
     it('impede finalizar uma campanha que ainda não foi liberada', () => {
       const campanha = criarCampanha({ status: 'AGUARDANDO_LIBERACAO', grupoId: null, dataRealizacao: null });
 
-      expect(() => campanha.finalizar(42, new Date('2026-01-11T00:00:00Z'))).toThrow(
+      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
         'Somente campanhas liberadas',
       );
     });
@@ -199,7 +247,7 @@ describe('Campanha', () => {
     it('impede finalizar antes da data de realização', () => {
       const campanha = criarCampanha({ status: 'LIBERADA' });
 
-      expect(() => campanha.finalizar(42, new Date('2026-01-10T23:59:59Z'))).toThrow(
+      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-10T23:59:59Z'))).toThrow(
         'só pode ser finalizada após a data de realização',
       );
     });
@@ -207,7 +255,7 @@ describe('Campanha', () => {
     it('impede finalizar uma campanha já finalizada', () => {
       const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'FINALIZADO' });
 
-      expect(() => campanha.finalizar(42, new Date('2026-01-11T00:00:00Z'))).toThrow(
+      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
         'não pode ser finalizada',
       );
     });
@@ -215,7 +263,7 @@ describe('Campanha', () => {
     it('impede finalizar uma campanha cancelada', () => {
       const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'CANCELADO' });
 
-      expect(() => campanha.finalizar(42, new Date('2026-01-11T00:00:00Z'))).toThrow(
+      expect(() => campanha.finalizar(dadosVencedor, new Date('2026-01-11T00:00:00Z'))).toThrow(
         'não pode ser finalizada',
       );
     });
@@ -223,12 +271,28 @@ describe('Campanha', () => {
     it('rejeita um número de cota fora do intervalo válido', () => {
       const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
 
-      expect(() => campanha.finalizar(0, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'número da cota vencedora é inválido',
-      );
-      expect(() => campanha.finalizar(101, new Date('2026-01-11T00:00:00Z'))).toThrow(
-        'número da cota vencedora é inválido',
-      );
+      expect(() =>
+        campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 0 }, new Date('2026-01-11T00:00:00Z')),
+      ).toThrow('número da cota vencedora é inválido');
+      expect(() =>
+        campanha.finalizar({ ...dadosVencedor, cotaVencedoraNumero: 101 }, new Date('2026-01-11T00:00:00Z')),
+      ).toThrow('número da cota vencedora é inválido');
+    });
+
+    it('rejeita quando o nome do vencedor não é informado', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+
+      expect(() =>
+        campanha.finalizar({ ...dadosVencedor, vencedorNome: '  ' }, new Date('2026-01-11T00:00:00Z')),
+      ).toThrow('Informe o nome do vencedor.');
+    });
+
+    it('rejeita quando o telefone do vencedor não é informado', () => {
+      const campanha = criarCampanha({ status: 'LIBERADA', statusVendas: 'COTAS_ESGOTADAS' });
+
+      expect(() =>
+        campanha.finalizar({ ...dadosVencedor, vencedorTelefone: '  ' }, new Date('2026-01-11T00:00:00Z')),
+      ).toThrow('Informe o telefone do vencedor.');
     });
   });
 

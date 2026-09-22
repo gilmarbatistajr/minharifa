@@ -9,7 +9,12 @@ import { Button } from '../../../../components/ui/Button';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { RankingCard } from '../../../../components/ui/RankingCard';
-import { administradoresApi, type VisaoGeralDashboard, type RankingItem } from '../../../../lib/api';
+import {
+  administradoresApi,
+  type VisaoGeralDashboard,
+  type RankingItem,
+  type RankingVencedorItem,
+} from '../../../../lib/api';
 import { formatarStatusVendasCampanha } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
 
@@ -17,7 +22,7 @@ export default function DashboardPage() {
   const { sessao } = useSessaoAdministrador();
   const [dados, setDados] = useState<VisaoGeralDashboard | null>(null);
   const [rankingCotas, setRankingCotas] = useState<RankingItem[] | null>(null);
-  const [rankingVencedores, setRankingVencedores] = useState<RankingItem[] | null>(null);
+  const [rankingVencedores, setRankingVencedores] = useState<RankingVencedorItem[] | null>(null);
 
   useEffect(() => {
     if (!sessao) return;

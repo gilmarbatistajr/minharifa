@@ -19,6 +19,8 @@ describe('RankingVencedoresUseCase', () => {
     id: string,
     cotaVencedoraNumero: number | null,
     status: Campanha['status'] = 'FINALIZADA',
+    vencedorNome: string | null = null,
+    vencedorTelefone: string | null = null,
   ): Campanha {
     return new Campanha(
       id,
@@ -37,6 +39,18 @@ describe('RankingVencedoresUseCase', () => {
       status === 'FINALIZADA' ? 'FINALIZADO' : 'CANCELADO',
       cotaVencedoraNumero,
       null,
+      null,
+      '',
+      1,
+      null,
+      2,
+      true,
+      true,
+      true,
+      false,
+      null,
+      vencedorNome,
+      vencedorTelefone,
     );
   }
 
@@ -71,6 +85,7 @@ describe('RankingVencedoresUseCase', () => {
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
@@ -101,8 +116,44 @@ describe('RankingVencedoresUseCase', () => {
     const resultado = await useCase.executar({ administradorId: 'admin-1', grupoId: 'grupo-1' });
 
     expect(resultado).toEqual([
-      { posicao: 1, medalha: 'OURO', compradorId: 'comprador-1', nome: 'Maria', quantidade: 2 },
-      { posicao: 2, medalha: 'PRATA', compradorId: 'comprador-2', nome: 'João', quantidade: 1 },
+      {
+        posicao: 1,
+        medalha: 'OURO',
+        compradorId: 'comprador-1',
+        nome: 'Maria',
+        telefone: '5511900000001',
+        quantidade: 2,
+      },
+      {
+        posicao: 2,
+        medalha: 'PRATA',
+        compradorId: 'comprador-2',
+        nome: 'João',
+        telefone: '5511900000002',
+        quantidade: 1,
+      },
+    ]);
+  });
+
+  it('usa nome e telefone preenchidos na finalização, priorizando-os sobre o cadastro do comprador', async () => {
+    const campanhas = [criarCampanhaFinalizada('campanha-1', 10, 'FINALIZADA', 'Maria da Silva', '11988887777')];
+    const cotasPorCampanhaENumero: Record<string, Cota | null> = {
+      'campanha-1-10': new Cota('cota-1', 'campanha-1', 10, 'PAGA', 'comprador-1', new Date(), null),
+    };
+    const deps = criarDependencias(grupo, campanhas, cotasPorCampanhaENumero);
+    const useCase = montarUseCase(deps);
+
+    const resultado = await useCase.executar({ administradorId: 'admin-1', grupoId: 'grupo-1' });
+
+    expect(resultado).toEqual([
+      {
+        posicao: 1,
+        medalha: 'OURO',
+        compradorId: 'comprador-1',
+        nome: 'Maria da Silva',
+        telefone: '11988887777',
+        quantidade: 1,
+      },
     ]);
   });
 

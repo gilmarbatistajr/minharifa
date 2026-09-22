@@ -27,8 +27,11 @@ type RegistroCampanha = {
   statusVendas: string;
   cotaVencedoraNumero: number | null;
   vencedorOptouPorDinheiro: boolean | null;
+  vencedorNome: string | null;
+  vencedorTelefone: string | null;
   removidaEm: Date | null;
   telefoneSuporte: string;
+  fotoUrl: string | null;
   quantidadeMinimaPorCompra: number;
   quantidadeMaximaPorCompra: number | null;
   expiracaoReservaMinutos: number | null;
@@ -65,6 +68,9 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.reservaExigeNome,
     registro.reservaExigeTelefone,
     registro.reservaExigeConfirmacaoTelefone,
+    registro.fotoUrl,
+    registro.vencedorNome,
+    registro.vencedorTelefone,
   );
 }
 
@@ -129,6 +135,7 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         reservaExigeNome: campanha.reservaExigeNome,
         reservaExigeTelefone: campanha.reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
+        fotoUrl: campanha.fotoUrl,
       },
     });
   }
@@ -138,15 +145,31 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
       where: { id: campanha.id },
       data: {
         grupoId: campanha.grupoId,
+        nome: campanha.nome,
+        descricao: campanha.descricao,
+        telefoneSuporte: campanha.telefoneSuporte,
+        premios: { set: campanha.premioIds.map((id) => ({ id })) },
         dataAberturaVendas: campanha.dataAberturaVendas,
         dataEncerramentoVendas: campanha.dataEncerramentoVendas,
         dataRealizacao: campanha.dataRealizacao,
+        quantidadeCotas: campanha.quantidadeCotas,
         valorCota: campanha.valorCota,
+        formaVenda: campanha.formaVenda,
+        quantidadeMinimaPorCompra: campanha.quantidadeMinimaPorCompra,
+        quantidadeMaximaPorCompra: campanha.quantidadeMaximaPorCompra,
+        expiracaoReservaMinutos: campanha.expiracaoReservaMinutos,
+        reservaExigeEmail: campanha.reservaExigeEmail,
+        reservaExigeNome: campanha.reservaExigeNome,
+        reservaExigeTelefone: campanha.reservaExigeTelefone,
+        reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
         status: campanha.status,
         statusVendas: campanha.statusVendas,
         cotaVencedoraNumero: campanha.cotaVencedoraNumero,
         vencedorOptouPorDinheiro: campanha.vencedorOptouPorDinheiro,
+        vencedorNome: campanha.vencedorNome,
+        vencedorTelefone: campanha.vencedorTelefone,
         removidaEm: campanha.removidaEm,
+        fotoUrl: campanha.fotoUrl,
       },
     });
   }

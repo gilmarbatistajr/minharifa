@@ -234,6 +234,7 @@ model Campanha {
   nome                     String
   descricao                String
   telefoneSuporte          String                @default("")
+  fotoUrl                  String?
   premios                  Premio[]
   dataAberturaVendas       DateTime?
   dataEncerramentoVendas   DateTime?
@@ -252,6 +253,8 @@ model Campanha {
   statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
   cotaVencedoraNumero      Int?
   vencedorOptouPorDinheiro Boolean?
+  vencedorNome             String?
+  vencedorTelefone         String?
   removidaEm               DateTime?
   criadoEm                 DateTime              @default(now())
 

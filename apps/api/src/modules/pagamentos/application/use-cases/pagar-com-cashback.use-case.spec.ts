@@ -8,11 +8,11 @@ import { PagamentoRepository } from '../../domain/repositories/pagamento.reposit
 import { PagarComCashbackUseCase } from './pagar-com-cashback.use-case';
 
 describe('PagarComCashbackUseCase', () => {
-  function criarCota(): Cota {
+  function criarCota(numero: number): Cota {
     return new Cota(
-      'cota-1',
+      `cota-${numero}`,
       'campanha-1',
-      42,
+      numero,
       'RESERVADA',
       'comprador-maria',
       new Date('2026-01-01T10:00:00Z'),
@@ -64,11 +64,12 @@ describe('PagarComCashbackUseCase', () => {
     );
   }
 
-  function criarDependencias(cota: Cota, comprador: Comprador) {
+  function criarDependencias(cotasReservadas: Cota[], comprador: Comprador) {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
-      buscarPorCampanhaENumero: jest.fn().mockResolvedValue(cota),
+      buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn(),
+      listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
@@ -94,7 +95,7 @@ describe('PagarComCashbackUseCase', () => {
     const pagamentoRepository: PagamentoRepository = {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn().mockResolvedValue(null),
-      buscarPorTransacaoGateway: jest.fn(),
+      listarPorTransacaoGateway: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
@@ -105,9 +106,9 @@ describe('PagarComCashbackUseCase', () => {
   const agora = new Date('2026-01-01T10:01:00Z');
 
   it('paga a cota integralmente quando o cashback cobre o valor total', async () => {
-    const cota = criarCota();
+    const cota = criarCota(42);
     const comprador = criarComprador(50);
-    const deps = criarDependencias(cota, comprador);
+    const deps = criarDependencias([cota], comprador);
     const useCase = new PagarComCashbackUseCase(
       deps.cotaRepository,
       deps.campanhaRepository,
@@ -116,7 +117,7 @@ describe('PagarComCashbackUseCase', () => {
     );
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria' },
+      { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
       agora,
     );
 
@@ -126,9 +127,9 @@ describe('PagarComCashbackUseCase', () => {
   });
 
   it('abate parcialmente e informa o valor restante quando o cashback é insuficiente', async () => {
-    const cota = criarCota();
+    const cota = criarCota(42);
     const comprador = criarComprador(20);
-    const deps = criarDependencias(cota, comprador);
+    const deps = criarDependencias([cota], comprador);
     const useCase = new PagarComCashbackUseCase(
       deps.cotaRepository,
       deps.campanhaRepository,
@@ -137,7 +138,7 @@ describe('PagarComCashbackUseCase', () => {
     );
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria' },
+      { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
       agora,
     );
 
@@ -147,11 +148,51 @@ describe('PagarComCashbackUseCase', () => {
     expect(deps.cotaRepository.salvar).not.toHaveBeenCalled();
   });
 
-  it('rejeita quando a cota não está reservada para o solicitante', async () => {
-    const cota = criarCota();
-    cota.compradorId = 'outro-comprador';
-    const comprador = criarComprador(50);
-    const deps = criarDependencias(cota, comprador);
+  it('cobre o lote inteiro e confirma todas as cotas quando o cashback é suficiente para a soma', async () => {
+    const cotas = [criarCota(1), criarCota(2), criarCota(3)];
+    const comprador = criarComprador(150);
+    const deps = criarDependencias(cotas, comprador);
+    const useCase = new PagarComCashbackUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.compradorRepository,
+      deps.pagamentoRepository,
+    );
+
+    const resultado = await useCase.executar(
+      { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria' },
+      agora,
+    );
+
+    expect(resultado).toEqual({ pagoIntegralmente: true, valorAbatido: 150, valorRestante: 0 });
+    expect(cotas.every((cota) => cota.status === 'PAGA')).toBe(true);
+  });
+
+  it('não confirma nenhuma cota do lote quando o cashback cobre só parte da soma', async () => {
+    const cotas = [criarCota(1), criarCota(2), criarCota(3)];
+    const comprador = criarComprador(80);
+    const deps = criarDependencias(cotas, comprador);
+    const useCase = new PagarComCashbackUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.compradorRepository,
+      deps.pagamentoRepository,
+    );
+
+    const resultado = await useCase.executar(
+      { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria' },
+      agora,
+    );
+
+    expect(resultado).toEqual({ pagoIntegralmente: false, valorAbatido: 80, valorRestante: 70 });
+    expect(cotas.every((cota) => cota.status === 'RESERVADA')).toBe(true);
+    expect(deps.cotaRepository.salvar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita quando o comprador tenta pagar apenas uma parte das cotas reservadas', async () => {
+    const cotas = [criarCota(1), criarCota(2)];
+    const comprador = criarComprador(100);
+    const deps = criarDependencias(cotas, comprador);
     const useCase = new PagarComCashbackUseCase(
       deps.cotaRepository,
       deps.campanhaRepository,
@@ -161,9 +202,28 @@ describe('PagarComCashbackUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', numeroCota: 42, compradorId: 'comprador-maria' },
+        { campanhaId: 'campanha-1', numerosCotas: [1], compradorId: 'comprador-maria' },
         agora,
       ),
-    ).rejects.toThrow('não está reservada para você');
+    ).rejects.toThrow('Você precisa pagar todas as suas cotas reservadas de uma só vez.');
+    expect(comprador.cashbackDisponivel).toBe(100);
+  });
+
+  it('rejeita quando o comprador não tem nenhuma cota reservada para si', async () => {
+    const comprador = criarComprador(50);
+    const deps = criarDependencias([], comprador);
+    const useCase = new PagarComCashbackUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.compradorRepository,
+      deps.pagamentoRepository,
+    );
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
+        agora,
+      ),
+    ).rejects.toThrow('Você não tem cotas reservadas para pagar nesta campanha.');
   });
 });

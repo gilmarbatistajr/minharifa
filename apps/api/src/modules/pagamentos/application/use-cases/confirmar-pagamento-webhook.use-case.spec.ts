@@ -10,8 +10,8 @@ import { NotificationSender } from '../../../../shared/domain/notification-sende
 import { ConfirmarPagamentoWebhookUseCase } from './confirmar-pagamento-webhook.use-case';
 
 describe('ConfirmarPagamentoWebhookUseCase', () => {
-  function criarPagamento(status: Pagamento['status'] = 'PENDENTE'): Pagamento {
-    return new Pagamento('pagamento-1', 'cota-1', 'comprador-maria', 50, 0, 'PIX', status, 'txn-1', new Date());
+  function criarPagamento(cotaId: string, status: Pagamento['status'] = 'PENDENTE'): Pagamento {
+    return new Pagamento(`pagamento-${cotaId}`, cotaId, 'comprador-maria', 50, 0, 'PIX', status, 'txn-1', new Date());
   }
 
   function criarComprador(): Comprador {
@@ -37,25 +37,22 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     );
   }
 
-  function criarDependencias(
-    pagamento: Pagamento | null,
-    cota: Cota | null,
-    assinaturaValida = true,
-  ) {
+  function criarDependencias(pagamentos: Pagamento[], cotasPorId: Record<string, Cota | null>, assinaturaValida = true) {
     const webhookSignatureValidator: WebhookSignatureValidator = {
       validar: jest.fn().mockReturnValue(assinaturaValida),
     };
     const pagamentoRepository: PagamentoRepository = {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn(),
-      buscarPorTransacaoGateway: jest.fn().mockResolvedValue(pagamento),
+      listarPorTransacaoGateway: jest.fn().mockResolvedValue(pagamentos),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const cotaRepository: CotaRepository = {
-      buscarPorId: jest.fn().mockResolvedValue(cota),
+      buscarPorId: jest.fn((id: string) => Promise.resolve(cotasPorId[id] ?? null)),
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
@@ -102,7 +99,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   }
 
   it('rejeita webhook com assinatura inválida e não altera nada', async () => {
-    const deps = criarDependencias(criarPagamento(), null, false);
+    const deps = criarDependencias([criarPagamento('cota-1')], {}, false);
     const useCase = montarUseCase(deps);
 
     await expect(
@@ -114,7 +111,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       }),
     ).rejects.toThrow('Assinatura do webhook inválida.');
 
-    expect(deps.pagamentoRepository.buscarPorTransacaoGateway).not.toHaveBeenCalled();
+    expect(deps.pagamentoRepository.listarPorTransacaoGateway).not.toHaveBeenCalled();
     expect(deps.cotaRepository.salvar).not.toHaveBeenCalled();
   });
 
@@ -128,8 +125,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       new Date(),
       new Date('2026-01-01T10:02:00Z'),
     );
-    const pagamento = criarPagamento();
-    const deps = criarDependencias(pagamento, cota);
+    const pagamento = criarPagamento('cota-1');
+    const deps = criarDependencias([pagamento], { 'cota-1': cota });
     const useCase = montarUseCase(deps);
 
     await useCase.executar({
@@ -144,10 +141,54 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
     expect(deps.paymentGateway.estornar).not.toHaveBeenCalled();
   });
 
+  it('confirma todas as cotas de um lote pago numa única transação', async () => {
+    const cota1 = new Cota('cota-1', 'campanha-1', 1, 'RESERVADA', 'comprador-maria', new Date(), new Date('2026-01-01T10:02:00Z'));
+    const cota2 = new Cota('cota-2', 'campanha-1', 2, 'RESERVADA', 'comprador-maria', new Date(), new Date('2026-01-01T10:02:00Z'));
+    const pagamento1 = criarPagamento('cota-1');
+    const pagamento2 = criarPagamento('cota-2');
+    const deps = criarDependencias([pagamento1, pagamento2], { 'cota-1': cota1, 'cota-2': cota2 });
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar({
+      payloadBruto: '{}',
+      assinatura: 'assinatura-valida',
+      transacaoId: 'txn-1',
+      statusGateway: 'APROVADO',
+    });
+
+    expect(cota1.status).toBe('PAGA');
+    expect(cota2.status).toBe('PAGA');
+    expect(pagamento1.status).toBe('APROVADO');
+    expect(pagamento2.status).toBe('APROVADO');
+  });
+
+  it('estorna o lote inteiro quando apenas uma das reservas não é mais válida', async () => {
+    const cota1 = new Cota('cota-1', 'campanha-1', 1, 'RESERVADA', 'comprador-maria', new Date(), new Date('2026-01-01T10:02:00Z'));
+    const cota2 = new Cota('cota-2', 'campanha-1', 2, 'DISPONIVEL', null, null, null);
+    const pagamento1 = criarPagamento('cota-1');
+    const pagamento2 = criarPagamento('cota-2');
+    const deps = criarDependencias([pagamento1, pagamento2], { 'cota-1': cota1, 'cota-2': cota2 });
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar({
+      payloadBruto: '{}',
+      assinatura: 'assinatura-valida',
+      transacaoId: 'txn-1',
+      statusGateway: 'APROVADO',
+    });
+
+    expect(pagamento1.status).toBe('ESTORNADO');
+    expect(pagamento2.status).toBe('ESTORNADO');
+    expect(cota1.status).toBe('RESERVADA');
+    expect(deps.paymentGateway.estornar).toHaveBeenCalledTimes(1);
+    expect(deps.paymentGateway.estornar).toHaveBeenCalledWith('txn-1');
+    expect(deps.notificationSender.enviarEmail).toHaveBeenCalledTimes(1);
+  });
+
   it('estorna automaticamente quando o webhook chega após a reserva expirar (cota já disponível)', async () => {
     const cota = new Cota('cota-1', 'campanha-1', 42, 'DISPONIVEL', null, null, null);
-    const pagamento = criarPagamento();
-    const deps = criarDependencias(pagamento, cota);
+    const pagamento = criarPagamento('cota-1');
+    const deps = criarDependencias([pagamento], { 'cota-1': cota });
     const useCase = montarUseCase(deps);
 
     await useCase.executar({
@@ -165,8 +206,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
 
   it('estorna automaticamente quando a cota já foi vendida a outra pessoa', async () => {
     const cota = new Cota('cota-1', 'campanha-1', 42, 'PAGA', 'comprador-joao', new Date(), null);
-    const pagamento = criarPagamento();
-    const deps = criarDependencias(pagamento, cota);
+    const pagamento = criarPagamento('cota-1');
+    const deps = criarDependencias([pagamento], { 'cota-1': cota });
     const useCase = montarUseCase(deps);
 
     await useCase.executar({
@@ -181,8 +222,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   });
 
   it('marca o pagamento como recusado quando o gateway recusa', async () => {
-    const pagamento = criarPagamento();
-    const deps = criarDependencias(pagamento, null);
+    const pagamento = criarPagamento('cota-1');
+    const deps = criarDependencias([pagamento], {});
     const useCase = montarUseCase(deps);
 
     await useCase.executar({
@@ -196,8 +237,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   });
 
   it('ignora webhooks repetidos para um pagamento já processado (idempotência)', async () => {
-    const pagamento = criarPagamento('APROVADO');
-    const deps = criarDependencias(pagamento, null);
+    const pagamento = criarPagamento('cota-1', 'APROVADO');
+    const deps = criarDependencias([pagamento], {});
     const useCase = montarUseCase(deps);
 
     await useCase.executar({
@@ -212,7 +253,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
   });
 
   it('rejeita quando não existe pagamento para a transação informada', async () => {
-    const deps = criarDependencias(null, null);
+    const deps = criarDependencias([], {});
     const useCase = montarUseCase(deps);
 
     await expect(

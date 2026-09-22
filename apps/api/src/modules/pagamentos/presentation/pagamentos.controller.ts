@@ -13,6 +13,7 @@ import { EscolherManterCotasUseCase } from '../application/use-cases/escolher-ma
 import { ResgatarCreditoUseCase } from '../application/use-cases/resgatar-credito.use-case';
 import { GerarCobrancaPixDto } from './dto/gerar-cobranca-pix.dto';
 import { PagarComCartaoDto } from './dto/pagar-com-cartao.dto';
+import { PagarComCashbackDto } from './dto/pagar-com-cashback.dto';
 import { ConfirmarPagamentoWebhookDto } from './dto/confirmar-pagamento-webhook.dto';
 import { ResgatarCreditoDto } from './dto/resgatar-credito.dto';
 
@@ -34,7 +35,7 @@ export class PagamentosController {
   async gerarCobrancaPix(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: GerarCobrancaPixDto) {
     return this.gerarCobrancaPixUseCase.executar({
       campanhaId: dto.campanhaId,
-      numeroCota: dto.numeroCota,
+      numerosCotas: dto.numerosCotas,
       compradorId: usuario.compradorId!,
     });
   }
@@ -44,7 +45,7 @@ export class PagamentosController {
   async pagarComCartao(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: PagarComCartaoDto) {
     return this.pagarComCartaoUseCase.executar({
       campanhaId: dto.campanhaId,
-      numeroCota: dto.numeroCota,
+      numerosCotas: dto.numerosCotas,
       compradorId: usuario.compradorId!,
       dadosCartao: dto.dadosCartao,
     });
@@ -52,10 +53,10 @@ export class PagamentosController {
 
   @UseGuards(CompradorGuard)
   @Post('pagamentos/cashback')
-  async pagarComCashback(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: GerarCobrancaPixDto) {
+  async pagarComCashback(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: PagarComCashbackDto) {
     return this.pagarComCashbackUseCase.executar({
       campanhaId: dto.campanhaId,
-      numeroCota: dto.numeroCota,
+      numerosCotas: dto.numerosCotas,
       compradorId: usuario.compradorId!,
     });
   }

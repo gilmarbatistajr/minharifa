@@ -48,6 +48,7 @@ describe('FinalizarCampanhaUseCase', () => {
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
@@ -97,7 +98,7 @@ describe('FinalizarCampanhaUseCase', () => {
     const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
-      { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+      { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
       agora,
     );
 
@@ -105,6 +106,8 @@ describe('FinalizarCampanhaUseCase', () => {
     expect(campanha.status).toBe('FINALIZADA');
     expect(campanha.statusVendas).toBe('FINALIZADO');
     expect(campanha.cotaVencedoraNumero).toBe(42);
+    expect(campanha.vencedorNome).toBe('Maria Silva');
+    expect(campanha.vencedorTelefone).toBe('11999999999');
     expect(deps.campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
   });
 
@@ -114,7 +117,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
     await expect(
       useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'inexistente', cotaVencedoraNumero: 42 },
+        { administradorId: 'admin-1', campanhaId: 'inexistente', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         agora,
       ),
     ).rejects.toThrow('Campanha não encontrada.');
@@ -127,7 +130,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
     await expect(
       useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         agora,
       ),
     ).rejects.toThrow('Campanha não encontrada.');
@@ -139,7 +142,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
     await expect(
       useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 999 },
+        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 999, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         agora,
       ),
     ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
@@ -152,7 +155,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
     await expect(
       useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         agora,
       ),
     ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
@@ -166,7 +169,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
     await expect(
       useCase.executar(
-        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+        { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         new Date('2026-01-05T00:00:00Z'),
       ),
     ).rejects.toThrow('só pode ser finalizada após a data de realização');
@@ -182,7 +185,7 @@ describe('FinalizarCampanhaUseCase', () => {
       const useCase = montarUseCase(deps);
 
       const resultado = await useCase.executar(
-        { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+        { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
         agora,
       );
 
@@ -200,7 +203,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
       await expect(
         useCase.executar(
-          { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+          { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
           agora,
         ),
       ).rejects.toThrow('Você não tem permissão para finalizar campanhas.');
@@ -213,7 +216,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
       await expect(
         useCase.executar(
-          { operadorId: 'inexistente', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+          { operadorId: 'inexistente', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
           agora,
         ),
       ).rejects.toThrow('Operador não encontrado.');
@@ -227,7 +230,7 @@ describe('FinalizarCampanhaUseCase', () => {
 
       await expect(
         useCase.executar(
-          { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42 },
+          { operadorId: 'operador-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
           agora,
         ),
       ).rejects.toThrow('Campanha não encontrada.');

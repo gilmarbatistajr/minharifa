@@ -17,10 +17,11 @@ import {
   PagamentoRepository,
 } from '../../domain/repositories/pagamento.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
+import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
 
 export interface PagarComCashbackInput {
   campanhaId: string;
-  numeroCota: number;
+  numerosCotas: number[];
   compradorId: string;
 }
 
@@ -33,6 +34,10 @@ export interface PagarComCashbackOutput {
 /**
  * Cobre pagamento-de-cota.feature: "Pagamento de uma cota usando cashback
  * disponível" e "Cashback insuficiente para cobrir o valor total da cota".
+ * O abatimento é calculado sobre a soma de todas as cotas reservadas (ver
+ * `resolverCotasElegiveisParaPagamento`) e distribuído entre elas — nenhuma
+ * cota é confirmada como paga a menos que o cashback cubra o valor em
+ * aberto de TODAS elas, evitando que só parte do lote seja quitada.
  */
 @Injectable()
 export class PagarComCashbackUseCase {
@@ -48,17 +53,6 @@ export class PagarComCashbackUseCase {
   ) {}
 
   async executar(input: PagarComCashbackInput, agora: Date = new Date()): Promise<PagarComCashbackOutput> {
-    const cota = await this.cotaRepository.buscarPorCampanhaENumero(input.campanhaId, input.numeroCota);
-
-    if (
-      !cota ||
-      cota.status !== 'RESERVADA' ||
-      cota.compradorId !== input.compradorId ||
-      (cota.reservaExpiraEm && agora > cota.reservaExpiraEm)
-    ) {
-      throw new Error('Esta cota não está reservada para você.');
-    }
-
     const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
     if (!campanha) {
       throw new Error('Campanha não encontrada.');
@@ -69,49 +63,73 @@ export class PagarComCashbackUseCase {
       throw new Error('Comprador não encontrado.');
     }
 
-    const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
-    const valorTotal = pagamentoExistente ? pagamentoExistente.valor : campanha.valorCota;
-    const valorJaAplicado = pagamentoExistente ? pagamentoExistente.valorCashbackAplicado : 0;
-    const valorEmAberto = valorTotal - valorJaAplicado;
+    const cotas = await resolverCotasElegiveisParaPagamento(
+      this.cotaRepository,
+      input.campanhaId,
+      input.compradorId,
+      input.numerosCotas,
+      agora,
+    );
 
-    const valorAbatido = Math.min(comprador.cashbackDisponivel, valorEmAberto);
+    const itens = await Promise.all(
+      cotas.map(async (cota) => {
+        const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
+        const valorTotal = pagamentoExistente ? pagamentoExistente.valor : campanha.valorCota;
+        const valorJaAplicado = pagamentoExistente ? pagamentoExistente.valorCashbackAplicado : 0;
+        return { cota, pagamentoExistente, valorTotal, valorEmAberto: valorTotal - valorJaAplicado };
+      }),
+    );
 
-    if (valorAbatido > 0) {
-      comprador.debitarCashback(valorAbatido);
+    const valorEmAbertoTotal = itens.reduce((total, item) => total + item.valorEmAberto, 0);
+    const valorAbatidoTotal = Math.min(comprador.cashbackDisponivel, valorEmAbertoTotal);
+
+    if (valorAbatidoTotal > 0) {
+      comprador.debitarCashback(valorAbatidoTotal);
       await this.compradorRepository.salvar(comprador);
     }
 
-    const valorCashbackTotalAplicado = valorJaAplicado + valorAbatido;
-    const valorRestante = valorTotal - valorCashbackTotalAplicado;
-    const pagoIntegralmente = valorRestante <= 0;
+    const valorRestanteTotal = valorEmAbertoTotal - valorAbatidoTotal;
+    const pagoIntegralmente = valorRestanteTotal <= 0;
 
-    if (pagamentoExistente) {
-      pagamentoExistente.valorCashbackAplicado = valorCashbackTotalAplicado;
-      if (pagoIntegralmente) {
-        pagamentoExistente.metodo = 'CASHBACK';
-        pagamentoExistente.aprovar();
+    let restanteParaDistribuir = valorAbatidoTotal;
+    for (const item of itens) {
+      const abatidoNestaCota = Math.min(item.valorEmAberto, restanteParaDistribuir);
+      restanteParaDistribuir -= abatidoNestaCota;
+      const valorJaAplicado = item.pagamentoExistente ? item.pagamentoExistente.valorCashbackAplicado : 0;
+      const valorCashbackTotalAplicado = valorJaAplicado + abatidoNestaCota;
+
+      if (item.pagamentoExistente) {
+        item.pagamentoExistente.valorCashbackAplicado = valorCashbackTotalAplicado;
+        if (pagoIntegralmente) {
+          item.pagamentoExistente.metodo = 'CASHBACK';
+          item.pagamentoExistente.aprovar();
+        }
+        await this.pagamentoRepository.salvar(item.pagamentoExistente);
+      } else {
+        const pagamento = new Pagamento(
+          randomUUID(),
+          item.cota.id,
+          input.compradorId,
+          item.valorTotal,
+          valorCashbackTotalAplicado,
+          'CASHBACK',
+          pagoIntegralmente ? 'APROVADO' : 'PENDENTE',
+          null,
+          agora,
+        );
+        await this.pagamentoRepository.criar(pagamento);
       }
-      await this.pagamentoRepository.salvar(pagamentoExistente);
-    } else {
-      const pagamento = new Pagamento(
-        randomUUID(),
-        cota.id,
-        input.compradorId,
-        valorTotal,
-        valorCashbackTotalAplicado,
-        'CASHBACK',
-        pagoIntegralmente ? 'APROVADO' : 'PENDENTE',
-        null,
-        agora,
-      );
-      await this.pagamentoRepository.criar(pagamento);
+
+      if (pagoIntegralmente) {
+        item.cota.confirmarPagamento();
+        await this.cotaRepository.salvar(item.cota);
+      }
     }
 
-    if (pagoIntegralmente) {
-      cota.confirmarPagamento();
-      await this.cotaRepository.salvar(cota);
-    }
-
-    return { pagoIntegralmente, valorAbatido, valorRestante: Math.max(valorRestante, 0) };
+    return {
+      pagoIntegralmente,
+      valorAbatido: valorAbatidoTotal,
+      valorRestante: Math.max(valorRestanteTotal, 0),
+    };
   }
 }

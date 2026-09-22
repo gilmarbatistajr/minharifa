@@ -14,10 +14,11 @@ import {
 } from '../../domain/repositories/pagamento.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { DadosCartao, PAYMENT_GATEWAY, PaymentGateway } from '../../domain/services/payment-gateway';
+import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
 
 export interface PagarComCartaoInput {
   campanhaId: string;
-  numeroCota: number;
+  numerosCotas: number[];
   compradorId: string;
   dadosCartao: DadosCartao;
 }
@@ -29,7 +30,9 @@ export interface PagarComCartaoOutput {
 /**
  * Cobre pagamento-de-cota.feature: "Geração de cobrança via cartão de
  * crédito", "Cartão de crédito aprovado dentro do prazo" e "Cartão de
- * crédito recusado" (a cota permanece reservada para nova tentativa).
+ * crédito recusado". Cobra o valor total das cotas reservadas numa única
+ * transação: aprova ou recusa todas juntas (ver
+ * `resolverCotasElegiveisParaPagamento`) — nunca aprova só parte delas.
  */
 @Injectable()
 export class PagarComCartaoUseCase {
@@ -45,63 +48,69 @@ export class PagarComCartaoUseCase {
   ) {}
 
   async executar(input: PagarComCartaoInput, agora: Date = new Date()): Promise<PagarComCartaoOutput> {
-    const cota = await this.cotaRepository.buscarPorCampanhaENumero(input.campanhaId, input.numeroCota);
-
-    if (
-      !cota ||
-      cota.status !== 'RESERVADA' ||
-      cota.compradorId !== input.compradorId ||
-      (cota.reservaExpiraEm && agora > cota.reservaExpiraEm)
-    ) {
-      throw new Error('Esta cota não está reservada para você.');
-    }
-
     const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
     if (!campanha) {
       throw new Error('Campanha não encontrada.');
     }
 
-    const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
-    const valorRestante = pagamentoExistente ? pagamentoExistente.calcularValorRestante() : campanha.valorCota;
+    const cotas = await resolverCotasElegiveisParaPagamento(
+      this.cotaRepository,
+      input.campanhaId,
+      input.compradorId,
+      input.numerosCotas,
+      agora,
+    );
 
-    if (valorRestante <= 0) {
-      throw new Error('Esta cota já está totalmente paga.');
+    const itens = await Promise.all(
+      cotas.map(async (cota) => {
+        const pagamentoExistente = await this.pagamentoRepository.buscarPorCotaId(cota.id);
+        const valorRestante = pagamentoExistente ? pagamentoExistente.calcularValorRestante() : campanha.valorCota;
+        return { cota, pagamentoExistente, valorRestante };
+      }),
+    );
+
+    const valorTotalRestante = itens.reduce((total, item) => total + item.valorRestante, 0);
+    if (valorTotalRestante <= 0) {
+      throw new Error('Essas cotas já estão totalmente pagas.');
     }
 
+    const referencia = cotas.map((cota) => cota.id).join(',');
     const cobranca = await this.paymentGateway.gerarCobrancaCartao(
-      valorRestante,
-      cota.id,
+      valorTotalRestante,
+      referencia,
       input.dadosCartao,
     );
 
-    const pagamento =
-      pagamentoExistente ??
-      new Pagamento(
-        randomUUID(),
-        cota.id,
-        input.compradorId,
-        campanha.valorCota,
-        0,
-        'CARTAO_CREDITO',
-        'PENDENTE',
-        null,
-        agora,
-      );
+    for (const item of itens) {
+      const pagamento =
+        item.pagamentoExistente ??
+        new Pagamento(
+          randomUUID(),
+          item.cota.id,
+          input.compradorId,
+          campanha.valorCota,
+          0,
+          'CARTAO_CREDITO',
+          'PENDENTE',
+          null,
+          agora,
+        );
 
-    pagamento.atualizarCobranca('CARTAO_CREDITO', cobranca.transacaoId);
+      pagamento.atualizarCobranca('CARTAO_CREDITO', cobranca.transacaoId);
 
-    if (cobranca.aprovado) {
-      pagamento.aprovar();
-      cota.confirmarPagamento();
-      await this.cotaRepository.salvar(cota);
-    } else {
-      pagamento.recusar();
-    }
+      if (cobranca.aprovado) {
+        pagamento.aprovar();
+        item.cota.confirmarPagamento();
+        await this.cotaRepository.salvar(item.cota);
+      } else {
+        pagamento.recusar();
+      }
 
-    if (pagamentoExistente) {
-      await this.pagamentoRepository.salvar(pagamento);
-    } else {
-      await this.pagamentoRepository.criar(pagamento);
+      if (item.pagamentoExistente) {
+        await this.pagamentoRepository.salvar(pagamento);
+      } else {
+        await this.pagamentoRepository.criar(pagamento);
+      }
     }
 
     return { status: cobranca.aprovado ? 'APROVADO' : 'RECUSADO' };

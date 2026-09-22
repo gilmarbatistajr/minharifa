@@ -28,6 +28,7 @@ describe('ObterVisaoGeralDashboardUseCase', () => {
       contarPagasPorCampanha: jest.fn().mockResolvedValue(cotasPagas),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };

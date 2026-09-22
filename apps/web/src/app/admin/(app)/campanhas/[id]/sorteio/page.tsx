@@ -21,59 +21,10 @@ import {
   type DetalheGrupo,
   type Premio,
   type StatusCota,
+  type CotaAdminResumo,
 } from '../../../../../../lib/api';
 import { formatarTelefone } from '../../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../../lib/auth';
-
-// ---------- Dados de reservas: protótipo local até existir endpoint admin ----------
-// A tela usa dados reais de campanha, grupo e prêmio (já servidos pela API).
-// O mapa de cotas e o histórico de reservas ainda não têm endpoint no backend
-// (falta expor comprador por cota para o administrador), então são simulados
-// aqui com o mesmo formato que a API deve retornar no futuro.
-
-interface CotaAdmin {
-  numero: number;
-  status: StatusCota;
-  compradorId: string | null;
-  compradorNome: string | null;
-  compradorTelefone: string | null;
-}
-
-const COMPRADORES_MOCK = [
-  { id: 'mock-1', nome: 'Marcos Andrade', telefone: '11987654321' },
-  { id: 'mock-2', nome: 'Juliana Prado', telefone: '21998765432' },
-  { id: 'mock-3', nome: 'Carlos Eduardo Reis', telefone: '31991234567' },
-  { id: 'mock-4', nome: 'Fernanda Lima', telefone: '41999887766' },
-  { id: 'mock-5', nome: 'Rafael Souza', telefone: '51988776655' },
-  { id: 'mock-6', nome: 'Patrícia Nunes', telefone: '61997665544' },
-];
-
-function gerarCotasMock(totalCotas: number): CotaAdmin[] {
-  return Array.from({ length: totalCotas }, (_, indice) => {
-    const numero = indice + 1;
-    // hash simples e determinístico só para distribuir status de forma estável
-    const posicao = (numero * 2654435761) % 100;
-
-    let status: StatusCota = 'DISPONIVEL';
-    let comprador: (typeof COMPRADORES_MOCK)[number] | null = null;
-
-    if (posicao < 22) {
-      status = 'PAGA';
-      comprador = COMPRADORES_MOCK[numero % COMPRADORES_MOCK.length];
-    } else if (posicao < 38) {
-      status = 'RESERVADA';
-      comprador = COMPRADORES_MOCK[numero % COMPRADORES_MOCK.length];
-    }
-
-    return {
-      numero,
-      status,
-      compradorId: comprador?.id ?? null,
-      compradorNome: comprador?.nome ?? null,
-      compradorTelefone: comprador?.telefone ?? null,
-    };
-  });
-}
 
 function linkWhatsapp(telefone: string): string {
   return `https://wa.me/55${telefone.replace(/\D/g, '')}`;
@@ -87,9 +38,15 @@ export default function SorteioCampanhaPage() {
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [grupo, setGrupo] = useState<DetalheGrupo | null>(null);
   const [premios, setPremios] = useState<Premio[] | null>(null);
-  const [cotas, setCotas] = useState<CotaAdmin[] | null>(null);
+  const [cotas, setCotas] = useState<CotaAdminResumo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [mostrarFinalizar, setMostrarFinalizar] = useState(false);
+  const [processando, setProcessando] = useState<string | null>(null);
+
+  const recarregarCotas = useCallback(async () => {
+    if (!sessao) return;
+    setCotas(await campanhasApi.listarCotasAdmin(sessao.token, id));
+  }, [sessao, id]);
 
   const recarregar = useCallback(async () => {
     if (!sessao) return;
@@ -102,17 +59,12 @@ export default function SorteioCampanhaPage() {
     if (campanhaData.grupoId) {
       setGrupo(await gruposApi.buscar(sessao.token, campanhaData.grupoId));
     }
-  }, [sessao, id]);
+    await recarregarCotas();
+  }, [sessao, id, recarregarCotas]);
 
   useEffect(() => {
     recarregar();
   }, [recarregar]);
-
-  useEffect(() => {
-    if (campanha && cotas === null) {
-      setCotas(gerarCotasMock(campanha.quantidadeCotas));
-    }
-  }, [campanha, cotas]);
 
   const premiosDaCampanha = useMemo(
     () => premios?.filter((premio) => campanha?.premioIds.includes(premio.id)) ?? [],
@@ -144,24 +96,39 @@ export default function SorteioCampanhaPage() {
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [cotas]);
 
-  function confirmarPagamento(compradorId: string) {
-    setCotas(
-      (atual) =>
-        atual?.map((cota) =>
-          cota.compradorId === compradorId && cota.status === 'RESERVADA' ? { ...cota, status: 'PAGA' } : cota,
-        ) ?? null,
-    );
+  async function confirmarPagamento(compradorId: string) {
+    if (!sessao) return;
+    setErro(null);
+    setProcessando(compradorId);
+    try {
+      await campanhasApi.confirmarPagamentoManual(sessao.token, id, compradorId);
+      await recarregarCotas();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível confirmar o pagamento.');
+    } finally {
+      setProcessando(null);
+    }
   }
 
-  function liberarCotasReservadas(compradorId: string) {
-    setCotas(
-      (atual) =>
-        atual?.map((cota) =>
-          cota.compradorId === compradorId && cota.status === 'RESERVADA'
-            ? { numero: cota.numero, status: 'DISPONIVEL', compradorId: null, compradorNome: null, compradorTelefone: null }
-            : cota,
-        ) ?? null,
-    );
+  async function liberarCotasReservadas(compradorId: string) {
+    if (!sessao) return;
+    if (
+      !window.confirm(
+        'Liberar as cotas reservadas deste comprador? Elas voltam a ficar disponíveis para outros compradores.',
+      )
+    ) {
+      return;
+    }
+    setErro(null);
+    setProcessando(compradorId);
+    try {
+      await campanhasApi.liberarCotasReservadas(sessao.token, id, compradorId);
+      await recarregarCotas();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível liberar as cotas.');
+    } finally {
+      setProcessando(null);
+    }
   }
 
   if (!campanha || !cotas) {
@@ -219,11 +186,11 @@ export default function SorteioCampanhaPage() {
       {/* Seção 1 — informações do sorteio */}
       <Card className="flex flex-col gap-4 sm:flex-row">
         <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-xl bg-mist sm:h-32 sm:w-32">
-          {premioPrincipal?.fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos de prêmio vêm da API ou de host externo
+          {campanha.fotoUrl || premioPrincipal?.fotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- imagem da campanha ou do prêmio, vem da API ou de host externo
             <img
-              src={urlArquivoApi(premioPrincipal.fotoUrl)}
-              alt={premioPrincipal.nome}
+              src={urlArquivoApi(campanha.fotoUrl ?? premioPrincipal!.fotoUrl!)}
+              alt={campanha.nome}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -298,6 +265,7 @@ export default function SorteioCampanhaPage() {
                     reserva={reserva}
                     onConfirmar={confirmarPagamento}
                     onLiberar={liberarCotasReservadas}
+                    carregando={processando === reserva.compradorId}
                     fullWidth
                   />
                 </div>
@@ -324,7 +292,12 @@ export default function SorteioCampanhaPage() {
                         <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                       </td>
                       <td className="py-3 pr-4">
-                        <AcoesReserva reserva={reserva} onConfirmar={confirmarPagamento} onLiberar={liberarCotasReservadas} />
+                        <AcoesReserva
+                          reserva={reserva}
+                          onConfirmar={confirmarPagamento}
+                          onLiberar={liberarCotasReservadas}
+                          carregando={processando === reserva.compradorId}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -351,7 +324,13 @@ export default function SorteioCampanhaPage() {
       </Card>
 
       {campanha.status === 'LIBERADA' && mostrarFinalizar && (
-        <FormularioFinalizar campanhaId={id} token={sessao?.token} aoConcluir={recarregar} aoErro={setErro} />
+        <FormularioFinalizar
+          campanhaId={id}
+          cotas={cotas}
+          token={sessao?.token}
+          aoConcluir={recarregar}
+          aoErro={setErro}
+        />
       )}
     </div>
   );
@@ -359,17 +338,32 @@ export default function SorteioCampanhaPage() {
 
 function FormularioFinalizar({
   campanhaId,
+  cotas,
   token,
   aoConcluir,
   aoErro,
 }: {
   campanhaId: string;
+  cotas: CotaAdminResumo[];
   token?: string;
   aoConcluir: () => void;
   aoErro: (mensagem: string) => void;
 }) {
   const [cotaVencedoraNumero, setCotaVencedoraNumero] = useState('');
+  const [vencedorNome, setVencedorNome] = useState('');
+  const [vencedorTelefone, setVencedorTelefone] = useState('');
   const [enviando, setEnviando] = useState(false);
+
+  // Já que a cota vencedora precisa estar paga, o comprador dela já é conhecido —
+  // pré-preenche nome/telefone a partir da cota informada, mas o admin pode corrigir.
+  function aoMudarCotaVencedora(valor: string) {
+    setCotaVencedoraNumero(valor);
+    const cota = cotas.find((item) => item.numero === Number(valor) && item.status === 'PAGA');
+    if (cota) {
+      setVencedorNome(cota.compradorNome ?? '');
+      setVencedorTelefone(cota.compradorTelefone ? formatarTelefone(cota.compradorTelefone) : '');
+    }
+  }
 
   async function confirmar() {
     if (!token) return;
@@ -378,9 +372,21 @@ function FormularioFinalizar({
       aoErro('Informe o número da cota vencedora.');
       return;
     }
+    if (!vencedorNome.trim()) {
+      aoErro('Informe o nome do vencedor.');
+      return;
+    }
+    if (!vencedorTelefone.trim()) {
+      aoErro('Informe o telefone do vencedor.');
+      return;
+    }
     setEnviando(true);
     try {
-      await campanhasApi.finalizar(token, campanhaId, numero);
+      await campanhasApi.finalizar(token, campanhaId, {
+        cotaVencedoraNumero: numero,
+        vencedorNome,
+        vencedorTelefone,
+      });
       aoConcluir();
     } catch (excecao) {
       aoErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível finalizar a campanha.');
@@ -393,21 +399,32 @@ function FormularioFinalizar({
     <Card className="flex flex-col gap-3">
       <p className="text-sm font-medium text-night">Finalizar campanha</p>
       <p className="text-xs text-muted">
-        Todas as cotas foram pagas. Informe o número da cota vencedora do sorteio.
+        Todas as cotas foram pagas. Informe os dados do vencedor do sorteio.
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-3">
         <TextField
           label="Número da cota vencedora"
           type="number"
           min={1}
           value={cotaVencedoraNumero}
-          onChange={(e) => setCotaVencedoraNumero(e.target.value)}
-          className="max-w-[180px]"
+          onChange={(e) => aoMudarCotaVencedora(e.target.value)}
         />
-        <Button loading={enviando} onClick={confirmar}>
-          Confirmar vencedor
-        </Button>
+        <TextField
+          label="Nome do vencedor"
+          value={vencedorNome}
+          onChange={(e) => setVencedorNome(e.target.value)}
+        />
+        <TextField
+          label="Telefone do vencedor"
+          inputMode="numeric"
+          placeholder="(11) 91234-5678"
+          value={vencedorTelefone}
+          onChange={(e) => setVencedorTelefone(formatarTelefone(e.target.value))}
+        />
       </div>
+      <Button loading={enviando} onClick={confirmar} className="self-start">
+        Confirmar vencedor
+      </Button>
     </Card>
   );
 }
@@ -451,11 +468,13 @@ function AcoesReserva({
   reserva,
   onConfirmar,
   onLiberar,
+  carregando = false,
   fullWidth = false,
 }: {
   reserva: ReservaComprador;
   onConfirmar: (compradorId: string) => void;
   onLiberar: (compradorId: string) => void;
+  carregando?: boolean;
   fullWidth?: boolean;
 }) {
   const semReservaPendente = reserva.numerosReservados.length === 0;
@@ -469,10 +488,19 @@ function AcoesReserva({
         </span>
       ) : (
         <>
-          <Button className="px-3 py-2 text-xs" onClick={() => onConfirmar(reserva.compradorId)}>
+          <Button
+            className="px-3 py-2 text-xs"
+            loading={carregando}
+            onClick={() => onConfirmar(reserva.compradorId)}
+          >
             Confirmar pagamento
           </Button>
-          <Button variant="danger" className="px-3 py-2 text-xs" onClick={() => onLiberar(reserva.compradorId)}>
+          <Button
+            variant="danger"
+            className="px-3 py-2 text-xs"
+            loading={carregando}
+            onClick={() => onLiberar(reserva.compradorId)}
+          >
             Liberar cotas reservadas
           </Button>
         </>
@@ -499,7 +527,7 @@ function LegendaItem({ cor, label }: { cor: string; label: string }) {
   );
 }
 
-function CelulaCota({ cota }: { cota: CotaAdmin }) {
+function CelulaCota({ cota }: { cota: CotaAdminResumo }) {
   const CLASSES: Record<StatusCota, string> = {
     DISPONIVEL: 'bg-white text-night border border-line',
     RESERVADA: 'bg-amber-400 text-amber-950 border border-amber-500',

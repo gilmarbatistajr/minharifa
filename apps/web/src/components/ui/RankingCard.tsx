@@ -1,6 +1,7 @@
 import { Card } from './Card';
 import { EmptyState } from './EmptyState';
 import { Spinner } from './Spinner';
+import { formatarTelefone } from '../../lib/format';
 import type { RankingItem } from '../../lib/api';
 
 const EMOJI_MEDALHA: Record<RankingItem['medalha'], string> = {
@@ -15,7 +16,7 @@ export function RankingCard({
   rotuloQuantidade,
 }: {
   titulo: string;
-  itens: RankingItem[] | null;
+  itens: (RankingItem & { telefone?: string })[] | null;
   rotuloQuantidade: string;
 }) {
   return (
@@ -41,7 +42,12 @@ export function RankingCard({
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-xl">{EMOJI_MEDALHA[item.medalha]}</span>
-                <span className="text-sm font-medium text-night">{item.nome}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-night">{item.nome}</span>
+                  {item.telefone && (
+                    <span className="font-mono text-xs text-muted">{formatarTelefone(item.telefone)}</span>
+                  )}
+                </div>
               </div>
               <span className="font-mono text-xs text-muted">
                 {item.quantidade} {rotuloQuantidade}

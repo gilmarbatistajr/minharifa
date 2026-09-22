@@ -12,6 +12,8 @@ describe('RankingVencedoresAdministradorUseCase', () => {
     grupoId: string,
     cotaVencedoraNumero: number | null,
     status: Campanha['status'] = 'FINALIZADA',
+    vencedorNome: string | null = null,
+    vencedorTelefone: string | null = null,
   ): Campanha {
     return new Campanha(
       id,
@@ -30,17 +32,29 @@ describe('RankingVencedoresAdministradorUseCase', () => {
       status === 'FINALIZADA' ? 'FINALIZADO' : 'VENDAS_ABERTAS',
       cotaVencedoraNumero,
       null,
+      null,
+      '',
+      1,
+      null,
+      2,
+      true,
+      true,
+      true,
+      false,
+      null,
+      vencedorNome,
+      vencedorTelefone,
     );
   }
 
-  function criarComprador(id: string, nome: string): Comprador {
+  function criarComprador(id: string, nome: string, telefone = '11912345678'): Comprador {
     return new Comprador(
       id,
       'grupo-1',
       nome,
       null,
       new Date('1990-05-10'),
-      '11912345678',
+      telefone,
       '12345678909',
       'Rua das Flores, 123',
       `${id}@example.com`,
@@ -80,6 +94,7 @@ describe('RankingVencedoresAdministradorUseCase', () => {
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };
@@ -125,10 +140,48 @@ describe('RankingVencedoresAdministradorUseCase', () => {
     const resultado = await useCase.executar({ administradorId: 'admin-1' });
 
     expect(resultado).toEqual([
-      { posicao: 1, medalha: 'OURO', compradorId: 'comprador-1', nome: 'Maria', quantidade: 2 },
-      { posicao: 2, medalha: 'PRATA', compradorId: 'comprador-2', nome: 'João', quantidade: 1 },
+      {
+        posicao: 1,
+        medalha: 'OURO',
+        compradorId: 'comprador-1',
+        nome: 'Maria',
+        telefone: '11912345678',
+        quantidade: 2,
+      },
+      {
+        posicao: 2,
+        medalha: 'PRATA',
+        compradorId: 'comprador-2',
+        nome: 'João',
+        telefone: '11912345678',
+        quantidade: 1,
+      },
     ]);
     expect(deps.campanhaRepository.listarPorAdministrador).toHaveBeenCalledWith('admin-1');
+  });
+
+  it('usa nome e telefone preenchidos na finalização, priorizando-os sobre o cadastro do comprador', async () => {
+    const campanhas = [criarCampanhaFinalizada('campanha-1', 'grupo-1', 10, 'FINALIZADA', 'Maria da Silva', '11988887777')];
+    const cotasPorCampanhaENumero: Record<string, Cota | null> = {
+      'campanha-1-10': new Cota('cota-1', 'campanha-1', 10, 'PAGA', 'comprador-1', new Date(), null),
+    };
+    const deps = criarDependencias(campanhas, cotasPorCampanhaENumero, {
+      'comprador-1': criarComprador('comprador-1', 'Maria', '11900000000'),
+    });
+    const useCase = montarUseCase(deps);
+
+    const resultado = await useCase.executar({ administradorId: 'admin-1' });
+
+    expect(resultado).toEqual([
+      {
+        posicao: 1,
+        medalha: 'OURO',
+        compradorId: 'comprador-1',
+        nome: 'Maria da Silva',
+        telefone: '11988887777',
+        quantidade: 1,
+      },
+    ]);
   });
 
   it('retorna lista vazia quando nenhuma campanha foi finalizada', async () => {

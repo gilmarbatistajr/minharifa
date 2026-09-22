@@ -31,7 +31,10 @@ export interface ConfirmarPagamentoWebhookInput {
 /**
  * Cobre pagamento-de-cota.feature: "Confirmação de pagamento via Pix dentro
  * do prazo", "Pagamento confirmado depois que a reserva já expirou (webhook
- * tardio)" e "Validação de assinatura do webhook de pagamento".
+ * tardio)" e "Validação de assinatura do webhook de pagamento". Uma
+ * transação do gateway pode cobrir várias cotas pagas juntas (ver
+ * `resolverCotasElegiveisParaPagamento`) — todas são confirmadas ou
+ * estornadas em conjunto, nunca parcialmente.
  */
 @Injectable()
 export class ConfirmarPagamentoWebhookUseCase {
@@ -60,39 +63,54 @@ export class ConfirmarPagamentoWebhookUseCase {
       throw new Error('Assinatura do webhook inválida.');
     }
 
-    const pagamento = await this.pagamentoRepository.buscarPorTransacaoGateway(input.transacaoId);
-    if (!pagamento) {
+    const pagamentos = await this.pagamentoRepository.listarPorTransacaoGateway(input.transacaoId);
+    if (pagamentos.length === 0) {
       throw new Error('Pagamento não encontrado para esta transação.');
     }
 
-    if (pagamento.status !== 'PENDENTE') {
+    const pendentes = pagamentos.filter((pagamento) => pagamento.status === 'PENDENTE');
+    if (pendentes.length === 0) {
       return;
     }
 
     if (input.statusGateway === 'RECUSADO') {
-      pagamento.recusar();
-      await this.pagamentoRepository.salvar(pagamento);
+      for (const pagamento of pendentes) {
+        pagamento.recusar();
+        await this.pagamentoRepository.salvar(pagamento);
+      }
       return;
     }
 
-    const cota = await this.cotaRepository.buscarPorId(pagamento.cotaId);
-    const reservaAindaValidaParaEstePagamento =
-      !!cota && cota.status === 'RESERVADA' && cota.compradorId === pagamento.compradorId;
+    const cotasPorPagamento = await Promise.all(
+      pendentes.map(async (pagamento) => ({
+        pagamento,
+        cota: await this.cotaRepository.buscarPorId(pagamento.cotaId),
+      })),
+    );
 
-    if (reservaAindaValidaParaEstePagamento && cota) {
-      cota.confirmarPagamento();
-      await this.cotaRepository.salvar(cota);
+    const todasReservasAindaValidas = cotasPorPagamento.every(
+      ({ pagamento, cota }) =>
+        !!cota && cota.status === 'RESERVADA' && cota.compradorId === pagamento.compradorId,
+    );
 
-      pagamento.aprovar();
-      await this.pagamentoRepository.salvar(pagamento);
+    if (todasReservasAindaValidas) {
+      for (const { pagamento, cota } of cotasPorPagamento) {
+        cota!.confirmarPagamento();
+        await this.cotaRepository.salvar(cota!);
+
+        pagamento.aprovar();
+        await this.pagamentoRepository.salvar(pagamento);
+      }
       return;
     }
 
-    pagamento.estornar();
-    await this.pagamentoRepository.salvar(pagamento);
+    for (const pagamento of pendentes) {
+      pagamento.estornar();
+      await this.pagamentoRepository.salvar(pagamento);
+    }
     await this.paymentGateway.estornar(input.transacaoId);
 
-    const comprador = await this.compradorRepository.buscarPorId(pagamento.compradorId);
+    const comprador = await this.compradorRepository.buscarPorId(pendentes[0].compradorId);
     if (comprador?.email) {
       await this.notificationSender.enviarEmail(
         comprador.email,

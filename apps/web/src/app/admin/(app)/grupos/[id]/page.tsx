@@ -19,6 +19,7 @@ import {
   type DetalheGrupo,
   type Campanha,
   type RankingItem,
+  type RankingVencedorItem,
 } from '../../../../../lib/api';
 import { formatarData, formatarMoeda, formatarStatusVendasCampanha } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
@@ -41,7 +42,7 @@ export default function DetalheGrupoPage() {
   const [compradores, setCompradores] = useState<CompradorResumo[] | null>(null);
   const [campanhas, setCampanhas] = useState<Campanha[] | null>(null);
   const [rankingCotas, setRankingCotas] = useState<RankingItem[] | null>(null);
-  const [rankingVencedores, setRankingVencedores] = useState<RankingItem[] | null>(null);
+  const [rankingVencedores, setRankingVencedores] = useState<RankingVencedorItem[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const recarregarGrupo = useCallback(() => {

@@ -109,13 +109,11 @@ function PagamentoPix({ campanhaId, numeros, token }: { campanhaId: string; nume
     setErro(null);
     setCarregando(true);
     try {
-      const cobrancas = await Promise.all(
-        numeros.map((numero) => pagamentosApi.gerarCobrancaPix(token, campanhaId, numero)),
-      );
+      const cobranca = await pagamentosApi.gerarCobrancaPix(token, campanhaId, numeros);
       setResultado({
-        qrCode: cobrancas[0].qrCode,
-        codigoCopiaCola: cobrancas[0].codigoCopiaCola,
-        valorTotal: cobrancas.reduce((total, cobranca) => total + cobranca.valor, 0),
+        qrCode: cobranca.qrCode,
+        codigoCopiaCola: cobranca.codigoCopiaCola,
+        valorTotal: cobranca.valor,
       });
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível gerar a cobrança Pix.');
@@ -168,7 +166,7 @@ function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; n
   const [cvv, setCvv] = useState('');
   const [nomeTitular, setNomeTitular] = useState('');
   const [erro, setErro] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{ aprovadas: number; recusadas: number } | null>(null);
+  const [resultado, setResultado] = useState<{ status: 'APROVADO' | 'RECUSADO' } | null>(null);
   const [carregando, setCarregando] = useState(false);
 
   async function aoEnviar(evento: FormEvent) {
@@ -178,16 +176,8 @@ function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; n
     setCarregando(true);
     try {
       const dadosCartao = { numero: numeroCartao, validade, cvv, nomeTitular };
-      let aprovadas = 0;
-      let recusadas = 0;
-
-      for (const numero of numeros) {
-        const resposta = await pagamentosApi.pagarComCartao(token, campanhaId, numero, dadosCartao);
-        if (resposta.status === 'APROVADO') aprovadas += 1;
-        else recusadas += 1;
-      }
-
-      setResultado({ aprovadas, recusadas });
+      const resposta = await pagamentosApi.pagarComCartao(token, campanhaId, numeros, dadosCartao);
+      setResultado(resposta);
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível processar o pagamento.');
     } finally {
@@ -195,11 +185,11 @@ function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; n
     }
   }
 
-  if (resultado && resultado.recusadas === 0) {
+  if (resultado?.status === 'APROVADO') {
     return (
       <Alert tone="success">
-        Pagamento aprovado! {resultado.aprovadas > 1 ? `Suas ${resultado.aprovadas} cotas estão` : 'Sua cota está'}{' '}
-        confirmada{resultado.aprovadas > 1 ? 's' : ''} como paga{resultado.aprovadas > 1 ? 's' : ''}.
+        Pagamento aprovado! {numeros.length > 1 ? `Suas ${numeros.length} cotas estão` : 'Sua cota está'} confirmada
+        {numeros.length > 1 ? 's' : ''} como paga{numeros.length > 1 ? 's' : ''}.
       </Alert>
     );
   }
@@ -208,12 +198,10 @@ function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; n
     <Card>
       <form onSubmit={aoEnviar} className="flex flex-col gap-4">
         {erro && <Alert tone="error">{erro}</Alert>}
-        {resultado && resultado.recusadas > 0 && (
+        {resultado?.status === 'RECUSADO' && (
           <Alert tone="error">
-            {resultado.aprovadas > 0
-              ? `${resultado.aprovadas} cota(s) aprovada(s) e ${resultado.recusadas} recusada(s).`
-              : 'Pagamento não aprovado pelo cartão.'}{' '}
-            As cotas não pagas continuam reservadas — tente novamente com outro método antes de expirar.
+            Pagamento não aprovado pelo cartão. {numeros.length > 1 ? 'As cotas continuam' : 'A cota continua'}{' '}
+            reservada{numeros.length > 1 ? 's' : ''} — tente novamente com outro método antes de expirar.
           </Alert>
         )}
 
@@ -241,9 +229,9 @@ function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; n
 function PagamentoCashback({ campanhaId, numeros, token }: { campanhaId: string; numeros: number[]; token?: string }) {
   const [erro, setErro] = useState<string | null>(null);
   const [resultado, setResultado] = useState<{
-    pagasIntegralmente: number;
-    valorAbatidoTotal: number;
-    valorRestanteTotal: number;
+    pagoIntegralmente: boolean;
+    valorAbatido: number;
+    valorRestante: number;
   } | null>(null);
   const [carregando, setCarregando] = useState(false);
 
@@ -252,18 +240,8 @@ function PagamentoCashback({ campanhaId, numeros, token }: { campanhaId: string;
     setErro(null);
     setCarregando(true);
     try {
-      let pagasIntegralmente = 0;
-      let valorAbatidoTotal = 0;
-      let valorRestanteTotal = 0;
-
-      for (const numero of numeros) {
-        const resposta = await pagamentosApi.pagarComCashback(token, campanhaId, numero);
-        if (resposta.pagoIntegralmente) pagasIntegralmente += 1;
-        valorAbatidoTotal += resposta.valorAbatido;
-        valorRestanteTotal += resposta.valorRestante;
-      }
-
-      setResultado({ pagasIntegralmente, valorAbatidoTotal, valorRestanteTotal });
+      const resposta = await pagamentosApi.pagarComCashback(token, campanhaId, numeros);
+      setResultado(resposta);
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível usar o cashback.');
     } finally {
@@ -285,16 +263,15 @@ function PagamentoCashback({ campanhaId, numeros, token }: { campanhaId: string;
             Pagar com cashback
           </Button>
         </>
-      ) : resultado.valorRestanteTotal === 0 ? (
+      ) : resultado.pagoIntegralmente ? (
         <Alert tone="success">
-          Cashback de {formatarMoeda(resultado.valorAbatidoTotal)} cobriu o valor total.{' '}
-          {resultado.pagasIntegralmente > 1 ? 'Cotas confirmadas' : 'Cota confirmada'} como paga
-          {resultado.pagasIntegralmente > 1 ? 's' : ''}!
+          Cashback de {formatarMoeda(resultado.valorAbatido)} cobriu o valor total.{' '}
+          {numeros.length > 1 ? 'Cotas confirmadas' : 'Cota confirmada'} como paga{numeros.length > 1 ? 's' : ''}!
         </Alert>
       ) : (
         <Alert tone="info">
-          Abatemos {formatarMoeda(resultado.valorAbatidoTotal)} de cashback. Restam{' '}
-          {formatarMoeda(resultado.valorRestanteTotal)} — finalize pelo Pix ou cartão.
+          Abatemos {formatarMoeda(resultado.valorAbatido)} de cashback. Restam{' '}
+          {formatarMoeda(resultado.valorRestante)} — finalize pelo Pix ou cartão.
         </Alert>
       )}
     </Card>

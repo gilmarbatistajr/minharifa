@@ -32,9 +32,9 @@ export class PrismaPagamentoRepository implements PagamentoRepository {
     return registro ? paraDominio(registro) : null;
   }
 
-  async buscarPorTransacaoGateway(idTransacaoGateway: string): Promise<Pagamento | null> {
-    const registro = await this.prisma.pagamento.findFirst({ where: { idTransacaoGateway } });
-    return registro ? paraDominio(registro) : null;
+  async listarPorTransacaoGateway(idTransacaoGateway: string): Promise<Pagamento[]> {
+    const registros = await this.prisma.pagamento.findMany({ where: { idTransacaoGateway } });
+    return registros.map(paraDominio);
   }
 
   async criar(pagamento: Pagamento): Promise<void> {

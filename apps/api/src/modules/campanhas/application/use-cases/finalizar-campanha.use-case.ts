@@ -10,6 +10,8 @@ export interface FinalizarCampanhaInput {
   operadorId?: string;
   campanhaId: string;
   cotaVencedoraNumero: number;
+  vencedorNome: string;
+  vencedorTelefone: string;
 }
 
 export interface FinalizarCampanhaOutput {
@@ -52,7 +54,14 @@ export class FinalizarCampanhaUseCase {
       throw new Error('A cota vencedora precisa ser uma cota paga por um comprador.');
     }
 
-    campanha.finalizar(input.cotaVencedoraNumero, agora);
+    campanha.finalizar(
+      {
+        cotaVencedoraNumero: input.cotaVencedoraNumero,
+        vencedorNome: input.vencedorNome,
+        vencedorTelefone: input.vencedorTelefone,
+      },
+      agora,
+    );
     await this.campanhaRepository.salvar(campanha);
 
     return { campanhaId: campanha.id, compradorVencedorId: cotaVencedora.compradorId };

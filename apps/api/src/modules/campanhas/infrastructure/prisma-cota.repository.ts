@@ -62,6 +62,25 @@ export class PrismaCotaRepository implements CotaRepository {
     );
   }
 
+  async listarReservadasPorComprador(campanhaId: string, compradorId: string): Promise<Cota[]> {
+    const registros = await this.prisma.cota.findMany({
+      where: { campanhaId, compradorId, status: 'RESERVADA' },
+    });
+
+    return registros.map(
+      (registro) =>
+        new Cota(
+          registro.id,
+          registro.campanhaId,
+          registro.numero,
+          registro.status as StatusCota,
+          registro.compradorId,
+          registro.reservadaEm,
+          registro.reservaExpiraEm,
+        ),
+    );
+  }
+
   async contarPagasPorCampanha(campanhaId: string): Promise<number> {
     return this.prisma.cota.count({ where: { campanhaId, status: 'PAGA' } });
   }
