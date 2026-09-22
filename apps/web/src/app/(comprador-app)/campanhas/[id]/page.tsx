@@ -100,7 +100,12 @@ export default function DetalheCampanhaPage() {
   }
 
   function irParaPagamento() {
-    const parametros = new URLSearchParams({ numeros: minhasCotasReservadas.join(',') });
+    if (!campanha) return;
+    const parametros = new URLSearchParams({
+      numeros: minhasCotasReservadas.join(','),
+      telefoneSuporte: campanha.telefoneSuporte,
+      nomeCampanha: campanha.nome,
+    });
     router.push(`/campanhas/${id}/pagamento?${parametros.toString()}`);
   }
 

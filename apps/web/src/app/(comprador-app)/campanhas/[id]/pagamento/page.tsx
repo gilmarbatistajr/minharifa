@@ -1,19 +1,36 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
 import { Alert } from '../../../../../components/ui/Alert';
 import { Badge } from '../../../../../components/ui/Badge';
-import { TextField } from '../../../../../components/ui/Field';
-import { IconCard, IconCopy, IconPix, IconWallet } from '../../../../../components/ui/icons';
+import { IconCopy, IconGift, IconWhatsapp } from '../../../../../components/ui/icons';
 import { pagamentosApi, ApiError } from '../../../../../lib/api';
 import { formatarMoeda } from '../../../../../lib/format';
 import { useSessaoComprador } from '../../../../../lib/auth';
 
-type Aba = 'pix' | 'cartao' | 'cashback';
+const TIPOS_IMAGEM_PERMITIDOS = [
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+];
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 3 * 1024 * 1024;
+
+/** Alguns navegadores (principalmente com fotos HEIC do iPhone) deixam `File.type` vazio — cai para a extensão. */
+function obterTipoArquivo(arquivo: File): string {
+  if (arquivo.type) return arquivo.type;
+  const extensao = arquivo.name.split('.').pop()?.toLowerCase();
+  if (extensao === 'heic') return 'image/heic';
+  if (extensao === 'heif') return 'image/heif';
+  return '';
+}
 
 function useContagemRegressiva(expiraIso: string | null) {
   const [restanteMs, setRestanteMs] = useState<number | null>(null);
@@ -46,19 +63,11 @@ export default function PagamentoPage() {
     [searchParams],
   );
   const expira = searchParams.get('expira');
+  const telefoneSuporte = searchParams.get('telefoneSuporte') ?? '';
+  const nomeCampanha = searchParams.get('nomeCampanha') ?? '';
   const { sessao } = useSessaoComprador();
 
-  const [aba, setAba] = useState<Aba>('pix');
   const contagem = useContagemRegressiva(expira);
-
-  const abas = useMemo(
-    () => [
-      { id: 'pix' as const, label: 'Pix', icon: IconPix },
-      { id: 'cartao' as const, label: 'Cartão', icon: IconCard },
-      { id: 'cashback' as const, label: 'Cashback', icon: IconWallet },
-    ],
-    [],
-  );
 
   if (numeros.length === 0) {
     return <Alert tone="error">Nenhuma cota informada para pagamento.</Alert>;
@@ -73,36 +82,39 @@ export default function PagamentoPage() {
         action={contagem && <Badge tone={contagem === '0:00' ? 'danger' : 'warning'}>Expira em {contagem}</Badge>}
       />
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {abas.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setAba(item.id)}
-            className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-              aba === item.id
-                ? 'border-accent-ink bg-accent text-ink'
-                : 'border-line bg-white text-night hover:border-night/30'
-            }`}
-          >
-            <item.icon className="h-4 w-4" /> {item.label}
-          </button>
-        ))}
-      </div>
-
-      {aba === 'pix' && <PagamentoPix campanhaId={id} numeros={numeros} token={sessao?.token} />}
-      {aba === 'cartao' && <PagamentoCartao campanhaId={id} numeros={numeros} token={sessao?.token} />}
-      {aba === 'cashback' && <PagamentoCashback campanhaId={id} numeros={numeros} token={sessao?.token} />}
+      <PagamentoPix
+        campanhaId={id}
+        numeros={numeros}
+        token={sessao?.token}
+        telefoneSuporte={telefoneSuporte}
+        nomeCampanha={nomeCampanha}
+      />
     </div>
   );
 }
 
-function PagamentoPix({ campanhaId, numeros, token }: { campanhaId: string; numeros: number[]; token?: string }) {
+function PagamentoPix({
+  campanhaId,
+  numeros,
+  token,
+  telefoneSuporte,
+  nomeCampanha,
+}: {
+  campanhaId: string;
+  numeros: number[];
+  token?: string;
+  telefoneSuporte: string;
+  nomeCampanha: string;
+}) {
+  const inputComprovanteRef = useRef<HTMLInputElement>(null);
   const [resultado, setResultado] = useState<{ qrCode: string; codigoCopiaCola: string; valorTotal: number } | null>(
     null,
   );
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [comprovante, setComprovante] = useState<File | null>(null);
+  const [previewComprovante, setPreviewComprovante] = useState<string | null>(null);
 
   async function gerar() {
     if (!token) return;
@@ -121,6 +133,36 @@ function PagamentoPix({ campanhaId, numeros, token }: { campanhaId: string; nume
       setCarregando(false);
     }
   }
+
+  function aoSelecionarComprovante(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0] ?? null;
+    evento.target.value = '';
+    if (!arquivo) return;
+
+    setErro(null);
+
+    const tipo = obterTipoArquivo(arquivo);
+    if (!TIPOS_IMAGEM_PERMITIDOS.includes(tipo)) {
+      setErro('O comprovante deve ser uma imagem em um dos formatos: JPEG, PNG, SVG, WEBP, GIF ou HEIC.');
+      return;
+    }
+    if (arquivo.size > TAMANHO_MAXIMO_IMAGEM_BYTES) {
+      setErro('A imagem deve ter no máximo 3MB.');
+      return;
+    }
+
+    const arquivoCorrigido = tipo !== arquivo.type ? new File([arquivo], arquivo.name, { type: tipo }) : arquivo;
+    setComprovante(arquivoCorrigido);
+    setPreviewComprovante(URL.createObjectURL(arquivoCorrigido));
+  }
+
+  const numerosOrdenados = numeros.slice().sort((a, b) => a - b);
+  const mensagemWhatsapp =
+    `Olá! Segue o comprovante de pagamento da(s) cota(s) nº ${numerosOrdenados.join(', ')}` +
+    (nomeCampanha ? ` da campanha "${nomeCampanha}".` : '.');
+  const linkWhatsapp = telefoneSuporte
+    ? `https://wa.me/55${telefoneSuporte.replace(/\D/g, '')}?text=${encodeURIComponent(mensagemWhatsapp)}`
+    : null;
 
   return (
     <Card className="flex flex-col items-center gap-4 text-center">
@@ -154,125 +196,57 @@ function PagamentoPix({ campanhaId, numeros, token }: { campanhaId: string; nume
           <p className="text-xs text-muted">
             Assim que o pagamento for confirmado pelo gateway, {numeros.length > 1 ? 'suas cotas mudam' : 'sua cota muda'} automaticamente para paga.
           </p>
+
+          <div className="mt-2 flex w-full flex-col items-stretch gap-4 border-t border-line pt-4 text-left">
+            <div>
+              <p className="text-sm font-medium text-night">Comprovante de pagamento</p>
+              <p className="mb-2 text-xs text-muted">
+                Se preferir, anexe o print ou a foto do comprovante do Pix para enviar pelo WhatsApp.
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-mist">
+                  {previewComprovante ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- prévia local do arquivo selecionado
+                    <img src={previewComprovante} alt="Comprovante de pagamento" className="h-full w-full object-cover" />
+                  ) : (
+                    <IconGift className="h-6 w-6 text-muted" />
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={inputComprovanteRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/svg+xml,image/webp,image/gif,image/heic,image/heif"
+                    className="hidden"
+                    onChange={aoSelecionarComprovante}
+                  />
+                  <Button type="button" variant="secondary" onClick={() => inputComprovanteRef.current?.click()}>
+                    {previewComprovante ? 'Trocar comprovante' : 'Selecionar comprovante'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href={comprovante && linkWhatsapp ? linkWhatsapp : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(evento) => {
+                if (!comprovante) {
+                  evento.preventDefault();
+                  setErro('Selecione o comprovante antes de enviar pelo WhatsApp.');
+                }
+              }}
+              className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                comprovante
+                  ? 'border-line bg-white text-night hover:border-night/30'
+                  : 'cursor-not-allowed border-line bg-mist text-muted'
+              }`}
+            >
+              <IconWhatsapp className="h-4 w-4" /> Enviar comprovante pelo WhatsApp
+            </a>
+          </div>
         </>
-      )}
-    </Card>
-  );
-}
-
-function PagamentoCartao({ campanhaId, numeros, token }: { campanhaId: string; numeros: number[]; token?: string }) {
-  const [numeroCartao, setNumeroCartao] = useState('');
-  const [validade, setValidade] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [nomeTitular, setNomeTitular] = useState('');
-  const [erro, setErro] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{ status: 'APROVADO' | 'RECUSADO' } | null>(null);
-  const [carregando, setCarregando] = useState(false);
-
-  async function aoEnviar(evento: FormEvent) {
-    evento.preventDefault();
-    if (!token) return;
-    setErro(null);
-    setCarregando(true);
-    try {
-      const dadosCartao = { numero: numeroCartao, validade, cvv, nomeTitular };
-      const resposta = await pagamentosApi.pagarComCartao(token, campanhaId, numeros, dadosCartao);
-      setResultado(resposta);
-    } catch (excecao) {
-      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível processar o pagamento.');
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  if (resultado?.status === 'APROVADO') {
-    return (
-      <Alert tone="success">
-        Pagamento aprovado! {numeros.length > 1 ? `Suas ${numeros.length} cotas estão` : 'Sua cota está'} confirmada
-        {numeros.length > 1 ? 's' : ''} como paga{numeros.length > 1 ? 's' : ''}.
-      </Alert>
-    );
-  }
-
-  return (
-    <Card>
-      <form onSubmit={aoEnviar} className="flex flex-col gap-4">
-        {erro && <Alert tone="error">{erro}</Alert>}
-        {resultado?.status === 'RECUSADO' && (
-          <Alert tone="error">
-            Pagamento não aprovado pelo cartão. {numeros.length > 1 ? 'As cotas continuam' : 'A cota continua'}{' '}
-            reservada{numeros.length > 1 ? 's' : ''} — tente novamente com outro método antes de expirar.
-          </Alert>
-        )}
-
-        <TextField
-          label="Número do cartão"
-          inputMode="numeric"
-          required
-          value={numeroCartao}
-          onChange={(e) => setNumeroCartao(e.target.value)}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <TextField label="Validade" placeholder="MM/AA" required value={validade} onChange={(e) => setValidade(e.target.value)} />
-          <TextField label="CVV" inputMode="numeric" required value={cvv} onChange={(e) => setCvv(e.target.value)} />
-        </div>
-        <TextField label="Nome do titular" required value={nomeTitular} onChange={(e) => setNomeTitular(e.target.value)} />
-
-        <Button type="submit" fullWidth loading={carregando}>
-          Pagar com cartão
-        </Button>
-      </form>
-    </Card>
-  );
-}
-
-function PagamentoCashback({ campanhaId, numeros, token }: { campanhaId: string; numeros: number[]; token?: string }) {
-  const [erro, setErro] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{
-    pagoIntegralmente: boolean;
-    valorAbatido: number;
-    valorRestante: number;
-  } | null>(null);
-  const [carregando, setCarregando] = useState(false);
-
-  async function pagar() {
-    if (!token) return;
-    setErro(null);
-    setCarregando(true);
-    try {
-      const resposta = await pagamentosApi.pagarComCashback(token, campanhaId, numeros);
-      setResultado(resposta);
-    } catch (excecao) {
-      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível usar o cashback.');
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  return (
-    <Card className="flex flex-col gap-4 text-center">
-      {erro && <Alert tone="error">{erro}</Alert>}
-
-      {!resultado ? (
-        <>
-          <p className="text-sm text-muted">
-            Use o saldo de cashback disponível na sua conta para pagar{' '}
-            {numeros.length > 1 ? 'as cotas selecionadas' : 'esta cota'}, total ou parcialmente.
-          </p>
-          <Button onClick={pagar} loading={carregando}>
-            Pagar com cashback
-          </Button>
-        </>
-      ) : resultado.pagoIntegralmente ? (
-        <Alert tone="success">
-          Cashback de {formatarMoeda(resultado.valorAbatido)} cobriu o valor total.{' '}
-          {numeros.length > 1 ? 'Cotas confirmadas' : 'Cota confirmada'} como paga{numeros.length > 1 ? 's' : ''}!
-        </Alert>
-      ) : (
-        <Alert tone="info">
-          Abatemos {formatarMoeda(resultado.valorAbatido)} de cashback. Restam{' '}
-          {formatarMoeda(resultado.valorRestante)} — finalize pelo Pix ou cartão.
-        </Alert>
       )}
     </Card>
   );
