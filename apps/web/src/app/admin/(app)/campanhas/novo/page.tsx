@@ -65,7 +65,7 @@ export default function NovaCampanhaPage() {
   const [formaVenda, setFormaVenda] = useState<FormaVendaCotas>('ESCOLHA_NUMERO');
   const [quantidadeMinimaPorCompra, setQuantidadeMinimaPorCompra] = useState('1');
   const [quantidadeMaximaPorCompra, setQuantidadeMaximaPorCompra] = useState('');
-  const [expiracaoReservaMinutos, setExpiracaoReservaMinutos] = useState('5');
+  const [expiracaoReservaMinutos, setExpiracaoReservaMinutos] = useState('SEM_EXPIRACAO');
   const [reservaExigeEmail, setReservaExigeEmail] = useState(true);
   const [reservaExigeNome, setReservaExigeNome] = useState(true);
   const [reservaExigeTelefone, setReservaExigeTelefone] = useState(true);

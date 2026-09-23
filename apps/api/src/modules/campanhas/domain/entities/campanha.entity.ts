@@ -148,6 +148,10 @@ export class Campanha {
    * lançamento (que fixa grupo e datas).
    */
   atualizar(dados: DadosAtualizacaoCampanha): void {
+    if (this.estaRemovida()) {
+      throw new Error('Não é possível editar uma campanha removida.');
+    }
+
     if (this.status !== 'NOVO') {
       throw new Error('Somente campanhas novas podem ser editadas.');
     }

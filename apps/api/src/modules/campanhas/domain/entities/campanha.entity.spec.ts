@@ -119,6 +119,13 @@ describe('Campanha', () => {
 
       expect(() => campanha.atualizar(novosDados)).toThrow('Somente campanhas novas podem ser editadas.');
     });
+
+    it('rejeita editar uma campanha removida, mesmo que ainda esteja NOVA', () => {
+      const campanha = criarCampanha({ status: 'NOVO', grupoId: null });
+      campanha.removidaEm = new Date('2026-01-05T00:00:00Z');
+
+      expect(() => campanha.atualizar(novosDados)).toThrow('Não é possível editar uma campanha removida.');
+    });
   });
 
   describe('lancar', () => {

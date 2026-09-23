@@ -33,12 +33,25 @@ const ROTULOS_STATUS_CAMPANHA: Record<string, string> = {
   NOVO: 'Novo',
   AGUARDANDO_LIBERACAO: 'Aguardando liberação',
   LIBERADA: 'Vendas abertas',
-  LIBERADA_PARA_SORTEIO: 'Liberada para sorteio',
+  LIBERADA_PARA_SORTEIO: 'Vendas encerradas',
   FINALIZADA: 'Finalizada',
 };
 
 export function formatarStatusCampanha(status: string): string {
   return ROTULOS_STATUS_CAMPANHA[status] ?? status;
+}
+
+const ROTULOS_EXPIRACAO_RESERVA: Record<number, string> = {
+  5: '5 minutos',
+  10: '10 minutos',
+  30: '30 minutos',
+  60: '1 hora',
+  120: '2 horas',
+};
+
+export function formatarExpiracaoReserva(minutos: number | null): string {
+  if (minutos === null) return 'Sem expiração automática';
+  return ROTULOS_EXPIRACAO_RESERVA[minutos] ?? `${minutos} minutos`;
 }
 
 export function formatarCpf(valor: string): string {

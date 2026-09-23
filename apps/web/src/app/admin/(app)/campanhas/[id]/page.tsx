@@ -22,7 +22,14 @@ import {
   type Premio,
   type FormaVendaCotas,
 } from '../../../../../lib/api';
-import { formatarData, formatarMoeda, formatarStatusCampanha, formatarStatusVendasCampanha, formatarTelefone } from '../../../../../lib/format';
+import {
+  formatarData,
+  formatarExpiracaoReserva,
+  formatarMoeda,
+  formatarStatusCampanha,
+  formatarStatusVendasCampanha,
+  formatarTelefone,
+} from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
 const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
@@ -203,9 +210,11 @@ export default function DetalheCampanhaPage() {
         }
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => router.push(`/admin/campanhas/${id}/sorteio`)}>
-              Ver sorteio
-            </Button>
+            {campanha.status === 'FINALIZADA' && (
+              <Button variant="secondary" onClick={() => router.push(`/admin/campanhas/${id}/sorteio`)}>
+                Ver sorteio
+              </Button>
+            )}
             {campanha.removidaEm ? (
               <Button variant="secondary" loading={carregando} onClick={restaurar}>
                 Restaurar campanha
@@ -299,6 +308,10 @@ export default function DetalheCampanhaPage() {
                 {campanha.formaVenda === 'ESCOLHA_NUMERO' ? 'Escolha de números' : 'Lote fechado'}
               </p>
             </div>
+            <div>
+              <p className="font-mono text-xs uppercase text-muted">Expiração da reserva</p>
+              <p className="text-night">{formatarExpiracaoReserva(campanha.expiracaoReservaMinutos)}</p>
+            </div>
           </div>
 
           {campanha.grupoId && (
@@ -321,6 +334,21 @@ export default function DetalheCampanhaPage() {
               )}
             </div>
           )}
+
+          <div className="border-t border-line pt-3">
+            <p className="mb-2 font-mono text-xs uppercase text-muted">Prêmios</p>
+            <div className="flex flex-col gap-2">
+              {premiosDaCampanha.map((premio) => (
+                <div
+                  key={premio.id}
+                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5 text-sm"
+                >
+                  <span className="text-night">{premio.nome}</span>
+                  <span className="font-mono text-xs text-muted">{formatarMoeda(premio.valor)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </Card>
       )}
 
@@ -419,6 +447,7 @@ function FormularioLancar({
             label="Abertura das vendas"
             type="date"
             required
+            min={daquiA(0)}
             value={dataAberturaVendas}
             onChange={(e) => setDataAberturaVendas(e.target.value)}
           />

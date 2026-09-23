@@ -73,8 +73,11 @@ export class ReservarLoteCotasUseCase {
       throw new Error(`A compra mínima nesta campanha é de ${campanha.quantidadeMinimaPorCompra} cota(s).`);
     }
 
-    if (campanha.quantidadeMaximaPorCompra !== null && quantidadeDesejada > campanha.quantidadeMaximaPorCompra) {
-      throw new Error(`A compra máxima nesta campanha é de ${campanha.quantidadeMaximaPorCompra} cota(s).`);
+    // Sem um máximo configurado, o teto é o total de cotas da campanha — nunca
+    // é permitido comprar mais do que isso, configurado ou não.
+    const quantidadeMaximaPermitida = campanha.quantidadeMaximaPorCompra ?? campanha.quantidadeCotas;
+    if (quantidadeDesejada > quantidadeMaximaPermitida) {
+      throw new Error(`A compra máxima nesta campanha é de ${quantidadeMaximaPermitida} cota(s).`);
     }
 
     const todasAsCotas = await this.cotaRepository.listarPorCampanha(input.campanhaId);

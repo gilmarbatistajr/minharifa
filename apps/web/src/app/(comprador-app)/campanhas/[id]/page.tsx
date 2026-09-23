@@ -33,6 +33,11 @@ export default function DetalheCampanhaPage() {
 
   const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
   const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
+  // Sem um máximo configurado na campanha, o teto de cotas por compra é o
+  // total de cotas dela — nunca é permitido comprar mais do que isso.
+  const quantidadeMaximaPorCompra = campanha
+    ? campanha.quantidadeMaximaPorCompra ?? campanha.quantidadeCotas
+    : null;
 
   async function carregar() {
     if (!sessao) return null;
@@ -73,6 +78,13 @@ export default function DetalheCampanhaPage() {
         setCarregandoDados(false);
         return;
       }
+      // Vendas encerradas (todas as cotas já pagas, aguardando o sorteio):
+      // não há mais nada para o comprador fazer aqui, então os detalhes da
+      // campanha ficam bloqueados mesmo por acesso direto à URL.
+      if (resultado.campanha?.status === 'LIBERADA_PARA_SORTEIO') {
+        router.replace('/campanhas');
+        return;
+      }
       const reservasAtivas = resultado.cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
       if (resultado.campanha && reservasAtivas.length > 0) {
         irParaPagamentoComCotas(resultado.campanha, reservasAtivas, 'replace');
@@ -92,25 +104,38 @@ export default function DetalheCampanhaPage() {
     [cotas],
   );
 
+  const minhasCotasPagas = useMemo(
+    () => cotas?.filter((cota) => cota.minhaCota && cota.status === 'PAGA').map((cota) => cota.numero) ?? [],
+    [cotas],
+  );
+
   function alternarSelecao(numero: number) {
     setSelecionados((atual) => {
       const proximo = new Set(atual);
       if (proximo.has(numero)) {
         proximo.delete(numero);
-      } else {
-        proximo.add(numero);
+        return proximo;
       }
+      if (quantidadeMaximaPorCompra !== null && proximo.size >= quantidadeMaximaPorCompra) {
+        setErro(`A compra máxima nesta campanha é de ${quantidadeMaximaPorCompra} cota(s).`);
+        return proximo;
+      }
+      proximo.add(numero);
       return proximo;
     });
   }
 
   function escolherQuantidadeLote(quantidade: number) {
-    setQuantidadeLote(quantidade);
+    const limite = quantidadeMaximaPorCompra ?? quantidade;
+    setQuantidadeLote(Math.min(quantidade, limite));
     setLoteStaged(false);
   }
 
   function ajustarQuantidadeLote(delta: number) {
-    setQuantidadeLote((atual) => Math.max(1, atual + delta));
+    setQuantidadeLote((atual) => {
+      const limite = quantidadeMaximaPorCompra ?? Infinity;
+      return Math.min(limite, Math.max(1, atual + delta));
+    });
     setLoteStaged(false);
   }
 
@@ -198,6 +223,17 @@ export default function DetalheCampanhaPage() {
 
       {erro && <Alert tone="error">{erro}</Alert>}
 
+      {minhasCotasPagas.length > 0 && (
+        <TicketCard tone="night" className="flex flex-col gap-1">
+          <p className="text-sm font-medium">
+            Você já tem {minhasCotasPagas.length} {minhasCotasPagas.length === 1 ? 'cota paga' : 'cotas pagas'}
+          </p>
+          <p className="font-mono text-xs text-white/70">
+            Nº {minhasCotasPagas.slice().sort((a, b) => a - b).join(', ')}
+          </p>
+        </TicketCard>
+      )}
+
       {minhasCotasReservadas.length > 0 && (
         <Card className="flex flex-col gap-3 border-accent-ink/40 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -218,6 +254,7 @@ export default function DetalheCampanhaPage() {
           <p className="text-xs text-muted">
             Toque nos números disponíveis para selecionar {selecionados.size > 0 && `(${selecionados.size} selecionado${selecionados.size > 1 ? 's' : ''})`}.
             A reserva só é salva ao confirmar.
+            {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
           </p>
 
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -235,20 +272,26 @@ export default function DetalheCampanhaPage() {
         <Card className="flex flex-col gap-4">
           <p className="text-sm font-medium text-night">Escolha a quantidade do lote</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {LOTES_PRESET.map((quantidade) => (
-              <button
-                key={quantidade}
-                type="button"
-                onClick={() => escolherQuantidadeLote(quantidade)}
-                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                  quantidadeLote === quantidade
-                    ? 'border-accent-ink bg-accent text-ink'
-                    : 'border-line bg-white text-night hover:border-accent-ink'
-                }`}
-              >
-                {quantidade}
-              </button>
-            ))}
+            {LOTES_PRESET.map((quantidade) => {
+              const excedeLimite = quantidadeMaximaPorCompra !== null && quantidade > quantidadeMaximaPorCompra;
+              return (
+                <button
+                  key={quantidade}
+                  type="button"
+                  disabled={excedeLimite}
+                  onClick={() => escolherQuantidadeLote(quantidade)}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                    excedeLimite
+                      ? 'cursor-not-allowed border-line bg-mist text-muted'
+                      : quantidadeLote === quantidade
+                        ? 'border-accent-ink bg-accent text-ink'
+                        : 'border-line bg-white text-night hover:border-accent-ink'
+                  }`}
+                >
+                  {quantidade}
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-center gap-4">
@@ -264,7 +307,8 @@ export default function DetalheCampanhaPage() {
             <button
               type="button"
               onClick={() => ajustarQuantidadeLote(1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-lg font-semibold text-night hover:border-accent-ink"
+              disabled={quantidadeMaximaPorCompra !== null && quantidadeLote >= quantidadeMaximaPorCompra}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-lg font-semibold text-night hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Aumentar 1 cota"
             >
               +
@@ -273,6 +317,7 @@ export default function DetalheCampanhaPage() {
           <p className="text-center text-xs text-muted">
             Escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório{quantidadeLote === 1 ? '' : 's'} entre os disponíveis.
             A reserva só é salva ao confirmar.
+            {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
           </p>
 
           {!loteStaged ? (
@@ -285,14 +330,9 @@ export default function DetalheCampanhaPage() {
                 {quantidadeLote} cota{quantidadeLote === 1 ? '' : 's'} pronta{quantidadeLote === 1 ? '' : 's'} para
                 confirmar.
               </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button onClick={confirmarCotas} loading={reservando} fullWidth>
-                  Confirmar cotas
-                </Button>
-                <Button variant="secondary" onClick={() => setLoteStaged(false)} fullWidth>
-                  Sortear novamente
-                </Button>
-              </div>
+              <Button onClick={confirmarCotas} loading={reservando} fullWidth>
+                Confirmar cotas
+              </Button>
             </div>
           )}
 

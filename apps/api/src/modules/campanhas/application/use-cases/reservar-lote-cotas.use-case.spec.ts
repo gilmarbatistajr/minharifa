@@ -246,6 +246,19 @@ describe('ReservarLoteCotasUseCase', () => {
     expect(cotaRepository.salvar).not.toHaveBeenCalled();
   });
 
+  it('rejeita compra acima do total de cotas da campanha quando não há máximo configurado', async () => {
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(150), 'LOTE_FECHADO');
+    const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 101 },
+        agora,
+      ),
+    ).rejects.toThrow('A compra máxima nesta campanha é de 100 cota(s).');
+    expect(cotaRepository.salvar).not.toHaveBeenCalled();
+  });
+
   it('rejeita compra acima da quantidade máxima configurada na campanha', async () => {
     const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(10), 'ESCOLHA_NUMERO', {
       quantidadeMaximaPorCompra: 2,

@@ -9,16 +9,18 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Spinner } from '../../../components/ui/Spinner';
 import { IconChevronRight } from '../../../components/ui/icons';
 import { campanhasApi, type Campanha } from '../../../lib/api';
-import { formatarData, formatarMoeda, formatarStatusVendasCampanha } from '../../../lib/format';
+import { formatarData, formatarMoeda, formatarStatusCampanha } from '../../../lib/format';
 import { useSessaoComprador } from '../../../lib/auth';
 
+// Mesmo status e mesma legenda exibidos ao administrador (campanha.status,
+// não statusVendas) — o comprador só chega a ver uma campanha depois que ela
+// é lançada para o grupo dele (campanhasApi.visiveis já filtra por grupoId).
 const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = {
-  VENDAS_ABERTAS: 'accent',
-  AGUARDANDO_ABERTURA: 'neutral',
-  VENDAS_ENCERRADAS: 'warning',
-  COTAS_ESGOTADAS: 'warning',
-  FINALIZADO: 'neutral',
-  CANCELADO: 'danger',
+  NOVO: 'neutral',
+  AGUARDANDO_LIBERACAO: 'warning',
+  LIBERADA: 'accent',
+  LIBERADA_PARA_SORTEIO: 'warning',
+  FINALIZADA: 'neutral',
 };
 
 export default function ListaCampanhasPage() {
@@ -48,14 +50,21 @@ export default function ListaCampanhasPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {campanhas?.map((campanha) => (
-          <Link key={campanha.id} href={`/campanhas/${campanha.id}`}>
-            <Card className="flex flex-col gap-3 transition hover:border-night/30">
+        {campanhas?.map((campanha) => {
+          // Com as vendas encerradas (todas as cotas pagas, aguardando o
+          // sorteio ser realizado) não há mais nada para o comprador fazer
+          // nessa campanha — ela continua listada, mas não dá pra abrir.
+          const podeAbrir = campanha.status !== 'LIBERADA_PARA_SORTEIO';
+
+          const conteudo = (
+            <Card
+              className={`flex flex-col gap-3 transition ${podeAbrir ? 'hover:border-night/30' : 'opacity-70'}`}
+            >
               <div className="flex items-start justify-between gap-2">
-                <Badge tone={TOM_STATUS[campanha.statusVendas] ?? 'neutral'}>
-                  {formatarStatusVendasCampanha(campanha.statusVendas)}
+                <Badge tone={TOM_STATUS[campanha.status] ?? 'neutral'}>
+                  {formatarStatusCampanha(campanha.status)}
                 </Badge>
-                <IconChevronRight className="h-5 w-5 text-muted" />
+                {podeAbrir && <IconChevronRight className="h-5 w-5 text-muted" />}
               </div>
               <div>
                 <p className="font-mono text-xs uppercase tracking-wide text-muted">Valor da cota</p>
@@ -65,9 +74,20 @@ export default function ListaCampanhasPage() {
                 <span>{campanha.quantidadeCotas} cotas</span>
                 <span>{campanha.dataRealizacao && `Sorteio em ${formatarData(campanha.dataRealizacao)}`}</span>
               </div>
+              {!podeAbrir && (
+                <p className="text-xs text-muted">Vendas encerradas — aguardando o sorteio ser realizado.</p>
+              )}
             </Card>
-          </Link>
-        ))}
+          );
+
+          return podeAbrir ? (
+            <Link key={campanha.id} href={`/campanhas/${campanha.id}`}>
+              {conteudo}
+            </Link>
+          ) : (
+            <div key={campanha.id}>{conteudo}</div>
+          );
+        })}
       </div>
     </div>
   );

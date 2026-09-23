@@ -23,7 +23,7 @@ import {
   type StatusCota,
   type CotaAdminResumo,
 } from '../../../../../../lib/api';
-import { formatarTelefone } from '../../../../../../lib/format';
+import { formatarExpiracaoReserva, formatarMoeda, formatarTelefone } from '../../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../../lib/auth';
 
 function linkWhatsapp(telefone: string): string {
@@ -211,6 +211,39 @@ export default function SorteioCampanhaPage() {
             ) : (
               <Badge tone="neutral">Sem grupo vinculado</Badge>
             )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Seção 1b — dados da campanha, somente leitura (não editável nesta etapa) */}
+      <Card className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+          <div>
+            <p className="font-mono text-xs uppercase text-muted">Cotas</p>
+            <p className="text-night">{campanha.quantidadeCotas}</p>
+          </div>
+          <div>
+            <p className="font-mono text-xs uppercase text-muted">Valor da cota</p>
+            <p className="text-night">{formatarMoeda(campanha.valorCota)}</p>
+          </div>
+          <div>
+            <p className="font-mono text-xs uppercase text-muted">Expiração da reserva</p>
+            <p className="text-night">{formatarExpiracaoReserva(campanha.expiracaoReservaMinutos)}</p>
+          </div>
+        </div>
+
+        <div className="border-t border-line pt-3">
+          <p className="mb-2 font-mono text-xs uppercase text-muted">Prêmios</p>
+          <div className="flex flex-col gap-2">
+            {premiosDaCampanha.map((premio) => (
+              <div
+                key={premio.id}
+                className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5 text-sm"
+              >
+                <span className="text-night">{premio.nome}</span>
+                <span className="font-mono text-xs text-muted">{formatarMoeda(premio.valor)}</span>
+              </div>
+            ))}
           </div>
         </div>
       </Card>
