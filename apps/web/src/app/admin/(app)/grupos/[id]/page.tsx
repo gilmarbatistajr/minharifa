@@ -21,8 +21,12 @@ import {
   type RankingItem,
   type RankingVencedorItem,
 } from '../../../../../lib/api';
-import { formatarData, formatarMoeda, formatarStatusVendasCampanha } from '../../../../../lib/format';
+import { formatarData, formatarMoeda, formatarStatusVendasCampanha, formatarTelefone } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
+
+function linkWhatsappSuporte(telefone: string): string {
+  return `https://wa.me/55${telefone.replace(/\D/g, '')}`;
+}
 
 const TOM_STATUS: Record<string, 'accent' | 'neutral' | 'warning' | 'danger'> = {
   VENDAS_ABERTAS: 'accent',
@@ -80,9 +84,26 @@ export default function DetalheGrupoPage() {
         eyebrow="Grupo"
         title={grupo.nome}
         description={
-          <span className="flex items-center gap-1.5">
-            <IconWhatsapp className="h-3.5 w-3.5" /> {grupo.identificadorWhatsapp}
-          </span>
+          <div className="flex flex-col gap-1">
+            <a
+              href={linkWhatsappSuporte(grupo.identificadorWhatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-night hover:underline"
+            >
+              <IconWhatsapp className="h-3.5 w-3.5" /> Contato de suporte: {formatarTelefone(grupo.identificadorWhatsapp)}
+            </a>
+            {grupo.linkWhatsapp && (
+              <a
+                href={grupo.linkWhatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 hover:text-night hover:underline"
+              >
+                <IconWhatsapp className="h-3.5 w-3.5" /> Link do grupo
+              </a>
+            )}
+          </div>
         }
       />
 
@@ -104,7 +125,13 @@ export default function DetalheGrupoPage() {
           aoErro={setErro}
         />
 
-        <SecaoLinkConvite grupoId={id} token={sessao?.token} aoErro={setErro} />
+        <SecaoLinkConvite
+          grupoId={id}
+          token={sessao?.token}
+          codigoConvite={grupo.codigoConvite}
+          aoAtualizar={recarregarGrupo}
+          aoErro={setErro}
+        />
 
         <Card className="flex flex-col gap-3 lg:col-span-2">
           <p className="font-mono text-xs uppercase tracking-wide text-muted">
@@ -279,26 +306,31 @@ function SecaoAgenteChatbot({
 function SecaoLinkConvite({
   grupoId,
   token,
+  codigoConvite,
+  aoAtualizar,
   aoErro,
 }: {
   grupoId: string;
   token?: string;
+  codigoConvite: string | null;
+  aoAtualizar: () => void;
   aoErro: (mensagem: string) => void;
 }) {
-  const [codigo, setCodigo] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
   const link =
-    codigo && typeof window !== 'undefined' ? `${window.location.origin}/cadastro?convite=${codigo}` : null;
+    codigoConvite && typeof window !== 'undefined'
+      ? `${window.location.origin}/cadastro?convite=${codigoConvite}`
+      : null;
 
   async function gerar() {
     if (!token) return;
     setCarregando(true);
     try {
-      const resultado = await gruposApi.gerarLinkConvite(token, grupoId);
-      setCodigo(resultado.codigo);
+      await gruposApi.gerarLinkConvite(token, grupoId);
       setCopiado(false);
+      aoAtualizar();
     } catch (excecao) {
       aoErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível gerar o link de convite.');
     } finally {

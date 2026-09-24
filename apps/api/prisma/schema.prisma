@@ -75,6 +75,7 @@ model Grupo {
   administrador         Administrador @relation(fields: [administradorId], references: [id])
   nome                  String
   identificadorWhatsapp String        @unique
+  linkWhatsapp          String?
   criadoEm              DateTime      @default(now())
 
   agenteChatbot     AgenteChatbot?

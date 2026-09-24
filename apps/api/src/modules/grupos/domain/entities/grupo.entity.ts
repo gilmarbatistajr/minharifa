@@ -5,6 +5,7 @@ export class Grupo {
     public nome: string,
     public readonly identificadorWhatsapp: string,
     public readonly criadoEm: Date,
+    public linkWhatsapp: string | null = null,
   ) {}
 
   pertenceAoAdministrador(administradorId: string): boolean {

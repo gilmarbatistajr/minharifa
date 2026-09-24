@@ -121,6 +121,7 @@ export interface Grupo {
   administradorId: string;
   nome: string;
   identificadorWhatsapp: string;
+  linkWhatsapp: string | null;
   criadoEm: string;
 }
 
@@ -128,7 +129,9 @@ export interface DetalheGrupo {
   id: string;
   nome: string;
   identificadorWhatsapp: string;
+  linkWhatsapp: string | null;
   criadoEm: string;
+  codigoConvite: string | null;
   agenteChatbot: {
     ativo: boolean;
     avisaCotasRestantes: boolean;
@@ -287,7 +290,10 @@ export const administradoresApi = {
 // ---------- Grupos ----------
 
 export const gruposApi = {
-  cadastrar: (token: string, dados: { nome: string; identificadorWhatsapp: string }) =>
+  cadastrar: (
+    token: string,
+    dados: { nome: string; identificadorWhatsapp: string; linkWhatsapp: string },
+  ) =>
     request<{ grupoId: string }>('/grupos', { method: 'POST', token, body: dados }),
 
   listar: (token: string) => request<Grupo[]>('/grupos', { token }),

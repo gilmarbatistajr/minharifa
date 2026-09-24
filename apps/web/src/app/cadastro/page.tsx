@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { TextField, CheckboxField } from '../../components/ui/Field';
+import { TextField, PhoneField, CheckboxField } from '../../components/ui/Field';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 import { Spinner } from '../../components/ui/Spinner';
@@ -141,10 +141,9 @@ function CadastroForm() {
         value={dataNascimento}
         onChange={(e) => setDataNascimento(e.target.value)}
       />
-      <TextField
+      <PhoneField
         label="Telefone"
         required
-        inputMode="numeric"
         placeholder="(11) 91234-5678"
         value={telefone}
         onChange={(e) => setTelefone(formatarTelefone(e.target.value))}

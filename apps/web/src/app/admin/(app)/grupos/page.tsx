@@ -6,12 +6,12 @@ import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
-import { TextField } from '../../../../components/ui/Field';
+import { TextField, PhoneField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { IconChevronRight, IconGroup, IconPlus, IconWhatsapp } from '../../../../components/ui/icons';
 import { gruposApi, ApiError, type Grupo } from '../../../../lib/api';
-import { formatarData } from '../../../../lib/format';
+import { formatarData, formatarTelefone } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
 
 export default function ListaGruposPage() {
@@ -81,7 +81,7 @@ export default function ListaGruposPage() {
                 <div>
                   <p className="font-medium text-night">{grupo.nome}</p>
                   <p className="flex items-center gap-1 text-xs text-muted">
-                    <IconWhatsapp className="h-3.5 w-3.5" /> {grupo.identificadorWhatsapp}
+                    <IconWhatsapp className="h-3.5 w-3.5" /> {formatarTelefone(grupo.identificadorWhatsapp)}
                   </p>
                 </div>
               </div>
@@ -108,6 +108,7 @@ function FormularioNovoGrupo({
 }) {
   const [nome, setNome] = useState('');
   const [identificadorWhatsapp, setIdentificadorWhatsapp] = useState('');
+  const [linkWhatsapp, setLinkWhatsapp] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
@@ -117,7 +118,7 @@ function FormularioNovoGrupo({
     setErro(null);
     setCarregando(true);
     try {
-      await gruposApi.cadastrar(token, { nome, identificadorWhatsapp });
+      await gruposApi.cadastrar(token, { nome, identificadorWhatsapp, linkWhatsapp });
       aoCriar();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível cadastrar o grupo.');
@@ -132,14 +133,23 @@ function FormularioNovoGrupo({
         {erro && <Alert tone="error">{erro}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Nome do grupo" required value={nome} onChange={(e) => setNome(e.target.value)} />
-          <TextField
-            label="Identificador do WhatsApp"
+          <PhoneField
+            label="Contato de suporte"
             required
-            placeholder="5511999999999"
+            placeholder="(11) 91234-5678"
             value={identificadorWhatsapp}
-            onChange={(e) => setIdentificadorWhatsapp(e.target.value)}
+            onChange={(e) => setIdentificadorWhatsapp(formatarTelefone(e.target.value))}
           />
         </div>
+        <TextField
+          label="Link do grupo"
+          type="url"
+          required
+          placeholder="https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv"
+          hint="Link de convite do grupo criado no WhatsApp."
+          value={linkWhatsapp}
+          onChange={(e) => setLinkWhatsapp(e.target.value)}
+        />
         <div className="flex gap-2">
           <Button type="submit" loading={carregando}>
             Cadastrar grupo

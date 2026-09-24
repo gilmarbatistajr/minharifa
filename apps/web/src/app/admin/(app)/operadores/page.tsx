@@ -6,7 +6,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Badge } from '../../../../components/ui/Badge';
-import { TextField, CheckboxField } from '../../../../components/ui/Field';
+import { TextField, PhoneField, CheckboxField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { IconHeadset, IconPlus, IconPencil, IconTrash } from '../../../../components/ui/icons';
@@ -327,10 +327,9 @@ function FormularioOperador({
           <TextField label="RG" required value={rg} onChange={(e) => setRg(e.target.value)} />
         </div>
 
-        <TextField
+        <PhoneField
           label="Número de telefone"
           required
-          inputMode="numeric"
           placeholder="(11) 91234-5678"
           value={telefone}
           onChange={(e) => setTelefone(formatarTelefone(e.target.value))}

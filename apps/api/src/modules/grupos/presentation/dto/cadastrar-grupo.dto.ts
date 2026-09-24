@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsUrl } from 'class-validator';
 
 export class CadastrarGrupoDto {
   @IsString()
@@ -6,4 +6,7 @@ export class CadastrarGrupoDto {
 
   @IsString()
   identificadorWhatsapp!: string;
+
+  @IsUrl()
+  linkWhatsapp!: string;
 }

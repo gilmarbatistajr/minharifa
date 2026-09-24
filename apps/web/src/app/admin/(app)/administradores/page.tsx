@@ -6,7 +6,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Badge } from '../../../../components/ui/Badge';
-import { TextField } from '../../../../components/ui/Field';
+import { TextField, PhoneField } from '../../../../components/ui/Field';
 import { EmptyState } from '../../../../components/ui/EmptyState';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { IconShield, IconPlus, IconPencil, IconTrash } from '../../../../components/ui/icons';
@@ -249,10 +249,9 @@ function FormularioAdministrador({
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
+          <PhoneField
             label="Número de telefone"
             required
-            inputMode="numeric"
             placeholder="(11) 91234-5678"
             value={telefone}
             onChange={(e) => setTelefone(formatarTelefone(e.target.value))}

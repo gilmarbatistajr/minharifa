@@ -11,6 +11,7 @@ function paraDominio(registro: GrupoPrisma): Grupo {
     registro.nome,
     registro.identificadorWhatsapp,
     registro.criadoEm,
+    registro.linkWhatsapp,
   );
 }
 
@@ -48,6 +49,7 @@ export class PrismaGrupoRepository implements GrupoRepository {
         administradorId: grupo.administradorId,
         nome: grupo.nome,
         identificadorWhatsapp: grupo.identificadorWhatsapp,
+        linkWhatsapp: grupo.linkWhatsapp,
         criadoEm: grupo.criadoEm,
       },
     });

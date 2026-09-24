@@ -28,6 +28,14 @@ export class PrismaLinkConviteRepository implements LinkConviteRepository {
     return registro ? paraDominio(registro) : null;
   }
 
+  async buscarAtivoPorGrupo(grupoId: string): Promise<LinkConvite | null> {
+    const registro = await this.prisma.linkConvite.findFirst({
+      where: { grupoId, status: 'ATIVO' },
+      orderBy: { criadoEm: 'desc' },
+    });
+    return registro ? paraDominio(registro) : null;
+  }
+
   async criar(linkConvite: LinkConvite): Promise<void> {
     await this.prisma.linkConvite.create({
       data: {

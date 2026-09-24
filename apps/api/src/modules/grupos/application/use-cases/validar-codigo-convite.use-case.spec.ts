@@ -7,6 +7,7 @@ describe('ValidarCodigoConviteUseCase', () => {
     return {
       buscarPorId: jest.fn(),
       buscarPorCodigo: jest.fn().mockResolvedValue(link),
+      buscarAtivoPorGrupo: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn(),
     };

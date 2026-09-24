@@ -50,6 +50,7 @@ export class GruposController {
       administradorId: usuario.administradorId!,
       nome: dto.nome,
       identificadorWhatsapp: dto.identificadorWhatsapp,
+      linkWhatsapp: dto.linkWhatsapp,
     });
   }
 

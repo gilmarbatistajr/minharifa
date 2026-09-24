@@ -16,6 +16,7 @@ describe('GerarLinkConviteUseCase', () => {
     const linkConviteRepository: LinkConviteRepository = {
       buscarPorId: jest.fn(),
       buscarPorCodigo: jest.fn(),
+      buscarAtivoPorGrupo: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn(),
     };

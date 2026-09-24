@@ -7,7 +7,7 @@ import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
 import { Alert } from '../../../../../components/ui/Alert';
 import { Spinner } from '../../../../../components/ui/Spinner';
-import { TextField, TextAreaField, SelectField, CheckboxField } from '../../../../../components/ui/Field';
+import { TextField, PhoneField, TextAreaField, SelectField, CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
 import { IconArrowLeft, IconGift } from '../../../../../components/ui/icons';
 import { campanhasApi, premiosApi, ApiError, type Premio, type FormaVendaCotas } from '../../../../../lib/api';
@@ -169,10 +169,9 @@ export default function NovaCampanhaPage() {
           <p className="text-sm font-medium text-night">Informações básicas</p>
 
           <TextField label="Nome da campanha" required value={nome} onChange={(e) => setNome(e.target.value)} />
-          <TextField
+          <PhoneField
             label="Telefone para suporte"
             required
-            inputMode="numeric"
             placeholder="(11) 91234-5678"
             value={telefoneSuporte}
             onChange={(e) => setTelefoneSuporte(formatarTelefone(e.target.value))}

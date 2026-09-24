@@ -7,6 +7,7 @@ describe('RevogarLinkConviteUseCase', () => {
     return {
       buscarPorId: jest.fn().mockResolvedValue(link),
       buscarPorCodigo: jest.fn(),
+      buscarAtivoPorGrupo: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
