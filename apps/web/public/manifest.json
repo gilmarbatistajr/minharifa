@@ -1,0 +1,17 @@
+{
+  "name": "Minha Rifa",
+  "short_name": "Minha Rifa",
+  "description": "Gestão de sorteios por cotas numeradas para grupos de WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C1B26",
+  "theme_color": "#0C1B26",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

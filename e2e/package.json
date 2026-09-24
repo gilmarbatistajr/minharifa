@@ -1,0 +1,15 @@
+{
+  "name": "@minharifa/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "cypress run",
+    "open": "cypress open"
+  },
+  "devDependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^20.0.0",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.2.0",
+    "cypress": "^13.13.0",
+    "typescript": "^5.5.0"
+  }
+}
