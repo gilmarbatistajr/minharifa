@@ -35,9 +35,16 @@ export class ConfigurarAvisosAgenteChatbotUseCase {
     }
 
     agente.configurarAvisos({
-      avisaCotasRestantes: input.avisaCotasRestantes,
+      avisa50PorCentoVendido: input.avisa50PorCentoVendido,
+      avisa80PorCentoVendido: input.avisa80PorCentoVendido,
+      avisa90PorCentoVendido: input.avisa90PorCentoVendido,
       avisaNovaCampanha: input.avisaNovaCampanha,
       avisaResultado: input.avisaResultado,
+      mensagem50PorCentoVendido: input.mensagem50PorCentoVendido,
+      mensagem80PorCentoVendido: input.mensagem80PorCentoVendido,
+      mensagem90PorCentoVendido: input.mensagem90PorCentoVendido,
+      mensagemNovaCampanha: input.mensagemNovaCampanha,
+      mensagemResultado: input.mensagemResultado,
     });
 
     await this.agenteChatbotRepository.salvar(agente);

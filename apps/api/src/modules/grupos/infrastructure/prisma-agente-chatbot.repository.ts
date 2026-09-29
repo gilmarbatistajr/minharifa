@@ -9,9 +9,16 @@ function paraDominio(registro: AgenteChatbotPrisma): AgenteChatbot {
     registro.id,
     registro.grupoId,
     registro.ativo,
-    registro.avisaCotasRestantes,
+    registro.avisa50PorCentoVendido,
     registro.avisaNovaCampanha,
     registro.avisaResultado,
+    registro.mensagem50PorCentoVendido,
+    registro.mensagemNovaCampanha,
+    registro.mensagemResultado,
+    registro.avisa80PorCentoVendido,
+    registro.avisa90PorCentoVendido,
+    registro.mensagem80PorCentoVendido,
+    registro.mensagem90PorCentoVendido,
   );
 }
 
@@ -30,9 +37,16 @@ export class PrismaAgenteChatbotRepository implements AgenteChatbotRepository {
         id: agente.id,
         grupoId: agente.grupoId,
         ativo: agente.ativo,
-        avisaCotasRestantes: agente.avisaCotasRestantes,
+        avisa50PorCentoVendido: agente.avisa50PorCentoVendido,
+        avisa80PorCentoVendido: agente.avisa80PorCentoVendido,
+        avisa90PorCentoVendido: agente.avisa90PorCentoVendido,
         avisaNovaCampanha: agente.avisaNovaCampanha,
         avisaResultado: agente.avisaResultado,
+        mensagem50PorCentoVendido: agente.mensagem50PorCentoVendido,
+        mensagem80PorCentoVendido: agente.mensagem80PorCentoVendido,
+        mensagem90PorCentoVendido: agente.mensagem90PorCentoVendido,
+        mensagemNovaCampanha: agente.mensagemNovaCampanha,
+        mensagemResultado: agente.mensagemResultado,
       },
     });
   }
@@ -42,9 +56,16 @@ export class PrismaAgenteChatbotRepository implements AgenteChatbotRepository {
       where: { id: agente.id },
       data: {
         ativo: agente.ativo,
-        avisaCotasRestantes: agente.avisaCotasRestantes,
+        avisa50PorCentoVendido: agente.avisa50PorCentoVendido,
+        avisa80PorCentoVendido: agente.avisa80PorCentoVendido,
+        avisa90PorCentoVendido: agente.avisa90PorCentoVendido,
         avisaNovaCampanha: agente.avisaNovaCampanha,
         avisaResultado: agente.avisaResultado,
+        mensagem50PorCentoVendido: agente.mensagem50PorCentoVendido,
+        mensagem80PorCentoVendido: agente.mensagem80PorCentoVendido,
+        mensagem90PorCentoVendido: agente.mensagem90PorCentoVendido,
+        mensagemNovaCampanha: agente.mensagemNovaCampanha,
+        mensagemResultado: agente.mensagemResultado,
       },
     });
   }

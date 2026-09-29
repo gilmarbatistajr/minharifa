@@ -12,6 +12,13 @@ import {
   CreditoPendenteRepository,
 } from '../../domain/repositories/credito-pendente.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
+import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
 
 export interface ResgatarCreditoInput {
   creditoId: string;
@@ -34,6 +41,12 @@ export class ResgatarCreditoUseCase {
     private readonly campanhaRepository: CampanhaRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: ResgatarCreditoInput, agora: Date = new Date()): Promise<void> {
@@ -71,5 +84,13 @@ export class ResgatarCreditoUseCase {
     await this.creditoPendenteRepository.salvar(credito);
 
     await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanhaDestino);
+    await dispararAlertasCotasVendidas(
+      this.campanhaRepository,
+      this.cotaRepository,
+      this.grupoRepository,
+      this.agenteChatbotRepository,
+      this.notificationSender,
+      campanhaDestino,
+    );
   }
 }

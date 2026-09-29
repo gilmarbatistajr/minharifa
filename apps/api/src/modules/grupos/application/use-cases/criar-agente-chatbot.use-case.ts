@@ -16,6 +16,14 @@ export interface CriarAgenteChatbotOutput {
   agenteId: string;
 }
 
+const MENSAGEM_PADRAO_50_POR_CENTO = '50% das cotas já foram vendidas! Garanta a sua antes que acabem.';
+const MENSAGEM_PADRAO_80_POR_CENTO = '80% das cotas já foram vendidas! Não fique de fora.';
+const MENSAGEM_PADRAO_90_POR_CENTO = '90% das cotas já foram vendidas! Últimas chances de participar.';
+const MENSAGEM_PADRAO_NOVA_CAMPANHA =
+  'Uma nova campanha foi lançada! Confira as cotas disponíveis e participe.';
+const MENSAGEM_PADRAO_RESULTADO =
+  'O resultado da campanha saiu! Confira quem foi o grande vencedor.';
+
 /** Cobre meus-grupos.feature: "Adicionar agente chatbot a um grupo". */
 @Injectable()
 export class CriarAgenteChatbotUseCase {
@@ -37,7 +45,21 @@ export class CriarAgenteChatbotUseCase {
       throw new Error('Este grupo já possui um agente chatbot.');
     }
 
-    const agente = new AgenteChatbot(randomUUID(), input.grupoId, true, true, true, true);
+    const agente = new AgenteChatbot(
+      randomUUID(),
+      input.grupoId,
+      true,
+      true,
+      true,
+      true,
+      MENSAGEM_PADRAO_50_POR_CENTO,
+      MENSAGEM_PADRAO_NOVA_CAMPANHA,
+      MENSAGEM_PADRAO_RESULTADO,
+      true,
+      true,
+      MENSAGEM_PADRAO_80_POR_CENTO,
+      MENSAGEM_PADRAO_90_POR_CENTO,
+    );
 
     await this.agenteChatbotRepository.criar(agente);
 

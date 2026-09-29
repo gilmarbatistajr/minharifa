@@ -19,9 +19,16 @@ export interface AlertasAutomaticosGrupo {
   campanhaAtivaNome: string | null;
   agenteChatbot: {
     ativo: boolean;
-    avisaCotasRestantes: boolean;
+    avisa50PorCentoVendido: boolean;
+    avisa80PorCentoVendido: boolean;
+    avisa90PorCentoVendido: boolean;
     avisaNovaCampanha: boolean;
     avisaResultado: boolean;
+    mensagem50PorCentoVendido: string | null;
+    mensagem80PorCentoVendido: string | null;
+    mensagem90PorCentoVendido: string | null;
+    mensagemNovaCampanha: string | null;
+    mensagemResultado: string | null;
   } | null;
 }
 
@@ -64,9 +71,16 @@ export class ListarAlertasAutomaticosUseCase {
         agenteChatbot: agente
           ? {
               ativo: agente.ativo,
-              avisaCotasRestantes: agente.avisaCotasRestantes,
+              avisa50PorCentoVendido: agente.avisa50PorCentoVendido,
+              avisa80PorCentoVendido: agente.avisa80PorCentoVendido,
+              avisa90PorCentoVendido: agente.avisa90PorCentoVendido,
               avisaNovaCampanha: agente.avisaNovaCampanha,
               avisaResultado: agente.avisaResultado,
+              mensagem50PorCentoVendido: agente.mensagem50PorCentoVendido,
+              mensagem80PorCentoVendido: agente.mensagem80PorCentoVendido,
+              mensagem90PorCentoVendido: agente.mensagem90PorCentoVendido,
+              mensagemNovaCampanha: agente.mensagemNovaCampanha,
+              mensagemResultado: agente.mensagemResultado,
             }
           : null,
       });

@@ -31,10 +31,42 @@ describe('ConfigurarAvisosAgenteChatbotUseCase', () => {
     await useCase.executar({
       administradorId: 'admin-1',
       grupoId: 'grupo-1',
-      avisaCotasRestantes: false,
+      avisa50PorCentoVendido: false,
     });
 
-    expect(agente.avisaCotasRestantes).toBe(false);
+    expect(agente.avisa50PorCentoVendido).toBe(false);
+    expect(agenteChatbotRepository.salvar).toHaveBeenCalledWith(agente);
+  });
+
+  it('configura o aviso de 80% das cotas vendidas', async () => {
+    const grupo = new Grupo('grupo-1', 'admin-1', 'Amigos do bem', '5511999999999', new Date());
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true);
+    const { grupoRepository, agenteChatbotRepository } = criarDependencias(grupo, agente);
+    const useCase = new ConfigurarAvisosAgenteChatbotUseCase(grupoRepository, agenteChatbotRepository);
+
+    await useCase.executar({
+      administradorId: 'admin-1',
+      grupoId: 'grupo-1',
+      avisa80PorCentoVendido: false,
+    });
+
+    expect(agente.avisa80PorCentoVendido).toBe(false);
+    expect(agenteChatbotRepository.salvar).toHaveBeenCalledWith(agente);
+  });
+
+  it('configura a mensagem de um dos avisos do agente chatbot do grupo', async () => {
+    const grupo = new Grupo('grupo-1', 'admin-1', 'Amigos do bem', '5511999999999', new Date());
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, 'mensagem antiga');
+    const { grupoRepository, agenteChatbotRepository } = criarDependencias(grupo, agente);
+    const useCase = new ConfigurarAvisosAgenteChatbotUseCase(grupoRepository, agenteChatbotRepository);
+
+    await useCase.executar({
+      administradorId: 'admin-1',
+      grupoId: 'grupo-1',
+      mensagem50PorCentoVendido: 'Corre que já vendemos metade das cotas!',
+    });
+
+    expect(agente.mensagem50PorCentoVendido).toBe('Corre que já vendemos metade das cotas!');
     expect(agenteChatbotRepository.salvar).toHaveBeenCalledWith(agente);
   });
 

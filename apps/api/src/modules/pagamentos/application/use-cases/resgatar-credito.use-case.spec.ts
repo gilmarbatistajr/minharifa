@@ -4,6 +4,9 @@ import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { Cota } from '../../../campanhas/domain/entities/cota.entity';
 import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { ResgatarCreditoUseCase } from './resgatar-credito.use-case';
 
 describe('ResgatarCreditoUseCase', () => {
@@ -61,7 +64,42 @@ describe('ResgatarCreditoUseCase', () => {
       salvar: jest.fn().mockResolvedValue(undefined),
     };
 
-    return { creditoPendenteRepository, campanhaRepository, cotaRepository };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(null),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return {
+      creditoPendenteRepository,
+      campanhaRepository,
+      cotaRepository,
+      grupoRepository,
+      agenteChatbotRepository,
+      notificationSender,
+    };
+  }
+
+  function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
+    return new ResgatarCreditoUseCase(
+      deps.creditoPendenteRepository,
+      deps.campanhaRepository,
+      deps.cotaRepository,
+      deps.grupoRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
   }
 
   const agora = new Date('2026-02-01T00:00:00Z');
@@ -74,11 +112,7 @@ describe('ResgatarCreditoUseCase', () => {
       new Cota('cota-20', 'campanha-2', 20, 'DISPONIVEL', null, null, null),
     ];
     const deps = criarDependencias(credito, campanha, cotas);
-    const useCase = new ResgatarCreditoUseCase(
-      deps.creditoPendenteRepository,
-      deps.campanhaRepository,
-      deps.cotaRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await useCase.executar(
       { creditoId: 'credito-1', compradorId: 'comprador-maria', campanhaDestinoId: 'campanha-2', numerosCotas: [10, 20] },
@@ -93,11 +127,7 @@ describe('ResgatarCreditoUseCase', () => {
   it('rejeita quando a quantidade de números não bate com a quantidade do crédito', async () => {
     const credito = criarCredito();
     const deps = criarDependencias(credito, criarCampanhaDestino(), []);
-    const useCase = new ResgatarCreditoUseCase(
-      deps.creditoPendenteRepository,
-      deps.campanhaRepository,
-      deps.cotaRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(
@@ -110,11 +140,7 @@ describe('ResgatarCreditoUseCase', () => {
   it('rejeita quando o crédito já foi utilizado', async () => {
     const credito = criarCredito(true);
     const deps = criarDependencias(credito, criarCampanhaDestino(), []);
-    const useCase = new ResgatarCreditoUseCase(
-      deps.creditoPendenteRepository,
-      deps.campanhaRepository,
-      deps.cotaRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(
@@ -128,11 +154,7 @@ describe('ResgatarCreditoUseCase', () => {
     const credito = criarCredito();
     const campanhaOutroGrupo = criarCampanhaDestino('grupo-2');
     const deps = criarDependencias(credito, campanhaOutroGrupo, []);
-    const useCase = new ResgatarCreditoUseCase(
-      deps.creditoPendenteRepository,
-      deps.campanhaRepository,
-      deps.cotaRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(

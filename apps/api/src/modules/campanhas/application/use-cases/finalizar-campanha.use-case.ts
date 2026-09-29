@@ -2,6 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
 import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
 import { OPERADOR_REPOSITORY, OperadorRepository } from '../../../operadores/domain/repositories/operador.repository';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
+import { notificarGrupo } from '../services/notificar-grupo';
 
 export interface FinalizarCampanhaInput {
   /** Informado quando quem finaliza é o próprio administrador dono da conta. */
@@ -33,6 +40,12 @@ export class FinalizarCampanhaUseCase {
     private readonly cotaRepository: CotaRepository,
     @Inject(OPERADOR_REPOSITORY)
     private readonly operadorRepository: OperadorRepository,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: FinalizarCampanhaInput): Promise<FinalizarCampanhaOutput> {
@@ -57,6 +70,13 @@ export class FinalizarCampanhaUseCase {
       vencedorTelefone: input.vencedorTelefone,
     });
     await this.campanhaRepository.salvar(campanha);
+
+    if (campanha.grupoId) {
+      const agente = await this.agenteChatbotRepository.buscarPorGrupoId(campanha.grupoId);
+      if (agente?.ativo && agente.avisaResultado && agente.mensagemResultado) {
+        await notificarGrupo(this.grupoRepository, this.notificationSender, campanha.grupoId, agente.mensagemResultado);
+      }
+    }
 
     return { campanhaId: campanha.id, compradorVencedorId: cotaVencedora.compradorId };
   }

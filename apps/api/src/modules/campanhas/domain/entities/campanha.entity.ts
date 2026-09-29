@@ -86,6 +86,9 @@ export class Campanha {
     public fotoUrl: string | null = null,
     public vencedorNome: string | null = null,
     public vencedorTelefone: string | null = null,
+    public alerta50PorCentoEnviado: boolean = false,
+    public alerta80PorCentoEnviado: boolean = false,
+    public alerta90PorCentoEnviado: boolean = false,
   ) {}
 
   estaRemovida(): boolean {
@@ -283,5 +286,18 @@ export class Campanha {
     }
 
     return Math.round((cotasPagas / this.quantidadeCotas) * 100);
+  }
+
+  /** Cada limiar de cotas vendidas (50/80/90%) só deve gerar um alerta uma única vez por campanha. */
+  limiarDeCotasVendidasJaAlertado(limiar: 50 | 80 | 90): boolean {
+    if (limiar === 50) return this.alerta50PorCentoEnviado;
+    if (limiar === 80) return this.alerta80PorCentoEnviado;
+    return this.alerta90PorCentoEnviado;
+  }
+
+  marcarLimiarDeCotasVendidasAlertado(limiar: 50 | 80 | 90): void {
+    if (limiar === 50) this.alerta50PorCentoEnviado = true;
+    else if (limiar === 80) this.alerta80PorCentoEnviado = true;
+    else this.alerta90PorCentoEnviado = true;
   }
 }

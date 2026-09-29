@@ -60,7 +60,21 @@ describe('ListarAlertasAutomaticosUseCase', () => {
   it('retorna apenas os grupos com campanha liberada, com os avisos do agente', async () => {
     const grupoA = new Grupo('grupo-a', 'admin-1', 'Amigos do bem', '5511900000001', new Date());
     const grupoB = new Grupo('grupo-b', 'admin-1', 'Família', '5511900000002', new Date());
-    const agenteA = new AgenteChatbot('agente-a', 'grupo-a', true, true, false, true);
+    const agenteA = new AgenteChatbot(
+      'agente-a',
+      'grupo-a',
+      true,
+      true,
+      false,
+      true,
+      '50% das cotas vendidas!',
+      'Nova campanha no ar!',
+      'Já temos um vencedor!',
+      true,
+      false,
+      '80% das cotas vendidas!',
+      '90% das cotas vendidas!',
+    );
     const deps = criarDependencias(
       [grupoA, grupoB],
       {
@@ -84,9 +98,16 @@ describe('ListarAlertasAutomaticosUseCase', () => {
         campanhaAtivaNome: 'Campanha de Natal',
         agenteChatbot: {
           ativo: true,
-          avisaCotasRestantes: true,
+          avisa50PorCentoVendido: true,
+          avisa80PorCentoVendido: true,
+          avisa90PorCentoVendido: false,
           avisaNovaCampanha: false,
           avisaResultado: true,
+          mensagem50PorCentoVendido: '50% das cotas vendidas!',
+          mensagem80PorCentoVendido: '80% das cotas vendidas!',
+          mensagem90PorCentoVendido: '90% das cotas vendidas!',
+          mensagemNovaCampanha: 'Nova campanha no ar!',
+          mensagemResultado: 'Já temos um vencedor!',
         },
       },
     ]);

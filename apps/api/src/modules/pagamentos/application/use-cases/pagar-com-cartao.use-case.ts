@@ -16,6 +16,13 @@ import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { DadosCartao, PAYMENT_GATEWAY, PaymentGateway } from '../../domain/services/payment-gateway';
 import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
+import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
 
 export interface PagarComCartaoInput {
   campanhaId: string;
@@ -46,6 +53,12 @@ export class PagarComCartaoUseCase {
     private readonly pagamentoRepository: PagamentoRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: PaymentGateway,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: PagarComCartaoInput, agora: Date = new Date()): Promise<PagarComCartaoOutput> {
@@ -116,6 +129,14 @@ export class PagarComCartaoUseCase {
 
     if (cobranca.aprovado) {
       await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
+      await dispararAlertasCotasVendidas(
+        this.campanhaRepository,
+        this.cotaRepository,
+        this.grupoRepository,
+        this.agenteChatbotRepository,
+        this.notificationSender,
+        campanha,
+      );
     }
 
     return { status: cobranca.aprovado ? 'APROVADO' : 'RECUSADO' };

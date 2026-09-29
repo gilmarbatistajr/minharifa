@@ -8,6 +8,12 @@ import {
   CampanhaRepository,
 } from '../../../campanhas/domain/repositories/campanha.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
+import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
 import {
   COMPRADOR_REPOSITORY,
   CompradorRepository,
@@ -58,6 +64,10 @@ export class ConfirmarPagamentoWebhookUseCase {
     private readonly compradorRepository: CompradorRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: NotificationSender,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
   ) {}
 
   async executar(input: ConfirmarPagamentoWebhookInput): Promise<void> {
@@ -112,6 +122,14 @@ export class ConfirmarPagamentoWebhookUseCase {
       const campanha = await this.campanhaRepository.buscarPorId(cotasPorPagamento[0].cota!.campanhaId);
       if (campanha) {
         await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
+        await dispararAlertasCotasVendidas(
+          this.campanhaRepository,
+          this.cotaRepository,
+          this.grupoRepository,
+          this.agenteChatbotRepository,
+          this.notificationSender,
+          campanha,
+        );
       }
       return;
     }

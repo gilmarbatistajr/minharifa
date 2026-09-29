@@ -2,6 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
 import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../services/atualizar-status-apos-pagamento';
+import { dispararAlertasCotasVendidas } from '../services/disparar-alertas-cotas-vendidas';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
 
 export interface ConfirmarPagamentoManualInput {
   administradorId: string;
@@ -23,6 +30,12 @@ export class ConfirmarPagamentoManualUseCase {
     private readonly campanhaRepository: CampanhaRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: ConfirmarPagamentoManualInput): Promise<void> {
@@ -46,5 +59,13 @@ export class ConfirmarPagamentoManualUseCase {
     }
 
     await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
+    await dispararAlertasCotasVendidas(
+      this.campanhaRepository,
+      this.cotaRepository,
+      this.grupoRepository,
+      this.agenteChatbotRepository,
+      this.notificationSender,
+      campanha,
+    );
   }
 }

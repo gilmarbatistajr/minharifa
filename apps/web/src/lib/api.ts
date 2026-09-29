@@ -134,7 +134,9 @@ export interface DetalheGrupo {
   codigoConvite: string | null;
   agenteChatbot: {
     ativo: boolean;
-    avisaCotasRestantes: boolean;
+    avisa50PorCentoVendido: boolean;
+    avisa80PorCentoVendido: boolean;
+    avisa90PorCentoVendido: boolean;
     avisaNovaCampanha: boolean;
     avisaResultado: boolean;
   } | null;
@@ -240,9 +242,16 @@ export interface AlertaAutomaticoGrupo {
   campanhaAtivaNome: string | null;
   agenteChatbot: {
     ativo: boolean;
-    avisaCotasRestantes: boolean;
+    avisa50PorCentoVendido: boolean;
+    avisa80PorCentoVendido: boolean;
+    avisa90PorCentoVendido: boolean;
     avisaNovaCampanha: boolean;
     avisaResultado: boolean;
+    mensagem50PorCentoVendido: string | null;
+    mensagem80PorCentoVendido: string | null;
+    mensagem90PorCentoVendido: string | null;
+    mensagemNovaCampanha: string | null;
+    mensagemResultado: string | null;
   } | null;
 }
 
@@ -306,7 +315,18 @@ export const gruposApi = {
   configurarAvisos: (
     token: string,
     grupoId: string,
-    avisos: { avisaCotasRestantes?: boolean; avisaNovaCampanha?: boolean; avisaResultado?: boolean },
+    avisos: {
+      avisa50PorCentoVendido?: boolean;
+      avisa80PorCentoVendido?: boolean;
+      avisa90PorCentoVendido?: boolean;
+      avisaNovaCampanha?: boolean;
+      avisaResultado?: boolean;
+      mensagem50PorCentoVendido?: string;
+      mensagem80PorCentoVendido?: string;
+      mensagem90PorCentoVendido?: string;
+      mensagemNovaCampanha?: string;
+      mensagemResultado?: string;
+    },
   ) =>
     request<void>(`/grupos/${grupoId}/agente-chatbot/avisos`, {
       method: 'PATCH',

@@ -131,13 +131,20 @@ model PermissaoOperador {
 }
 
 model AgenteChatbot {
-  id                  String  @id @default(uuid())
-  grupoId             String  @unique
-  grupo               Grupo   @relation(fields: [grupoId], references: [id])
-  ativo               Boolean @default(false)
-  avisaCotasRestantes Boolean @default(true)
-  avisaNovaCampanha   Boolean @default(true)
-  avisaResultado      Boolean @default(true)
+  id                         String  @id @default(uuid())
+  grupoId                    String  @unique
+  grupo                      Grupo   @relation(fields: [grupoId], references: [id])
+  ativo                      Boolean @default(false)
+  avisa50PorCentoVendido     Boolean @default(true)
+  avisa80PorCentoVendido     Boolean @default(true)
+  avisa90PorCentoVendido     Boolean @default(true)
+  avisaNovaCampanha          Boolean @default(true)
+  avisaResultado             Boolean @default(true)
+  mensagem50PorCentoVendido  String?
+  mensagem80PorCentoVendido  String?
+  mensagem90PorCentoVendido  String?
+  mensagemNovaCampanha       String?
+  mensagemResultado          String?
 
   @@map("agentes_chatbot")
 }
@@ -259,6 +266,9 @@ model Campanha {
   vencedorTelefone         String?
   removidaEm               DateTime?
   criadoEm                 DateTime              @default(now())
+  alerta50PorCentoEnviado  Boolean               @default(false)
+  alerta80PorCentoEnviado  Boolean               @default(false)
+  alerta90PorCentoEnviado  Boolean               @default(false)
 
   cotas                   Cota[]
   escolhasPosCancelamento EscolhaPosCancelamento[]

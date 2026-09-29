@@ -23,7 +23,9 @@ export interface BuscarGrupoOutput {
   codigoConvite: string | null;
   agenteChatbot: {
     ativo: boolean;
-    avisaCotasRestantes: boolean;
+    avisa50PorCentoVendido: boolean;
+    avisa80PorCentoVendido: boolean;
+    avisa90PorCentoVendido: boolean;
     avisaNovaCampanha: boolean;
     avisaResultado: boolean;
   } | null;
@@ -61,7 +63,9 @@ export class BuscarGrupoUseCase {
       agenteChatbot: agente
         ? {
             ativo: agente.ativo,
-            avisaCotasRestantes: agente.avisaCotasRestantes,
+            avisa50PorCentoVendido: agente.avisa50PorCentoVendido,
+            avisa80PorCentoVendido: agente.avisa80PorCentoVendido,
+            avisa90PorCentoVendido: agente.avisa90PorCentoVendido,
             avisaNovaCampanha: agente.avisaNovaCampanha,
             avisaResultado: agente.avisaResultado,
           }

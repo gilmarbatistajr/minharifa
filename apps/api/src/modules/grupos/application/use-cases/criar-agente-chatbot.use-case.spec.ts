@@ -33,6 +33,11 @@ describe('CriarAgenteChatbotUseCase', () => {
     const agenteCriado = (agenteChatbotRepository.criar as jest.Mock).mock
       .calls[0][0] as AgenteChatbot;
     expect(agenteCriado.ativo).toBe(true);
+    expect(agenteCriado.mensagem50PorCentoVendido).toBeTruthy();
+    expect(agenteCriado.mensagem80PorCentoVendido).toBeTruthy();
+    expect(agenteCriado.mensagem90PorCentoVendido).toBeTruthy();
+    expect(agenteCriado.mensagemNovaCampanha).toBeTruthy();
+    expect(agenteCriado.mensagemResultado).toBeTruthy();
   });
 
   it('rejeita quando o grupo não existe', async () => {

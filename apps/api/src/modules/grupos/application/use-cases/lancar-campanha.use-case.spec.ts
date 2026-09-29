@@ -4,6 +4,9 @@ import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { Cota } from '../../../campanhas/domain/entities/cota.entity';
 import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
+import { AgenteChatbot } from '../../domain/entities/agente-chatbot.entity';
+import { AgenteChatbotRepository } from '../../domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { LancarCampanhaUseCase } from './lancar-campanha.use-case';
 
 describe('LancarCampanhaUseCase', () => {
@@ -30,12 +33,16 @@ describe('LancarCampanhaUseCase', () => {
     );
   }
 
-  function criarDependencias(grupoRetornado: Grupo | null, campanha: Campanha | null) {
+  function criarDependencias(
+    grupoRetornado: Grupo | null,
+    campanha: Campanha | null,
+    agente: AgenteChatbot | null = null,
+  ) {
     const grupoRepository: GrupoRepository = {
       buscarPorId: jest.fn().mockResolvedValue(grupoRetornado),
       buscarPorIdentificadorWhatsapp: jest.fn(),
       listarPorAdministrador: jest.fn(),
-      listarCompradores: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
       criar: jest.fn(),
     };
     const campanhaRepository: CampanhaRepository = {
@@ -58,11 +65,27 @@ describe('LancarCampanhaUseCase', () => {
       salvar: jest.fn(),
     };
 
-    return { grupoRepository, campanhaRepository, cotaRepository };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(agente),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return { grupoRepository, campanhaRepository, cotaRepository, agenteChatbotRepository, notificationSender };
   }
 
   function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
-    return new LancarCampanhaUseCase(deps.grupoRepository, deps.campanhaRepository, deps.cotaRepository);
+    return new LancarCampanhaUseCase(
+      deps.grupoRepository,
+      deps.campanhaRepository,
+      deps.cotaRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
   }
 
   const inputBase = {
@@ -93,6 +116,31 @@ describe('LancarCampanhaUseCase', () => {
     expect(cotasCriadas.every((cota) => cota.status === 'DISPONIVEL' && cota.campanhaId === 'campanha-1')).toBe(
       true,
     );
+  });
+
+  it('dispara o alerta de nova campanha do agente chatbot do grupo ao lançar', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Nova campanha no ar!');
+  });
+
+  it('não dispara o alerta de nova campanha quando o agente está desativado', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', false, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
   });
 
   it('rejeita quando o grupo não existe', async () => {

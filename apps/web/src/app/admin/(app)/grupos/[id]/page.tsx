@@ -265,11 +265,33 @@ function SecaoAgenteChatbot({
 
       <div className="flex flex-col gap-2">
         <CheckboxField
-          label="Avisar cotas restantes"
-          checked={agenteChatbot.avisaCotasRestantes}
+          label="50% das cotas vendidas"
+          checked={agenteChatbot.avisa50PorCentoVendido}
           onChange={(e) =>
             token &&
-            executar(() => gruposApi.configurarAvisos(token, grupoId, { avisaCotasRestantes: e.target.checked }))
+            executar(() =>
+              gruposApi.configurarAvisos(token, grupoId, { avisa50PorCentoVendido: e.target.checked }),
+            )
+          }
+        />
+        <CheckboxField
+          label="80% das cotas vendidas"
+          checked={agenteChatbot.avisa80PorCentoVendido}
+          onChange={(e) =>
+            token &&
+            executar(() =>
+              gruposApi.configurarAvisos(token, grupoId, { avisa80PorCentoVendido: e.target.checked }),
+            )
+          }
+        />
+        <CheckboxField
+          label="90% das cotas vendidas"
+          checked={agenteChatbot.avisa90PorCentoVendido}
+          onChange={(e) =>
+            token &&
+            executar(() =>
+              gruposApi.configurarAvisos(token, grupoId, { avisa90PorCentoVendido: e.target.checked }),
+            )
           }
         />
         <CheckboxField

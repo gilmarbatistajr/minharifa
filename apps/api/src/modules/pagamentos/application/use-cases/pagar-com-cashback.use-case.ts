@@ -19,6 +19,13 @@ import {
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
+import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
 
 export interface PagarComCashbackInput {
   campanhaId: string;
@@ -51,6 +58,12 @@ export class PagarComCashbackUseCase {
     private readonly compradorRepository: CompradorRepository,
     @Inject(PAGAMENTO_REPOSITORY)
     private readonly pagamentoRepository: PagamentoRepository,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: PagarComCashbackInput, agora: Date = new Date()): Promise<PagarComCashbackOutput> {
@@ -129,6 +142,14 @@ export class PagarComCashbackUseCase {
 
     if (pagoIntegralmente) {
       await atualizarStatusCampanhaAposPagamento(this.campanhaRepository, this.cotaRepository, campanha);
+      await dispararAlertasCotasVendidas(
+        this.campanhaRepository,
+        this.cotaRepository,
+        this.grupoRepository,
+        this.agenteChatbotRepository,
+        this.notificationSender,
+        campanha,
+      );
     }
 
     return {

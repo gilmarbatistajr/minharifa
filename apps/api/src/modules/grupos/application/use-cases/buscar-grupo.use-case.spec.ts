@@ -60,7 +60,9 @@ describe('BuscarGrupoUseCase', () => {
     expect(resultado.codigoConvite).toBe('ABC123DEFG');
     expect(resultado.agenteChatbot).toEqual({
       ativo: true,
-      avisaCotasRestantes: true,
+      avisa50PorCentoVendido: true,
+      avisa80PorCentoVendido: true,
+      avisa90PorCentoVendido: true,
       avisaNovaCampanha: false,
       avisaResultado: true,
     });

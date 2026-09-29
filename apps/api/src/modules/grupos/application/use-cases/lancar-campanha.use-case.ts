@@ -10,6 +10,12 @@ import {
   CotaRepository,
 } from '../../../campanhas/domain/repositories/cota.repository';
 import { Cota } from '../../../campanhas/domain/entities/cota.entity';
+import { notificarGrupo } from '../../../campanhas/application/services/notificar-grupo';
+import {
+  AGENTE_CHATBOT_REPOSITORY,
+  AgenteChatbotRepository,
+} from '../../domain/repositories/agente-chatbot.repository';
+import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/domain/notification-sender';
 
 export interface LancarCampanhaInput {
   administradorId: string;
@@ -38,6 +44,10 @@ export class LancarCampanhaUseCase {
     private readonly campanhaRepository: CampanhaRepository,
     @Inject(COTA_REPOSITORY)
     private readonly cotaRepository: CotaRepository,
+    @Inject(AGENTE_CHATBOT_REPOSITORY)
+    private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    @Inject(NOTIFICATION_SENDER)
+    private readonly notificationSender: NotificationSender,
   ) {}
 
   async executar(input: LancarCampanhaInput): Promise<LancarCampanhaOutput> {
@@ -64,6 +74,11 @@ export class LancarCampanhaUseCase {
       (_, indice) => new Cota(randomUUID(), campanha.id, indice + 1, 'DISPONIVEL', null, null, null),
     );
     await this.cotaRepository.criarEmLote(cotas);
+
+    const agente = await this.agenteChatbotRepository.buscarPorGrupoId(input.grupoId);
+    if (agente?.ativo && agente.avisaNovaCampanha && agente.mensagemNovaCampanha) {
+      await notificarGrupo(this.grupoRepository, this.notificationSender, input.grupoId, agente.mensagemNovaCampanha);
+    }
 
     return { campanhaId: campanha.id };
   }

@@ -5,6 +5,9 @@ import { CampanhaRepository } from '../../../campanhas/domain/repositories/campa
 import { Comprador } from '../../../compradores/domain/entities/comprador.entity';
 import { CompradorRepository } from '../../../compradores/domain/repositories/comprador.repository';
 import { PagamentoRepository } from '../../domain/repositories/pagamento.repository';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { PagarComCashbackUseCase } from './pagar-com-cashback.use-case';
 
 describe('PagarComCashbackUseCase', () => {
@@ -100,7 +103,44 @@ describe('PagarComCashbackUseCase', () => {
       salvar: jest.fn().mockResolvedValue(undefined),
     };
 
-    return { cotaRepository, campanhaRepository, compradorRepository, pagamentoRepository };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(null),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return {
+      cotaRepository,
+      campanhaRepository,
+      compradorRepository,
+      pagamentoRepository,
+      grupoRepository,
+      agenteChatbotRepository,
+      notificationSender,
+    };
+  }
+
+  function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
+    return new PagarComCashbackUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.compradorRepository,
+      deps.pagamentoRepository,
+      deps.grupoRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
   }
 
   const agora = new Date('2026-01-01T10:01:00Z');
@@ -109,12 +149,7 @@ describe('PagarComCashbackUseCase', () => {
     const cota = criarCota(42);
     const comprador = criarComprador(50);
     const deps = criarDependencias([cota], comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
@@ -130,12 +165,7 @@ describe('PagarComCashbackUseCase', () => {
     const cota = criarCota(42);
     const comprador = criarComprador(20);
     const deps = criarDependencias([cota], comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
@@ -152,12 +182,7 @@ describe('PagarComCashbackUseCase', () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
     const comprador = criarComprador(150);
     const deps = criarDependencias(cotas, comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria' },
@@ -172,12 +197,7 @@ describe('PagarComCashbackUseCase', () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
     const comprador = criarComprador(80);
     const deps = criarDependencias(cotas, comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria' },
@@ -193,12 +213,7 @@ describe('PagarComCashbackUseCase', () => {
     const cotas = [criarCota(1), criarCota(2)];
     const comprador = criarComprador(100);
     const deps = criarDependencias(cotas, comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(
@@ -212,12 +227,7 @@ describe('PagarComCashbackUseCase', () => {
   it('rejeita quando o comprador não tem nenhuma cota reservada para si', async () => {
     const comprador = criarComprador(50);
     const deps = criarDependencias([], comprador);
-    const useCase = new PagarComCashbackUseCase(
-      deps.cotaRepository,
-      deps.campanhaRepository,
-      deps.compradorRepository,
-      deps.pagamentoRepository,
-    );
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(

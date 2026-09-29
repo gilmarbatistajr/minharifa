@@ -50,6 +50,6 @@ import { GruposController } from './presentation/grupos.controller';
     RankingVencedoresUseCase,
     ListarAlertasAutomaticosUseCase,
   ],
-  exports: [GRUPO_REPOSITORY, LINK_CONVITE_REPOSITORY, ValidarCodigoConviteUseCase],
+  exports: [GRUPO_REPOSITORY, AGENTE_CHATBOT_REPOSITORY, LINK_CONVITE_REPOSITORY, ValidarCodigoConviteUseCase],
 })
 export class GruposModule {}

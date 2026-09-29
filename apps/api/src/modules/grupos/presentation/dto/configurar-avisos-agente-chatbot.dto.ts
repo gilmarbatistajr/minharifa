@@ -1,9 +1,17 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class ConfigurarAvisosAgenteChatbotDto {
   @IsOptional()
   @IsBoolean()
-  avisaCotasRestantes?: boolean;
+  avisa50PorCentoVendido?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  avisa80PorCentoVendido?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  avisa90PorCentoVendido?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -12,4 +20,24 @@ export class ConfigurarAvisosAgenteChatbotDto {
   @IsOptional()
   @IsBoolean()
   avisaResultado?: boolean;
+
+  @IsOptional()
+  @IsString()
+  mensagem50PorCentoVendido?: string;
+
+  @IsOptional()
+  @IsString()
+  mensagem80PorCentoVendido?: string;
+
+  @IsOptional()
+  @IsString()
+  mensagem90PorCentoVendido?: string;
+
+  @IsOptional()
+  @IsString()
+  mensagemNovaCampanha?: string;
+
+  @IsOptional()
+  @IsString()
+  mensagemResultado?: string;
 }

@@ -9,6 +9,8 @@ import { PagamentoRepository } from '../../domain/repositories/pagamento.reposit
 import { PaymentGateway } from '../../domain/services/payment-gateway';
 import { WebhookSignatureValidator } from '../../domain/services/webhook-signature-validator';
 import { NotificationSender } from '../../../../shared/domain/notification-sender';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
 import { ConfirmarPagamentoWebhookUseCase } from './confirmar-pagamento-webhook.use-case';
 
 describe('ConfirmarPagamentoWebhookUseCase', () => {
@@ -91,6 +93,18 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       enviarEmail: jest.fn().mockResolvedValue(undefined),
       enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
     };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(null),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
 
     return {
       webhookSignatureValidator,
@@ -100,6 +114,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       paymentGateway,
       compradorRepository,
       notificationSender,
+      grupoRepository,
+      agenteChatbotRepository,
     };
   }
 
@@ -112,6 +128,8 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       deps.paymentGateway,
       deps.compradorRepository,
       deps.notificationSender,
+      deps.grupoRepository,
+      deps.agenteChatbotRepository,
     );
   }
 

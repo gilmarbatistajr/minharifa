@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { PremiosModule } from '../premios/premios.module';
 import { OperadoresModule } from '../operadores/operadores.module';
 import { CompradoresModule } from '../compradores/compradores.module';
+import { GruposModule } from '../grupos/grupos.module';
 import { COTA_REPOSITORY } from './domain/repositories/cota.repository';
 import { CAMPANHA_REPOSITORY } from './domain/repositories/campanha.repository';
 import { PrismaCotaRepository } from './infrastructure/prisma-cota.repository';
@@ -32,8 +33,17 @@ import { CampanhasController } from './presentation/campanhas.controller';
   // circular legítima entre os dois agregados. OperadoresModule também fecha
   // um ciclo (Operadores -> Grupos -> Campanhas): FinalizarCampanhaUseCase
   // precisa resolver o administrador dono a partir do operador que finaliza.
+  // GruposModule também importa este módulo (LancarCampanhaUseCase) — o ciclo
+  // é necessário aqui também: FinalizarCampanhaUseCase e os use-cases que
+  // confirmam pagamento manual precisam de GRUPO_REPOSITORY/AGENTE_CHATBOT_REPOSITORY
+  // para disparar os alertas automáticos do agente chatbot do grupo.
   // CompradoresModule não depende de nada aqui, então entra sem forwardRef.
-  imports: [forwardRef(() => PremiosModule), forwardRef(() => OperadoresModule), CompradoresModule],
+  imports: [
+    forwardRef(() => PremiosModule),
+    forwardRef(() => OperadoresModule),
+    forwardRef(() => GruposModule),
+    CompradoresModule,
+  ],
   controllers: [CampanhasController],
   providers: [
     { provide: COTA_REPOSITORY, useClass: PrismaCotaRepository },

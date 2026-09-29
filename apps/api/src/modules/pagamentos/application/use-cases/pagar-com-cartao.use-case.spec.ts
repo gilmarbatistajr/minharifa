@@ -4,6 +4,9 @@ import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
 import { PagamentoRepository } from '../../domain/repositories/pagamento.repository';
 import { PaymentGateway } from '../../domain/services/payment-gateway';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { PagarComCartaoUseCase } from './pagar-com-cartao.use-case';
 
 describe('PagarComCartaoUseCase', () => {
@@ -74,24 +77,53 @@ describe('PagarComCartaoUseCase', () => {
       gerarCobrancaCartao: jest.fn().mockResolvedValue({ transacaoId: 'txn-cartao-1', aprovado }),
       estornar: jest.fn(),
     };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(null),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
 
-    return { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway };
+    return {
+      cotaRepository,
+      campanhaRepository,
+      pagamentoRepository,
+      paymentGateway,
+      grupoRepository,
+      agenteChatbotRepository,
+      notificationSender,
+    };
+  }
+
+  function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
+    return new PagarComCartaoUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.pagamentoRepository,
+      deps.paymentGateway,
+      deps.grupoRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
   }
 
   const agora = new Date('2026-01-01T10:01:00Z');
 
   it('confirma o pagamento da cota quando o cartão é aprovado', async () => {
     const cota = criarCota(42);
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      [cota],
-      true,
-    );
-    const useCase = new PagarComCartaoUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias([cota], true);
+    const { cotaRepository, pagamentoRepository } = deps;
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria', dadosCartao },
@@ -106,16 +138,9 @@ describe('PagarComCartaoUseCase', () => {
 
   it('cobra o valor total de um lote numa única transação e aprova todas as cotas juntas', async () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      cotas,
-      true,
-    );
-    const useCase = new PagarComCartaoUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias(cotas, true);
+    const { cotaRepository, paymentGateway } = deps;
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria', dadosCartao },
@@ -131,16 +156,9 @@ describe('PagarComCartaoUseCase', () => {
 
   it('mantém todas as cotas reservadas quando o cartão é recusado', async () => {
     const cotas = [criarCota(1), criarCota(2)];
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      cotas,
-      false,
-    );
-    const useCase = new PagarComCartaoUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias(cotas, false);
+    const { cotaRepository } = deps;
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [1, 2], compradorId: 'comprador-maria', dadosCartao },
@@ -154,16 +172,9 @@ describe('PagarComCartaoUseCase', () => {
 
   it('rejeita quando o comprador tenta pagar apenas uma parte das cotas reservadas', async () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      cotas,
-      true,
-    );
-    const useCase = new PagarComCartaoUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias(cotas, true);
+    const { paymentGateway } = deps;
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(
@@ -175,16 +186,8 @@ describe('PagarComCartaoUseCase', () => {
   });
 
   it('rejeita quando o comprador não tem nenhuma cota reservada para si', async () => {
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      [],
-      true,
-    );
-    const useCase = new PagarComCartaoUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias([], true);
+    const useCase = montarUseCase(deps);
 
     await expect(
       useCase.executar(

@@ -4,6 +4,10 @@ import { Cota } from '../../domain/entities/cota.entity';
 import { CotaRepository } from '../../domain/repositories/cota.repository';
 import { Operador } from '../../../operadores/domain/entities/operador.entity';
 import { OperadorRepository } from '../../../operadores/domain/repositories/operador.repository';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
+import { AgenteChatbot } from '../../../grupos/domain/entities/agente-chatbot.entity';
+import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { FinalizarCampanhaUseCase } from './finalizar-campanha.use-case';
 
 describe('FinalizarCampanhaUseCase', () => {
@@ -32,6 +36,7 @@ describe('FinalizarCampanhaUseCase', () => {
     campanha: Campanha | null,
     cotaVencedora: Cota | null,
     operador: Operador | null = null,
+    agente: AgenteChatbot | null = null,
   ) {
     const campanhaRepository: CampanhaRepository = {
       buscarPorId: jest.fn().mockResolvedValue(campanha),
@@ -62,11 +67,42 @@ describe('FinalizarCampanhaUseCase', () => {
       remover: jest.fn(),
     };
 
-    return { campanhaRepository, cotaRepository, operadorRepository };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(agente),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return {
+      campanhaRepository,
+      cotaRepository,
+      operadorRepository,
+      grupoRepository,
+      agenteChatbotRepository,
+      notificationSender,
+    };
   }
 
   function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
-    return new FinalizarCampanhaUseCase(deps.campanhaRepository, deps.cotaRepository, deps.operadorRepository);
+    return new FinalizarCampanhaUseCase(
+      deps.campanhaRepository,
+      deps.cotaRepository,
+      deps.operadorRepository,
+      deps.grupoRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
   }
 
   function criarOperador(
@@ -106,6 +142,33 @@ describe('FinalizarCampanhaUseCase', () => {
     expect(campanha.vencedorNome).toBe('Maria Silva');
     expect(campanha.vencedorTelefone).toBe('11999999999');
     expect(deps.campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
+  });
+
+  it('dispara o alerta de resultado do agente chatbot do grupo ao finalizar', async () => {
+    const campanha = criarCampanha();
+    const cotaVencedora = new Cota('cota-42', 'campanha-1', 42, 'PAGA', 'comprador-maria', new Date(), null);
+    const agente = new AgenteChatbot(
+      'agente-1',
+      'grupo-1',
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      'Já temos um vencedor!',
+    );
+    const deps = criarDependencias(campanha, cotaVencedora, null, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(
+      { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
+    );
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Já temos um vencedor!');
   });
 
   it('rejeita quando a campanha não existe', async () => {
