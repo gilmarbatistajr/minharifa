@@ -234,6 +234,14 @@ enum FormaVendaCotas {
   LOTE_FECHADO
 }
 
+enum TipoChavePix {
+  CPF
+  CNPJ
+  CELULAR
+  EMAIL
+  ALEATORIA
+}
+
 model Campanha {
   id                       String                @id @default(uuid())
   administradorId          String
@@ -243,6 +251,8 @@ model Campanha {
   nome                     String
   descricao                String
   telefoneSuporte          String                @default("")
+  tipoChavePix             TipoChavePix?
+  chavePix                 String?
   fotoUrl                  String?
   premios                  Premio[]
   dataAberturaVendas       DateTime?

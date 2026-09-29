@@ -181,6 +181,8 @@ export type StatusCampanha =
 
 export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
 
+export type TipoChavePix = 'CPF' | 'CNPJ' | 'CELULAR' | 'EMAIL' | 'ALEATORIA';
+
 export const EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS = [5, 10, 30, 60, 120] as const;
 
 export interface Campanha {
@@ -190,6 +192,8 @@ export interface Campanha {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  tipoChavePix: TipoChavePix | null;
+  chavePix: string | null;
   fotoUrl: string | null;
   premioIds: string[];
   dataAberturaVendas: string | null;
@@ -455,6 +459,8 @@ export interface DadosFormularioCampanha {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  tipoChavePix?: TipoChavePix | null;
+  chavePix?: string | null;
   premioIds: string[];
   quantidadeCotas: number;
   valorCota: number;

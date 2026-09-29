@@ -5,6 +5,7 @@ import {
   StatusCampanha,
   StatusVendasCampanha,
   FormaVendaCotas,
+  TipoChavePix,
 } from '../domain/entities/campanha.entity';
 import { CampanhaRepository } from '../domain/repositories/campanha.repository';
 
@@ -31,6 +32,8 @@ type RegistroCampanha = {
   vencedorTelefone: string | null;
   removidaEm: Date | null;
   telefoneSuporte: string;
+  tipoChavePix: string | null;
+  chavePix: string | null;
   fotoUrl: string | null;
   quantidadeMinimaPorCompra: number;
   quantidadeMaximaPorCompra: number | null;
@@ -77,6 +80,8 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.alerta50PorCentoEnviado,
     registro.alerta80PorCentoEnviado,
     registro.alerta90PorCentoEnviado,
+    registro.tipoChavePix as TipoChavePix | null,
+    registro.chavePix,
   );
 }
 
@@ -134,6 +139,8 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         status: campanha.status,
         statusVendas: campanha.statusVendas,
         telefoneSuporte: campanha.telefoneSuporte,
+        tipoChavePix: campanha.tipoChavePix,
+        chavePix: campanha.chavePix,
         quantidadeMinimaPorCompra: campanha.quantidadeMinimaPorCompra,
         quantidadeMaximaPorCompra: campanha.quantidadeMaximaPorCompra,
         expiracaoReservaMinutos: campanha.expiracaoReservaMinutos,
@@ -154,6 +161,8 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         nome: campanha.nome,
         descricao: campanha.descricao,
         telefoneSuporte: campanha.telefoneSuporte,
+        tipoChavePix: campanha.tipoChavePix,
+        chavePix: campanha.chavePix,
         premios: { set: campanha.premioIds.map((id) => ({ id })) },
         dataAberturaVendas: campanha.dataAberturaVendas,
         dataEncerramentoVendas: campanha.dataEncerramentoVendas,

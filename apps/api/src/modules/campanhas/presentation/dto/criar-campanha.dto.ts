@@ -1,6 +1,8 @@
 import { ArrayNotEmpty, IsBoolean, IsIn, IsInt, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
 import { EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS, FormaVendaCotas } from '../../domain/entities/campanha.entity';
 
+const TIPOS_CHAVE_PIX = ['CPF', 'CNPJ', 'CELULAR', 'EMAIL', 'ALEATORIA'] as const;
+
 export class CriarCampanhaDto {
   @IsString()
   nome!: string;
@@ -10,6 +12,14 @@ export class CriarCampanhaDto {
 
   @IsString()
   telefoneSuporte!: string;
+
+  @IsOptional()
+  @IsIn(TIPOS_CHAVE_PIX)
+  tipoChavePix?: (typeof TIPOS_CHAVE_PIX)[number] | null;
+
+  @IsOptional()
+  @IsString()
+  chavePix?: string | null;
 
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })

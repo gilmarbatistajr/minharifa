@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
-import { EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS, FormaVendaCotas } from '../../domain/entities/campanha.entity';
+import {
+  EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS,
+  FormaVendaCotas,
+  TipoChavePix,
+} from '../../domain/entities/campanha.entity';
 import { PREMIO_REPOSITORY, PremioRepository } from '../../../premios/domain/repositories/premio.repository';
 
 export interface EditarCampanhaInput {
@@ -9,6 +13,8 @@ export interface EditarCampanhaInput {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  tipoChavePix?: TipoChavePix | null;
+  chavePix?: string | null;
   premioIds: string[];
   quantidadeCotas: number;
   valorCota: number;
@@ -89,6 +95,8 @@ export class EditarCampanhaUseCase {
       nome: input.nome,
       descricao: input.descricao,
       telefoneSuporte: input.telefoneSuporte,
+      tipoChavePix: input.tipoChavePix ?? null,
+      chavePix: input.chavePix ?? null,
       premioIds: input.premioIds,
       quantidadeCotas: input.quantidadeCotas,
       valorCota: input.valorCota,

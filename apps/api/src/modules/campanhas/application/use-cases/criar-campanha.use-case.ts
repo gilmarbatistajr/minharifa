@@ -5,6 +5,7 @@ import {
   Campanha,
   EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS,
   FormaVendaCotas,
+  TipoChavePix,
 } from '../../domain/entities/campanha.entity';
 import { PREMIO_REPOSITORY, PremioRepository } from '../../../premios/domain/repositories/premio.repository';
 
@@ -13,6 +14,8 @@ export interface CriarCampanhaInput {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  tipoChavePix?: TipoChavePix | null;
+  chavePix?: string | null;
   premioIds: string[];
   quantidadeCotas: number;
   valorCota: number;
@@ -114,6 +117,14 @@ export class CriarCampanhaUseCase {
       input.reservaExigeNome ?? true,
       input.reservaExigeTelefone ?? true,
       input.reservaExigeConfirmacaoTelefone ?? false,
+      null,
+      null,
+      null,
+      false,
+      false,
+      false,
+      input.tipoChavePix ?? null,
+      input.chavePix ?? null,
     );
 
     await this.campanhaRepository.criar(campanha);

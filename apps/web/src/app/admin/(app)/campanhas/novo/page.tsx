@@ -10,8 +10,15 @@ import { Spinner } from '../../../../../components/ui/Spinner';
 import { TextField, PhoneField, TextAreaField, SelectField, CheckboxField } from '../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../components/ui/EmptyState';
 import { IconArrowLeft, IconGift } from '../../../../../components/ui/icons';
-import { campanhasApi, premiosApi, ApiError, type Premio, type FormaVendaCotas } from '../../../../../lib/api';
-import { formatarMoeda, formatarTelefone } from '../../../../../lib/format';
+import {
+  campanhasApi,
+  premiosApi,
+  ApiError,
+  type Premio,
+  type FormaVendaCotas,
+  type TipoChavePix,
+} from '../../../../../lib/api';
+import { formatarMoeda, formatarTelefone, formatarChavePix } from '../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
 const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
@@ -21,6 +28,14 @@ const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
   { valor: '30', label: '30 minutos' },
   { valor: '60', label: '1 hora' },
   { valor: '120', label: '2 horas' },
+];
+
+const OPCOES_TIPO_CHAVE_PIX: { valor: TipoChavePix; label: string; placeholder: string }[] = [
+  { valor: 'CPF', label: 'CPF', placeholder: '000.000.000-00' },
+  { valor: 'CNPJ', label: 'CNPJ', placeholder: '00.000.000/0000-00' },
+  { valor: 'CELULAR', label: 'Celular', placeholder: '(11) 91234-5678' },
+  { valor: 'EMAIL', label: 'E-mail', placeholder: 'nome@dominio.com' },
+  { valor: 'ALEATORIA', label: 'Chave aleatória (EVP)', placeholder: '123e4567-e89b-12d3-a456-426614174000' },
 ];
 
 const TIPOS_IMAGEM_PERMITIDOS = [
@@ -53,6 +68,8 @@ export default function NovaCampanhaPage() {
   // Informações básicas
   const [nome, setNome] = useState('');
   const [telefoneSuporte, setTelefoneSuporte] = useState('');
+  const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix | ''>('');
+  const [chavePix, setChavePix] = useState('');
   const [descricao, setDescricao] = useState('');
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
@@ -122,6 +139,8 @@ export default function NovaCampanhaPage() {
         nome,
         descricao,
         telefoneSuporte,
+        tipoChavePix: tipoChavePix || null,
+        chavePix: chavePix.trim() ? chavePix : null,
         premioIds,
         quantidadeCotas: Number(quantidadeCotas),
         valorCota: Number(valorCota),
@@ -176,6 +195,43 @@ export default function NovaCampanhaPage() {
             value={telefoneSuporte}
             onChange={(e) => setTelefoneSuporte(formatarTelefone(e.target.value))}
           />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label="Tipo de chave Pix"
+              value={tipoChavePix}
+              onChange={(e) => {
+                setTipoChavePix(e.target.value as TipoChavePix | '');
+                setChavePix('');
+              }}
+            >
+              <option value="">Não informar agora</option>
+              {OPCOES_TIPO_CHAVE_PIX.map((opcao) => (
+                <option key={opcao.valor} value={opcao.valor}>
+                  {opcao.label}
+                </option>
+              ))}
+            </SelectField>
+
+            {tipoChavePix === 'CELULAR' ? (
+              <PhoneField
+                label="Chave Pix"
+                placeholder="(11) 91234-5678"
+                value={chavePix}
+                onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}
+              />
+            ) : (
+              <TextField
+                label="Chave Pix"
+                type={tipoChavePix === 'EMAIL' ? 'email' : 'text'}
+                disabled={!tipoChavePix}
+                placeholder={OPCOES_TIPO_CHAVE_PIX.find((opcao) => opcao.valor === tipoChavePix)?.placeholder}
+                value={chavePix}
+                onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}
+              />
+            )}
+          </div>
+
           <TextAreaField
             label="Descrição / Regulamento"
             required

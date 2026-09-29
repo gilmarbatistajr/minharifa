@@ -28,6 +28,8 @@ export type StatusCampanha =
  */
 export type FormaVendaCotas = 'ESCOLHA_NUMERO' | 'LOTE_FECHADO';
 
+export type TipoChavePix = 'CPF' | 'CNPJ' | 'CELULAR' | 'EMAIL' | 'ALEATORIA';
+
 /** Opções fixas exibidas no formulário de criação da campanha; `null` = sem expiração automática. */
 export const EXPIRACOES_RESERVA_PERMITIDAS_MINUTOS = [5, 10, 30, 60, 120] as const;
 
@@ -37,6 +39,8 @@ export interface DadosAtualizacaoCampanha {
   nome: string;
   descricao: string;
   telefoneSuporte: string;
+  tipoChavePix: TipoChavePix | null;
+  chavePix: string | null;
   premioIds: string[];
   quantidadeCotas: number;
   valorCota: number;
@@ -89,6 +93,8 @@ export class Campanha {
     public alerta50PorCentoEnviado: boolean = false,
     public alerta80PorCentoEnviado: boolean = false,
     public alerta90PorCentoEnviado: boolean = false,
+    public tipoChavePix: TipoChavePix | null = null,
+    public chavePix: string | null = null,
   ) {}
 
   estaRemovida(): boolean {
@@ -162,6 +168,8 @@ export class Campanha {
     this.nome = dados.nome;
     this.descricao = dados.descricao;
     this.telefoneSuporte = dados.telefoneSuporte;
+    this.tipoChavePix = dados.tipoChavePix;
+    this.chavePix = dados.chavePix;
     this.premioIds = dados.premioIds;
     this.quantidadeCotas = dados.quantidadeCotas;
     this.valorCota = dados.valorCota;

@@ -7,6 +7,7 @@ import { Card, TicketCard } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Spinner } from '../../../../components/ui/Spinner';
+import { IconWhatsapp } from '../../../../components/ui/icons';
 import { campanhasApi, ApiError, type CotaResumo, type Campanha } from '../../../../lib/api';
 import { formatarMoeda } from '../../../../lib/format';
 import { useSessaoComprador } from '../../../../lib/auth';
@@ -67,9 +68,6 @@ export default function DetalheCampanhaPage() {
     router[metodo](`/campanhas/${id}/pagamento?${parametros.toString()}`);
   }
 
-  // Ao acessar a campanha, se o comprador já tem uma reserva ativa (ainda
-  // dentro do prazo de expiração) de um checkout que ele não finalizou, volta
-  // direto para a tela de pagamento em vez de mostrar a seleção de novo.
   useEffect(() => {
     let cancelado = false;
     async function iniciar() {
@@ -83,11 +81,6 @@ export default function DetalheCampanhaPage() {
       // campanha ficam bloqueados mesmo por acesso direto à URL.
       if (resultado.campanha?.status === 'LIBERADA_PARA_SORTEIO') {
         router.replace('/campanhas');
-        return;
-      }
-      const reservasAtivas = resultado.cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
-      if (resultado.campanha && reservasAtivas.length > 0) {
-        irParaPagamentoComCotas(resultado.campanha, reservasAtivas, 'replace');
         return;
       }
       setCarregandoDados(false);
@@ -108,6 +101,11 @@ export default function DetalheCampanhaPage() {
     () => cotas?.filter((cota) => cota.minhaCota && cota.status === 'PAGA').map((cota) => cota.numero) ?? [],
     [cotas],
   );
+
+  // Com uma reserva ativa aguardando confirmação de pagamento, não faz
+  // sentido oferecer a compra de mais cotas — o comprador só tem duas ações
+  // possíveis: ir pagar a reserva atual ou cancelá-la.
+  const podeComprarMais = minhasCotasReservadas.length === 0;
 
   function alternarSelecao(numero: number) {
     setSelecionados((atual) => {
@@ -234,22 +232,37 @@ export default function DetalheCampanhaPage() {
         </TicketCard>
       )}
 
-      {minhasCotasReservadas.length > 0 && (
-        <Card className="flex flex-col gap-3 border-accent-ink/40 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-night">
-              Você reservou {minhasCotasReservadas.length}{' '}
-              {minhasCotasReservadas.length === 1 ? 'cota' : 'cotas'}
-            </p>
-            <p className="font-mono text-xs text-muted">
-              Nº {minhasCotasReservadas.slice().sort((a, b) => a - b).join(', ')}
-            </p>
+      {minhasCotasReservadas.length > 0 && campanha && (
+        <Card className="flex flex-col gap-4 border-accent-ink/40">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-night">
+                Você reservou {minhasCotasReservadas.length}{' '}
+                {minhasCotasReservadas.length === 1 ? 'cota' : 'cotas'}
+              </p>
+              <p className="font-mono text-xs text-muted">
+                Nº {minhasCotasReservadas.slice().sort((a, b) => a - b).join(', ')}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={irParaPagamento}>Ir para pagamento</Button>
+              <Button variant="danger" onClick={cancelarReserva} loading={cancelando}>
+                Cancelar reserva
+              </Button>
+            </div>
           </div>
-          <Button onClick={irParaPagamento}>Ir para pagamento</Button>
+
+          <div className="flex flex-col gap-2 border-t border-line pt-3">
+            <p className="text-xs text-muted">
+              Cotas reservadas aguardando confirmação de pagamento pelo administrador da campanha, entre em contato
+              com o suporte.
+            </p>
+            <LinkWhatsappSuporte campanha={campanha} numeros={minhasCotasReservadas} />
+          </div>
         </Card>
       )}
 
-      {formaVenda === 'ESCOLHA_NUMERO' ? (
+      {podeComprarMais && (formaVenda === 'ESCOLHA_NUMERO' ? (
         <Card className="flex flex-col gap-4">
           <p className="text-xs text-muted">
             Toque nos números disponíveis para selecionar {selecionados.size > 0 && `(${selecionados.size} selecionado${selecionados.size > 1 ? 's' : ''})`}.
@@ -261,11 +274,6 @@ export default function DetalheCampanhaPage() {
             <Button onClick={confirmarCotas} loading={reservando} disabled={selecionados.size === 0} fullWidth>
               Confirmar cotas
             </Button>
-            {minhasCotasReservadas.length > 0 && (
-              <Button variant="danger" onClick={cancelarReserva} loading={cancelando} fullWidth>
-                Cancelar reserva
-              </Button>
-            )}
           </div>
         </Card>
       ) : (
@@ -335,19 +343,13 @@ export default function DetalheCampanhaPage() {
               </Button>
             </div>
           )}
-
-          {minhasCotasReservadas.length > 0 && (
-            <Button variant="danger" onClick={cancelarReserva} loading={cancelando} fullWidth>
-              Cancelar reserva
-            </Button>
-          )}
         </Card>
-      )}
+      ))}
 
       <Card>
         <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
-          {mapaInterativo && <LegendaItem cor="bg-white border border-line" label="Disponível" />}
-          {mapaInterativo && <LegendaItem cor="bg-accent" label="Selecionada" />}
+          {mapaInterativo && podeComprarMais && <LegendaItem cor="bg-white border border-line" label="Disponível" />}
+          {mapaInterativo && podeComprarMais && <LegendaItem cor="bg-accent" label="Selecionada" />}
           <LegendaItem cor="bg-accent-ink/15" label="Sua reserva" />
           <LegendaItem cor="bg-mist" label="Indisponível" />
         </div>
@@ -357,13 +359,43 @@ export default function DetalheCampanhaPage() {
               key={cota.numero}
               cota={cota}
               selecionada={selecionados.has(cota.numero)}
-              interativo={mapaInterativo}
-              onClick={() => mapaInterativo && cota.status === 'DISPONIVEL' && alternarSelecao(cota.numero)}
+              interativo={mapaInterativo && podeComprarMais}
+              onClick={() =>
+                mapaInterativo && podeComprarMais && cota.status === 'DISPONIVEL' && alternarSelecao(cota.numero)
+              }
             />
           ))}
         </div>
       </Card>
     </div>
+  );
+}
+
+function LinkWhatsappSuporte({ campanha, numeros }: { campanha: Campanha; numeros: number[] }) {
+  const numerosOrdenados = numeros.slice().sort((a, b) => a - b);
+  const mensagem =
+    `Olá! Tenho a(s) cota(s) nº ${numerosOrdenados.join(', ')} reservada(s)` +
+    ` na campanha "${campanha.nome}", aguardando confirmação de pagamento.`;
+  const telefone = campanha.telefoneSuporte.replace(/\D/g, '');
+  const link = telefone ? `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}` : null;
+
+  return (
+    <a
+      href={link ?? undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-disabled={!link}
+      onClick={(evento) => {
+        if (!link) evento.preventDefault();
+      }}
+      className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+        link
+          ? 'border-line bg-white text-night hover:border-night/30'
+          : 'cursor-not-allowed border-line bg-mist text-muted'
+      }`}
+    >
+      <IconWhatsapp className="h-4 w-4" /> Falar com o suporte no WhatsApp
+    </a>
   );
 }
 
