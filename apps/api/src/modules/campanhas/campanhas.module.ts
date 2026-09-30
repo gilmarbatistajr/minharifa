@@ -12,6 +12,8 @@ import { EditarCampanhaUseCase } from './application/use-cases/editar-campanha.u
 import { MarcarCampanhaComoRevisadaUseCase } from './application/use-cases/marcar-campanha-como-revisada.use-case';
 import { ListarCampanhasDoAdministradorUseCase } from './application/use-cases/listar-campanhas-administrador.use-case';
 import { BuscarCampanhaUseCase } from './application/use-cases/buscar-campanha.use-case';
+import { BuscarCampanhaPublicaUseCase } from './application/use-cases/buscar-campanha-publica.use-case';
+import { ListarCotasPublicasCampanhaUseCase } from './application/use-cases/listar-cotas-publicas-campanha.use-case';
 import { FinalizarCampanhaUseCase } from './application/use-cases/finalizar-campanha.use-case';
 import { RemoverCampanhaUseCase } from './application/use-cases/remover-campanha.use-case';
 import { RestaurarCampanhaUseCase } from './application/use-cases/restaurar-campanha.use-case';
@@ -53,6 +55,8 @@ import { CampanhasController } from './presentation/campanhas.controller';
     MarcarCampanhaComoRevisadaUseCase,
     ListarCampanhasDoAdministradorUseCase,
     BuscarCampanhaUseCase,
+    BuscarCampanhaPublicaUseCase,
+    ListarCotasPublicasCampanhaUseCase,
     FinalizarCampanhaUseCase,
     RemoverCampanhaUseCase,
     RestaurarCampanhaUseCase,

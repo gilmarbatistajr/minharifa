@@ -5,6 +5,7 @@ import { Cota } from '../../domain/entities/cota.entity';
 
 export interface ReservarLoteCotasInput {
   campanhaId: string;
+  grupoId: string;
   compradorId: string;
   numeros?: number[];
   quantidadeAleatoria?: number;
@@ -55,7 +56,7 @@ export class ReservarLoteCotasUseCase {
     }
 
     const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
-    if (!campanha) {
+    if (!campanha || campanha.grupoId !== input.grupoId) {
       throw new Error('Campanha não encontrada.');
     }
 

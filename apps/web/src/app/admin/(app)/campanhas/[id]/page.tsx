@@ -32,6 +32,7 @@ import {
   formatarTelefone,
   formatarChavePix,
 } from '../../../../../lib/format';
+import { validarChavePix, MENSAGENS_ERRO_CHAVE_PIX } from '../../../../../lib/validacoes-chave-pix';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
 const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
@@ -492,7 +493,7 @@ function FormularioEditarCampanha({
 }) {
   const [nome, setNome] = useState(campanha.nome);
   const [telefoneSuporte, setTelefoneSuporte] = useState(campanha.telefoneSuporte);
-  const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix | ''>(campanha.tipoChavePix ?? '');
+  const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix>(campanha.tipoChavePix ?? 'CPF');
   const [chavePix, setChavePix] = useState(campanha.chavePix ?? '');
   const [descricao, setDescricao] = useState(campanha.descricao);
   const [quantidadeCotas, setQuantidadeCotas] = useState(String(campanha.quantidadeCotas));
@@ -523,17 +524,28 @@ function FormularioEditarCampanha({
     );
   }
 
+  const erroChavePix =
+    chavePix.trim() && !validarChavePix(tipoChavePix, chavePix)
+      ? MENSAGENS_ERRO_CHAVE_PIX[tipoChavePix]
+      : undefined;
+
   async function salvar(evento: FormEvent) {
     evento.preventDefault();
     if (!token) return;
+
+    if (erroChavePix) {
+      aoErro(erroChavePix);
+      return;
+    }
+
     setEnviando(true);
     try {
       await campanhasApi.editar(token, campanha.id, {
         nome,
         descricao,
         telefoneSuporte,
-        tipoChavePix: tipoChavePix || null,
-        chavePix: chavePix.trim() ? chavePix : null,
+        tipoChavePix,
+        chavePix: chavePix.trim(),
         premioIds,
         quantidadeCotas: Number(quantidadeCotas),
         valorCota: Number(valorCota),
@@ -585,13 +597,13 @@ function FormularioEditarCampanha({
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
             label="Tipo de chave Pix"
+            required
             value={tipoChavePix}
             onChange={(e) => {
-              setTipoChavePix(e.target.value as TipoChavePix | '');
+              setTipoChavePix(e.target.value as TipoChavePix);
               setChavePix('');
             }}
           >
-            <option value="">Não informar agora</option>
             {OPCOES_TIPO_CHAVE_PIX.map((opcao) => (
               <option key={opcao.valor} value={opcao.valor}>
                 {opcao.label}
@@ -602,7 +614,9 @@ function FormularioEditarCampanha({
           {tipoChavePix === 'CELULAR' ? (
             <PhoneField
               label="Chave Pix"
+              required
               placeholder="(11) 91234-5678"
+              error={erroChavePix}
               value={chavePix}
               onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}
             />
@@ -610,7 +624,8 @@ function FormularioEditarCampanha({
             <TextField
               label="Chave Pix"
               type={tipoChavePix === 'EMAIL' ? 'email' : 'text'}
-              disabled={!tipoChavePix}
+              required
+              error={erroChavePix}
               placeholder={OPCOES_TIPO_CHAVE_PIX.find((opcao) => opcao.valor === tipoChavePix)?.placeholder}
               value={chavePix}
               onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}

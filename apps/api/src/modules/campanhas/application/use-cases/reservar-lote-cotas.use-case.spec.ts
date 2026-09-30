@@ -80,7 +80,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [3, 1, 7] },
+      { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [3, 1, 7] },
       agora,
     );
 
@@ -99,7 +99,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 4 },
+      { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 4 },
       agora,
     );
 
@@ -119,7 +119,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 1 },
+      { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 1 },
       agora,
     );
 
@@ -133,7 +133,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 5 },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 5 },
         agora,
       ),
     ).rejects.toThrow('Restam apenas 2 cota(s) disponível(is).');
@@ -146,7 +146,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [99] }, agora),
+      useCase.executar({ campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [99] }, agora),
     ).rejects.toThrow('Cota 99 não existe nessa campanha.');
   });
 
@@ -159,7 +159,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1] }, agora),
+      useCase.executar({ campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1] }, agora),
     ).rejects.toThrow('não está disponível para reserva');
     expect(cotaRepository.salvar).not.toHaveBeenCalled();
   });
@@ -171,7 +171,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1, 2, 3] }, agora),
+      useCase.executar({ campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1, 2, 3] }, agora),
     ).rejects.toThrow();
 
     expect(cotas[0].status).toBe('DISPONIVEL');
@@ -184,7 +184,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'campanha-1', compradorId: 'comprador-maria' }, agora),
+      useCase.executar({ campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria' }, agora),
     ).rejects.toThrow('Informe os números desejados ou a quantidade para escolha aleatória.');
   });
 
@@ -194,7 +194,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1], quantidadeAleatoria: 2 },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1], quantidadeAleatoria: 2 },
         agora,
       ),
     ).rejects.toThrow('Escolha apenas uma forma de seleção');
@@ -206,8 +206,22 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'inexistente', compradorId: 'comprador-maria', numeros: [1] }, agora),
+      useCase.executar({ campanhaId: 'inexistente', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1] }, agora),
     ).rejects.toThrow('Campanha não encontrada.');
+  });
+
+  it('rejeita quando a campanha não pertence ao grupo do comprador', async () => {
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(3), 'ESCOLHA_NUMERO');
+    (campanhaRepository.buscarPorId as jest.Mock).mockResolvedValue(criarCampanha('ESCOLHA_NUMERO'));
+    const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', grupoId: 'grupo-2', compradorId: 'comprador-maria', numeros: [1] },
+        agora,
+      ),
+    ).rejects.toThrow('Campanha não encontrada.');
+    expect(cotaRepository.salvar).not.toHaveBeenCalled();
   });
 
   it('rejeita escolha manual de números em uma campanha de lote fechado', async () => {
@@ -215,7 +229,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     await expect(
-      useCase.executar({ campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1, 2] }, agora),
+      useCase.executar({ campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1, 2] }, agora),
     ).rejects.toThrow('só permite compra em lotes fechados');
   });
 
@@ -225,7 +239,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 5 },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 5 },
         agora,
       ),
     ).rejects.toThrow('só permite escolha manual de números');
@@ -239,7 +253,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 2 },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 2 },
         agora,
       ),
     ).rejects.toThrow('A compra mínima nesta campanha é de 3 cota(s).');
@@ -252,7 +266,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', quantidadeAleatoria: 101 },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', quantidadeAleatoria: 101 },
         agora,
       ),
     ).rejects.toThrow('A compra máxima nesta campanha é de 100 cota(s).');
@@ -267,7 +281,7 @@ describe('ReservarLoteCotasUseCase', () => {
 
     await expect(
       useCase.executar(
-        { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1, 2, 3] },
+        { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1, 2, 3] },
         agora,
       ),
     ).rejects.toThrow('A compra máxima nesta campanha é de 2 cota(s).');
@@ -281,7 +295,7 @@ describe('ReservarLoteCotasUseCase', () => {
     const useCase = new ReservarLoteCotasUseCase(cotaRepository, campanhaRepository);
 
     const resultado = await useCase.executar(
-      { campanhaId: 'campanha-1', compradorId: 'comprador-maria', numeros: [1] },
+      { campanhaId: 'campanha-1', grupoId: 'grupo-1', compradorId: 'comprador-maria', numeros: [1] },
       agora,
     );
 

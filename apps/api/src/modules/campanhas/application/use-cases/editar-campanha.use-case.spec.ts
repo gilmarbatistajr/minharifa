@@ -186,4 +186,26 @@ describe('EditarCampanhaUseCase', () => {
       'Opção de expiração da reserva inválida',
     );
   });
+
+  it('valida e normaliza a chave Pix conforme o tipo informado', async () => {
+    const campanha = criarCampanha();
+    const deps = criarDependencias(campanha);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar({ ...inputBase, tipoChavePix: 'CELULAR', chavePix: '(11) 91234-5678' });
+
+    expect(campanha.tipoChavePix).toBe('CELULAR');
+    expect(campanha.chavePix).toBe('+5511912345678');
+  });
+
+  it('rejeita uma chave Pix que não bate com o tipo escolhido', async () => {
+    const campanha = criarCampanha();
+    const deps = criarDependencias(campanha);
+    const useCase = montarUseCase(deps);
+
+    await expect(
+      useCase.executar({ ...inputBase, tipoChavePix: 'EMAIL', chavePix: 'nao-e-email' }),
+    ).rejects.toThrow('A chave Pix informada não é um e-mail válido.');
+    expect(deps.campanhaRepository.salvar).not.toHaveBeenCalled();
+  });
 });

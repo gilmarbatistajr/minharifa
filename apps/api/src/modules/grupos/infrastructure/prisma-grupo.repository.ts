@@ -25,7 +25,10 @@ export class PrismaGrupoRepository implements GrupoRepository {
   }
 
   async buscarPorIdentificadorWhatsapp(identificadorWhatsapp: string): Promise<Grupo | null> {
-    const registro = await this.prisma.grupo.findUnique({ where: { identificadorWhatsapp } });
+    // Não é mais uma coluna única no banco (ver CadastrarGrupoUseCase: o mesmo
+    // administrador pode reaproveitar o mesmo contato em vários grupos) — só
+    // precisamos de UM registro para checar se pertence a outro administrador.
+    const registro = await this.prisma.grupo.findFirst({ where: { identificadorWhatsapp } });
     return registro ? paraDominio(registro) : null;
   }
 

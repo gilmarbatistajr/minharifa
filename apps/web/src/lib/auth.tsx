@@ -114,3 +114,14 @@ export function useSessaoComprador(): { sessao: SessaoComprador | null; pronto: 
 
   return { sessao: sessao?.tipo === 'comprador' ? sessao : null, pronto };
 }
+
+/**
+ * Igual a `useSessaoComprador`, mas sem redirecionar quando não há sessão —
+ * usado nas páginas que precisam funcionar tanto pra quem já tem conta
+ * quanto pra quem abriu o link (Link de Vendas de uma campanha, por
+ * exemplo) sem estar logado ainda.
+ */
+export function useSessaoCompradorOpcional(): { sessao: SessaoComprador | null; pronto: boolean } {
+  const { sessao, pronto } = useAuthContext();
+  return { sessao: sessao?.tipo === 'comprador' ? sessao : null, pronto };
+}

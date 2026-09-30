@@ -1,4 +1,5 @@
-import { InputHTMLAttributes, forwardRef, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { InputHTMLAttributes, forwardRef, SelectHTMLAttributes, TextareaHTMLAttributes, useState } from 'react';
+import { IconChevronDown, IconEye, IconEyeOff } from './icons';
 
 interface FieldWrapperProps {
   label: string;
@@ -45,6 +46,42 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         onWheel={type === 'number' ? (evento) => evento.currentTarget.blur() : onWheel}
         {...props}
       />
+    </FieldWrapper>
+  );
+});
+
+interface PasswordFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  label: string;
+  error?: string;
+  hint?: string;
+}
+
+/** Campo de senha com botão de "olho" para mostrar/ocultar o texto digitado. */
+export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(function PasswordField(
+  { label, error, hint, className = '', ...props },
+  ref,
+) {
+  const [visivel, setVisivel] = useState(false);
+
+  return (
+    <FieldWrapper label={label} error={error} hint={hint}>
+      <div className="relative">
+        <input
+          ref={ref}
+          type={visivel ? 'text' : 'password'}
+          className={`${inputClasses} pr-11 ${error ? 'border-red-400' : ''} ${className}`}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setVisivel((atual) => !atual)}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-muted transition hover:text-night"
+          aria-label={visivel ? 'Ocultar senha' : 'Mostrar senha'}
+          tabIndex={-1}
+        >
+          {visivel ? <IconEyeOff className="h-5 w-5" /> : <IconEye className="h-5 w-5" />}
+        </button>
+      </div>
     </FieldWrapper>
   );
 });
@@ -111,9 +148,16 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(funct
 ) {
   return (
     <FieldWrapper label={label} error={error} hint={hint}>
-      <select ref={ref} className={`${inputClasses} ${className}`} {...props}>
-        {children}
-      </select>
+      <div className="relative">
+        <select
+          ref={ref}
+          className={`${inputClasses} appearance-none pr-11 leading-[1.5] ${error ? 'border-red-400' : ''} ${className}`}
+          {...props}
+        >
+          {children}
+        </select>
+        <IconChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+      </div>
     </FieldWrapper>
   );
 });

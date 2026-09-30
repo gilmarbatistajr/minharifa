@@ -2,9 +2,9 @@
 
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
-import { TextField } from '../../components/ui/Field';
+import { TextField, PasswordField } from '../../components/ui/Field';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 import { compradoresApi, ApiError } from '../../lib/api';
@@ -12,12 +12,20 @@ import { useAuth } from '../../lib/auth';
 
 export default function LoginCompradorPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { entrarComoComprador } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [avisoSocial, setAvisoSocial] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+
+  // Quem abriu o Link de Vendas de uma campanha sem conta e tentou confirmar
+  // cotas é mandado pra cá com "?redirect=" apontando de volta pra lá, com a
+  // seleção já guardada na própria URL de retorno.
+  const redirect = searchParams.get('redirect');
+  const destinoAposEntrar = redirect && redirect.startsWith('/') ? redirect : '/campanhas';
+  const linkCadastro = redirect ? `/cadastro?redirect=${encodeURIComponent(redirect)}` : '/cadastro';
 
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault();
@@ -26,7 +34,7 @@ export default function LoginCompradorPage() {
     try {
       const resultado = await compradoresApi.login({ email, senha });
       entrarComoComprador(resultado);
-      router.push('/campanhas');
+      router.push(destinoAposEntrar);
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível entrar.');
     } finally {
@@ -42,7 +50,7 @@ export default function LoginCompradorPage() {
       footer={
         <>
           Ainda não tem conta?{' '}
-          <Link href="/cadastro" className="font-semibold">
+          <Link href={linkCadastro} className="font-semibold">
             Criar usuário
           </Link>
         </>
@@ -59,9 +67,8 @@ export default function LoginCompradorPage() {
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
         />
-        <TextField
+        <PasswordField
           label="Senha"
-          type="password"
           autoComplete="current-password"
           required
           value={senha}

@@ -132,9 +132,51 @@ describe('LancarCampanhaUseCase', () => {
     expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Nova campanha no ar!');
   });
 
+  it('envia também a descrição da campanha, além da mensagem configurada em Alertas automáticos', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledTimes(2);
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenNthCalledWith(1, '11988887777', 'Nova campanha no ar!');
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenNthCalledWith(2, '11988887777', 'Descrição');
+  });
+
+  it('envia só a descrição da campanha quando não há mensagem configurada em Alertas automáticos', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, null);
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledTimes(1);
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Descrição');
+  });
+
   it('não dispara o alerta de nova campanha quando o agente está desativado', async () => {
     const campanha = criarCampanha();
     const agente = new AgenteChatbot('agente-1', 'grupo-1', false, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
+  });
+
+  it('não dispara nada (nem a descrição) quando o toggle "avisa nova campanha" está desligado', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, false, true, null, 'Nova campanha no ar!');
     const deps = criarDependencias(grupo, campanha, agente);
     const useCase = montarUseCase(deps);
 

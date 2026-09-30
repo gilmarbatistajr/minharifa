@@ -21,6 +21,8 @@ import { CriarCampanhaUseCase } from '../application/use-cases/criar-campanha.us
 import { EditarCampanhaUseCase } from '../application/use-cases/editar-campanha.use-case';
 import { ListarCampanhasDoAdministradorUseCase } from '../application/use-cases/listar-campanhas-administrador.use-case';
 import { BuscarCampanhaUseCase } from '../application/use-cases/buscar-campanha.use-case';
+import { BuscarCampanhaPublicaUseCase } from '../application/use-cases/buscar-campanha-publica.use-case';
+import { ListarCotasPublicasCampanhaUseCase } from '../application/use-cases/listar-cotas-publicas-campanha.use-case';
 import { MarcarCampanhaComoRevisadaUseCase } from '../application/use-cases/marcar-campanha-como-revisada.use-case';
 import { FinalizarCampanhaUseCase } from '../application/use-cases/finalizar-campanha.use-case';
 import { RemoverCampanhaUseCase } from '../application/use-cases/remover-campanha.use-case';
@@ -51,6 +53,8 @@ export class CampanhasController {
     private readonly editarCampanhaUseCase: EditarCampanhaUseCase,
     private readonly listarCampanhasDoAdministradorUseCase: ListarCampanhasDoAdministradorUseCase,
     private readonly buscarCampanhaUseCase: BuscarCampanhaUseCase,
+    private readonly buscarCampanhaPublicaUseCase: BuscarCampanhaPublicaUseCase,
+    private readonly listarCotasPublicasCampanhaUseCase: ListarCotasPublicasCampanhaUseCase,
     private readonly marcarCampanhaComoRevisadaUseCase: MarcarCampanhaComoRevisadaUseCase,
     private readonly finalizarCampanhaUseCase: FinalizarCampanhaUseCase,
     private readonly removerCampanhaUseCase: RemoverCampanhaUseCase,
@@ -106,6 +110,16 @@ export class CampanhasController {
     return this.listarCampanhasVisiveisParaCompradorUseCase.executar({
       grupoId: usuario.grupoId!,
     });
+  }
+
+  // Sem guard de propósito: é o "Link de Vendas" compartilhado com quem ainda
+  // não tem conta — só existe pra campanhas já lançadas pra um grupo (ver
+  // BuscarCampanhaPublicaUseCase) e nunca inclui dados sensíveis (chave Pix,
+  // vencedor, IDs internos). Precisa ficar antes de ":campanhaId" pelo mesmo
+  // motivo do comentário acima em "visiveis".
+  @Get(':campanhaId/publica')
+  async buscarPublica(@Param('campanhaId') campanhaId: string) {
+    return this.buscarCampanhaPublicaUseCase.executar({ campanhaId });
   }
 
   @UseGuards(AdministradorGuard)
@@ -240,6 +254,14 @@ export class CampanhasController {
     });
   }
 
+  // Mesma ideia de ":campanhaId/publica": mapa de cotas pra quem abriu o
+  // Link de Vendas sem conta ainda, sem "minhaCota"/"reservaExpiraEm" (não
+  // existe identidade de comprador aqui) e sem expor de quem é cada cota.
+  @Get(':campanhaId/cotas/publica')
+  async listarCotasPublicas(@Param('campanhaId') campanhaId: string) {
+    return this.listarCotasPublicasCampanhaUseCase.executar({ campanhaId });
+  }
+
   @UseGuards(CompradorGuard)
   @Post(':campanhaId/cotas/reservar')
   async reservarCota(
@@ -249,6 +271,7 @@ export class CampanhasController {
   ) {
     return this.reservarCotaUseCase.executar({
       campanhaId,
+      grupoId: usuario.grupoId!,
       numero: dto.numero,
       compradorId: usuario.compradorId!,
     });
@@ -263,6 +286,7 @@ export class CampanhasController {
   ) {
     return this.reservarLoteCotasUseCase.executar({
       campanhaId,
+      grupoId: usuario.grupoId!,
       compradorId: usuario.compradorId!,
       numeros: dto.numeros,
       quantidadeAleatoria: dto.quantidadeAleatoria,

@@ -172,4 +172,45 @@ describe('CriarCampanhaUseCase', () => {
       'Opção de expiração da reserva inválida',
     );
   });
+
+  it('valida e normaliza a chave Pix conforme o tipo informado', async () => {
+    const deps = criarDependencias();
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar({ ...inputBase, tipoChavePix: 'CPF', chavePix: '529.982.247-25' });
+
+    const campanhaCriada = (deps.campanhaRepository.criar as jest.Mock).mock.calls[0][0];
+    expect(campanhaCriada.tipoChavePix).toBe('CPF');
+    expect(campanhaCriada.chavePix).toBe('52998224725');
+  });
+
+  it('rejeita uma chave Pix que não bate com o tipo escolhido', async () => {
+    const deps = criarDependencias();
+    const useCase = montarUseCase(deps);
+
+    await expect(
+      useCase.executar({ ...inputBase, tipoChavePix: 'CPF', chavePix: '111.111.111-11' }),
+    ).rejects.toThrow('A chave Pix informada não é um CPF válido.');
+    expect(deps.campanhaRepository.criar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita quando só o tipo ou só a chave Pix é informado', async () => {
+    const deps = criarDependencias();
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar({ ...inputBase, tipoChavePix: 'CPF' })).rejects.toThrow(
+      'Informe o tipo e o valor da chave Pix juntos.',
+    );
+  });
+
+  it('cria a campanha sem chave Pix quando nenhuma é informada', async () => {
+    const deps = criarDependencias();
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    const campanhaCriada = (deps.campanhaRepository.criar as jest.Mock).mock.calls[0][0];
+    expect(campanhaCriada.tipoChavePix).toBeNull();
+    expect(campanhaCriada.chavePix).toBeNull();
+  });
 });

@@ -29,6 +29,11 @@ export interface CadastrarGrupoOutput {
  * já nasce pronto junto com o grupo — não é mais um passo manual separado
  * (ver `GerarLinkConviteUseCase`, que continua existindo para gerar um novo
  * link caso o admin precise substituir o atual).
+ *
+ * `identificadorWhatsapp` é hoje só o "Contato de suporte" exibido na tela —
+ * não precisa mais ser único no sistema todo, só não pode colidir com um
+ * grupo de OUTRO administrador (a mesma pessoa pode reaproveitar o mesmo
+ * telefone em vários grupos próprios).
  */
 @Injectable()
 export class CadastrarGrupoUseCase {
@@ -46,7 +51,7 @@ export class CadastrarGrupoUseCase {
       input.identificadorWhatsapp,
     );
 
-    if (existente) {
+    if (existente && !existente.pertenceAoAdministrador(input.administradorId)) {
       throw new Error('Este grupo do WhatsApp já está vinculado a outro administrador.');
     }
 

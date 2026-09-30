@@ -18,6 +18,12 @@ function CadastroForm() {
   const codigoConvite = searchParams.get('convite');
   const { entrarComoComprador } = useAuth();
 
+  // Quem veio do Link de Vendas de uma campanha (ver /entrar) sem conta
+  // ainda: depois de cadastrar, volta pra lá em vez de cair na lista.
+  const redirect = searchParams.get('redirect');
+  const destinoAposCadastro = redirect && redirect.startsWith('/') ? redirect : '/campanhas';
+  const linkEntrar = redirect ? `/entrar?redirect=${encodeURIComponent(redirect)}` : '/entrar';
+
   const [grupoId, setGrupoId] = useState<string | null>(null);
   const [resolvendoConvite, setResolvendoConvite] = useState(Boolean(codigoConvite));
   const [erroConvite, setErroConvite] = useState<string | null>(null);
@@ -88,9 +94,9 @@ function CadastroForm() {
       if (email && senha) {
         const sessao = await compradoresApi.login({ email, senha });
         entrarComoComprador(sessao);
-        router.push('/campanhas');
+        router.push(destinoAposCadastro);
       } else {
-        router.push('/entrar');
+        router.push(linkEntrar);
       }
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível concluir o cadastro.');

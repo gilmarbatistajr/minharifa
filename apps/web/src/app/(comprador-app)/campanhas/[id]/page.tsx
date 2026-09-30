@@ -1,26 +1,37 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card, TicketCard } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { IconWhatsapp } from '../../../../components/ui/icons';
-import { campanhasApi, ApiError, type CotaResumo, type Campanha } from '../../../../lib/api';
+import {
+  campanhasApi,
+  ApiError,
+  type CotaResumo,
+  type Campanha,
+  type CampanhaPublica,
+} from '../../../../lib/api';
 import { formatarMoeda } from '../../../../lib/format';
-import { useSessaoComprador } from '../../../../lib/auth';
+import { useSessaoCompradorOpcional } from '../../../../lib/auth';
 
 const LOTES_PRESET = [5, 10, 15, 20, 25, 30];
 const QUANTIDADE_LOTE_PADRAO = 5;
 
+/** A página funciona tanto logado (dados completos) quanto pelo Link de
+ * Vendas sem conta (dados públicos) — só os campos usados aqui importam. */
+type CampanhaExibicao = Campanha | CampanhaPublica;
+
 export default function DetalheCampanhaPage() {
   const { id } = useParams<{ id: string }>();
-  const { sessao } = useSessaoComprador();
+  const { sessao, pronto } = useSessaoCompradorOpcional();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [campanha, setCampanha] = useState<Campanha | null>(null);
+  const [campanha, setCampanha] = useState<CampanhaExibicao | null>(null);
   const [cotas, setCotas] = useState<CotaResumo[] | null>(null);
   const [carregandoDados, setCarregandoDados] = useState(true);
 
@@ -34,6 +45,7 @@ export default function DetalheCampanhaPage() {
 
   const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
   const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
+  const vendasEncerradas = campanha?.status === 'LIBERADA_PARA_SORTEIO';
   // Sem um máximo configurado na campanha, o teto de cotas por compra é o
   // total de cotas dela — nunca é permitido comprar mais do que isso.
   const quantidadeMaximaPorCompra = campanha
@@ -41,19 +53,42 @@ export default function DetalheCampanhaPage() {
     : null;
 
   async function carregar() {
-    if (!sessao) return null;
-    const [campanhas, mapaCotas] = await Promise.all([
-      campanhasApi.visiveis(sessao.token),
-      campanhasApi.listarCotas(sessao.token, id),
-    ]);
-    const campanhaAtual = campanhas.find((c) => c.id === id) ?? null;
-    setCampanha(campanhaAtual);
-    setCotas(mapaCotas);
-    return { campanha: campanhaAtual, cotas: mapaCotas };
+    if (sessao) {
+      const [campanhas, mapaCotas] = await Promise.all([
+        campanhasApi.visiveis(sessao.token),
+        campanhasApi.listarCotas(sessao.token, id),
+      ]);
+      const campanhaAtual = campanhas.find((c) => c.id === id) ?? null;
+      setCampanha(campanhaAtual);
+      setCotas(mapaCotas);
+      return { campanha: campanhaAtual, cotas: mapaCotas };
+    }
+
+    // Sem sessão: é o Link de Vendas aberto sem conta — mesmo mapa de cotas,
+    // só que sem "minha cota"/reserva (ainda não existe uma identidade de
+    // comprador aqui).
+    try {
+      const [campanhaPublica, mapaCotasPublico] = await Promise.all([
+        campanhasApi.buscarPublica(id),
+        campanhasApi.listarCotasPublicas(id),
+      ]);
+      const mapaCotas: CotaResumo[] = mapaCotasPublico.map((cota) => ({
+        ...cota,
+        minhaCota: false,
+        reservaExpiraEm: null,
+      }));
+      setCampanha(campanhaPublica);
+      setCotas(mapaCotas);
+      return { campanha: campanhaPublica as CampanhaExibicao, cotas: mapaCotas };
+    } catch {
+      setCampanha(null);
+      setCotas(null);
+      return null;
+    }
   }
 
   function irParaPagamentoComCotas(
-    campanhaAtual: Campanha,
+    campanhaAtual: CampanhaExibicao,
     cotasReservadas: CotaResumo[],
     metodo: 'push' | 'replace' = 'push',
   ) {
@@ -69,6 +104,7 @@ export default function DetalheCampanhaPage() {
   }
 
   useEffect(() => {
+    if (!pronto) return;
     let cancelado = false;
     async function iniciar() {
       const resultado = await carregar();
@@ -77,9 +113,10 @@ export default function DetalheCampanhaPage() {
         return;
       }
       // Vendas encerradas (todas as cotas já pagas, aguardando o sorteio):
-      // não há mais nada para o comprador fazer aqui, então os detalhes da
-      // campanha ficam bloqueados mesmo por acesso direto à URL.
-      if (resultado.campanha?.status === 'LIBERADA_PARA_SORTEIO') {
+      // pra quem já está logado não há mais nada a fazer aqui, então volta
+      // pra lista. Anônimo não tem lista pra voltar — fica na própria
+      // página, que mostra o aviso de vendas encerradas.
+      if (sessao && resultado.campanha?.status === 'LIBERADA_PARA_SORTEIO') {
         router.replace('/campanhas');
         return;
       }
@@ -90,7 +127,31 @@ export default function DetalheCampanhaPage() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessao, id]);
+  }, [sessao, pronto, id]);
+
+  // Restaura a seleção feita antes de ir pro login (ver `confirmarCotas`) —
+  // só faz sentido assim que a sessão aparece, então roda uma vez após o
+  // retorno do /entrar e limpa a URL em seguida.
+  useEffect(() => {
+    if (!sessao) return;
+    const numerosParam = searchParams.get('sel');
+    const loteParam = searchParams.get('loteQtd');
+    if (!numerosParam && !loteParam) return;
+
+    if (numerosParam) {
+      const numeros = numerosParam
+        .split(',')
+        .map(Number)
+        .filter((numero) => !Number.isNaN(numero));
+      setSelecionados(new Set(numeros));
+    }
+    if (loteParam) {
+      const quantidade = Number(loteParam);
+      if (!Number.isNaN(quantidade)) setQuantidadeLote(quantidade);
+    }
+    router.replace(`/campanhas/${id}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessao]);
 
   const minhasCotasReservadas = useMemo(
     () => cotas?.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA').map((cota) => cota.numero) ?? [],
@@ -104,8 +165,10 @@ export default function DetalheCampanhaPage() {
 
   // Com uma reserva ativa aguardando confirmação de pagamento, não faz
   // sentido oferecer a compra de mais cotas — o comprador só tem duas ações
-  // possíveis: ir pagar a reserva atual ou cancelá-la.
-  const podeComprarMais = minhasCotasReservadas.length === 0;
+  // possíveis: ir pagar a reserva atual ou cancelá-la. Vendas encerradas
+  // (só é possível saber isso sem sessão, já que logado é redirecionado)
+  // também bloqueia novas seleções.
+  const podeComprarMais = minhasCotasReservadas.length === 0 && !vendasEncerradas;
 
   function alternarSelecao(numero: number) {
     setSelecionados((atual) => {
@@ -145,9 +208,9 @@ export default function DetalheCampanhaPage() {
   // Ação única do botão "Confirmar cotas": só agora a reserva é de fato
   // salva no backend (e passa a aparecer no painel do administrador) — nem
   // tocar nos números (modo manual) nem sortear a quantidade (modo lote)
-  // reserva nada por conta própria.
+  // reserva nada por conta própria. Sem sessão, a seleção fica guardada na
+  // própria URL de volta e o login é exigido antes de reservar de verdade.
   async function confirmarCotas() {
-    if (!sessao) return;
     const modoManual = formaVenda === 'ESCOLHA_NUMERO';
 
     if (modoManual && selecionados.size === 0) {
@@ -156,6 +219,18 @@ export default function DetalheCampanhaPage() {
     }
     if (!modoManual && !loteStaged) {
       setErro('Toque em "Sortear cotas" antes de confirmar.');
+      return;
+    }
+
+    if (!sessao) {
+      const parametrosRetorno = new URLSearchParams();
+      if (modoManual) {
+        parametrosRetorno.set('sel', Array.from(selecionados).join(','));
+      } else {
+        parametrosRetorno.set('loteQtd', String(quantidadeLote));
+      }
+      const urlRetorno = `/campanhas/${id}?${parametrosRetorno.toString()}`;
+      router.push(`/entrar?redirect=${encodeURIComponent(urlRetorno)}`);
       return;
     }
 
@@ -194,7 +269,7 @@ export default function DetalheCampanhaPage() {
   }
 
   function irParaPagamento() {
-    if (!campanha || !cotas) return;
+    if (!sessao || !campanha || !cotas) return;
     const reservasAtivas = cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
     irParaPagamentoComCotas(campanha, reservasAtivas);
   }
@@ -207,19 +282,29 @@ export default function DetalheCampanhaPage() {
     );
   }
 
+  if (!campanha) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-16 text-center text-muted">
+        <p>Não foi possível encontrar essa campanha.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow="Escolha sua cota" title={campanha?.nome ?? 'Campanha'} />
+      <PageHeader eyebrow="Escolha sua cota" title={campanha.nome} />
 
-      {campanha && (
-        <TicketCard tone="night">
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">Valor da cota</p>
-          <p className="mt-1 font-display text-3xl text-white">{formatarMoeda(campanha.valorCota)}</p>
-          <p className="mt-2 text-sm text-white/70">{campanha.quantidadeCotas} números disponíveis no total.</p>
-        </TicketCard>
-      )}
+      <TicketCard tone="night">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">Valor da cota</p>
+        <p className="mt-1 font-display text-3xl text-white">{formatarMoeda(campanha.valorCota)}</p>
+        <p className="mt-2 text-sm text-white/70">{campanha.quantidadeCotas} números disponíveis no total.</p>
+      </TicketCard>
 
       {erro && <Alert tone="error">{erro}</Alert>}
+
+      {vendasEncerradas && (
+        <Alert tone="info">Vendas encerradas para esta campanha — aguardando a realização do sorteio.</Alert>
+      )}
 
       {minhasCotasPagas.length > 0 && (
         <TicketCard tone="night" className="flex flex-col gap-1">
@@ -232,7 +317,7 @@ export default function DetalheCampanhaPage() {
         </TicketCard>
       )}
 
-      {minhasCotasReservadas.length > 0 && campanha && (
+      {minhasCotasReservadas.length > 0 && (
         <Card className="flex flex-col gap-4 border-accent-ink/40">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -268,6 +353,7 @@ export default function DetalheCampanhaPage() {
             Toque nos números disponíveis para selecionar {selecionados.size > 0 && `(${selecionados.size} selecionado${selecionados.size > 1 ? 's' : ''})`}.
             A reserva só é salva ao confirmar.
             {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
+            {!sessao && ' Você vai precisar entrar (ou criar uma conta) para confirmar.'}
           </p>
 
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -326,6 +412,7 @@ export default function DetalheCampanhaPage() {
             Escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório{quantidadeLote === 1 ? '' : 's'} entre os disponíveis.
             A reserva só é salva ao confirmar.
             {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
+            {!sessao && ' Você vai precisar entrar (ou criar uma conta) para confirmar.'}
           </p>
 
           {!loteStaged ? (
@@ -371,7 +458,7 @@ export default function DetalheCampanhaPage() {
   );
 }
 
-function LinkWhatsappSuporte({ campanha, numeros }: { campanha: Campanha; numeros: number[] }) {
+function LinkWhatsappSuporte({ campanha, numeros }: { campanha: CampanhaExibicao; numeros: number[] }) {
   const numerosOrdenados = numeros.slice().sort((a, b) => a - b);
   const mensagem =
     `Olá! Tenho a(s) cota(s) nº ${numerosOrdenados.join(', ')} reservada(s)` +

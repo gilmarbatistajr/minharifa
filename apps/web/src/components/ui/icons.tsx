@@ -122,6 +122,14 @@ export function IconChevronRight({ className = base }: IconProps) {
   );
 }
 
+export function IconChevronDown({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 export function IconPix({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
@@ -191,6 +199,26 @@ export function IconWallet({ className = base }: IconProps) {
       <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2" />
       <rect x="3" y="7" width="18" height="13" rx="2" />
       <circle cx="16.5" cy="13.5" r="1.4" />
+    </svg>
+  );
+}
+
+export function IconEye({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
+      <path d="M2 12c2.4-4.7 6.2-7 10-7s7.6 2.3 10 7c-2.4 4.7-6.2 7-10 7s-7.6-2.3-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function IconEyeOff({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
+      <path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c3.8 0 7.6 2.3 10 7a13.3 13.3 0 0 1-3.2 4" />
+      <path d="M6.3 6.9C4.4 8.2 2.9 10 2 12c2.4 4.7 6.2 7 10 7 1.4 0 2.7-.3 4-.9" />
+      <path d="M9.9 14.1a3 3 0 0 0 4.2-4.2" />
+      <path d="M3 3l18 18" />
     </svg>
   );
 }

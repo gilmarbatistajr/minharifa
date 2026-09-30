@@ -61,4 +61,21 @@ describe('CadastrarGrupoUseCase', () => {
     ).rejects.toThrow('já está vinculado a outro administrador');
     expect(linkConviteRepository.criar).not.toHaveBeenCalled();
   });
+
+  it('permite reaproveitar o mesmo contato de suporte num novo grupo do mesmo administrador', async () => {
+    const grupoProprio = new Grupo('grupo-1', 'admin-1', 'Meu outro grupo', '5511999999999', new Date());
+    const { grupoRepository, linkConviteRepository, tokenGenerator } = criarDependencias(grupoProprio);
+    const useCase = new CadastrarGrupoUseCase(grupoRepository, linkConviteRepository, tokenGenerator);
+
+    const resultado = await useCase.executar({
+      administradorId: 'admin-1',
+      nome: 'Amigos do bem 2',
+      identificadorWhatsapp: '5511999999999',
+      linkWhatsapp: 'https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv',
+    });
+
+    expect(resultado.grupoId).toBeDefined();
+    expect(grupoRepository.criar).toHaveBeenCalled();
+    expect(linkConviteRepository.criar).toHaveBeenCalled();
+  });
 });

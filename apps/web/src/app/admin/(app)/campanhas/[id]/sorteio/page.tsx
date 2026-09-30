@@ -10,7 +10,7 @@ import { Badge } from '../../../../../../components/ui/Badge';
 import { Spinner } from '../../../../../../components/ui/Spinner';
 import { TextField } from '../../../../../../components/ui/Field';
 import { EmptyState } from '../../../../../../components/ui/EmptyState';
-import { IconArrowLeft, IconWhatsapp, IconGift, IconCheck } from '../../../../../../components/ui/icons';
+import { IconArrowLeft, IconWhatsapp, IconGift, IconCheck, IconCopy } from '../../../../../../components/ui/icons';
 import {
   campanhasApi,
   gruposApi,
@@ -42,6 +42,7 @@ export default function SorteioCampanhaPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [mostrarFinalizar, setMostrarFinalizar] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   const recarregarCotas = useCallback(async () => {
     if (!sessao) return;
@@ -154,6 +155,13 @@ export default function SorteioCampanhaPage() {
   const emSorteio = campanha.status === 'LIBERADA' || campanha.status === 'LIBERADA_PARA_SORTEIO';
   const rotaVoltar = emSorteio && !campanha.removidaEm ? '/admin/campanhas' : `/admin/campanhas/${id}`;
 
+  const linkVendas = `${window.location.origin}/campanhas/${campanha.id}`;
+
+  function copiarLinkVendas() {
+    navigator.clipboard?.writeText(linkVendas);
+    setLinkCopiado(true);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <button
@@ -244,6 +252,25 @@ export default function SorteioCampanhaPage() {
                 <span className="font-mono text-xs text-muted">{formatarMoeda(premio.valor)}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="border-t border-line pt-3">
+          <p className="mb-2 font-mono text-xs uppercase text-muted">Link de Vendas</p>
+          <p className="mb-2 text-xs text-muted">
+            Link exibido ao comprador para acessar e comprar cotas desta campanha.
+          </p>
+          <div className="flex items-center gap-2">
+            <p className="flex-1 truncate rounded-lg border border-line bg-mist px-3 py-2.5 font-mono text-xs text-night">
+              {linkVendas}
+            </p>
+            <button
+              type="button"
+              onClick={copiarLinkVendas}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
+            >
+              <IconCopy className="h-4 w-4" /> {linkCopiado ? 'Copiado!' : 'Copiar'}
+            </button>
           </div>
         </div>
       </Card>

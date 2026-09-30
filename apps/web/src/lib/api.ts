@@ -446,6 +446,29 @@ export interface CotaResumo {
   reservaExpiraEm: string | null;
 }
 
+/** Visão pública da cota (Link de Vendas, sem login) — nem "minhaCota" nem "reservaExpiraEm" fazem sentido sem identidade. */
+export interface CotaResumoPublico {
+  numero: number;
+  status: StatusCota;
+}
+
+/** Subconjunto público da campanha (Link de Vendas): nunca inclui chave Pix, dados do vencedor ou IDs internos. */
+export interface CampanhaPublica {
+  id: string;
+  nome: string;
+  descricao: string;
+  fotoUrl: string | null;
+  valorCota: number;
+  quantidadeCotas: number;
+  quantidadeMinimaPorCompra: number;
+  quantidadeMaximaPorCompra: number | null;
+  formaVenda: FormaVendaCotas;
+  telefoneSuporte: string;
+  status: StatusCampanha;
+  statusVendas: StatusVendasCampanha;
+  dataRealizacao: string | null;
+}
+
 /** Visão administrativa da cota: ao contrário de `CotaResumo` (do comprador), expõe quem é o dono. */
 export interface CotaAdminResumo {
   numero: number;
@@ -484,6 +507,13 @@ export const campanhasApi = {
   listar: (token: string) => request<Campanha[]>('/campanhas', { token }),
 
   buscar: (token: string, campanhaId: string) => request<Campanha>(`/campanhas/${campanhaId}`, { token }),
+
+  /** Link de Vendas: mesmos dados básicos da campanha, sem exigir login. */
+  buscarPublica: (campanhaId: string) => request<CampanhaPublica>(`/campanhas/${campanhaId}/publica`),
+
+  /** Mapa de cotas do Link de Vendas, sem exigir login. */
+  listarCotasPublicas: (campanhaId: string) =>
+    request<CotaResumoPublico[]>(`/campanhas/${campanhaId}/cotas/publica`),
 
   marcarComoRevisada: (token: string, campanhaId: string) =>
     request<void>(`/campanhas/${campanhaId}/marcar-revisada`, { method: 'POST', token }),

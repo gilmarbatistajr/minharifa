@@ -75,9 +75,21 @@ export class LancarCampanhaUseCase {
     );
     await this.cotaRepository.criarEmLote(cotas);
 
+    // Duas mensagens quando o aviso de nova campanha está ligado: primeiro o
+    // texto configurado em Alertas automáticos (se houver), depois a própria
+    // descrição da campanha — é ela que carrega os dados reais (prêmios,
+    // valor, link de vendas) que o comprador precisa pra decidir comprar.
     const agente = await this.agenteChatbotRepository.buscarPorGrupoId(input.grupoId);
-    if (agente?.ativo && agente.avisaNovaCampanha && agente.mensagemNovaCampanha) {
-      await notificarGrupo(this.grupoRepository, this.notificationSender, input.grupoId, agente.mensagemNovaCampanha);
+    if (agente?.ativo && agente.avisaNovaCampanha) {
+      if (agente.mensagemNovaCampanha) {
+        await notificarGrupo(
+          this.grupoRepository,
+          this.notificationSender,
+          input.grupoId,
+          agente.mensagemNovaCampanha,
+        );
+      }
+      await notificarGrupo(this.grupoRepository, this.notificationSender, input.grupoId, campanha.descricao);
     }
 
     return { campanhaId: campanha.id };

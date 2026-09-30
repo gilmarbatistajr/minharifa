@@ -4,7 +4,7 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthLayout } from '../../../components/layout/AuthLayout';
-import { TextField } from '../../../components/ui/Field';
+import { TextField, PasswordField } from '../../../components/ui/Field';
 import { Button } from '../../../components/ui/Button';
 import { Alert } from '../../../components/ui/Alert';
 import { administradoresApi, ApiError } from '../../../lib/api';
@@ -58,9 +58,8 @@ export default function LoginAdministradorPage() {
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
         />
-        <TextField
+        <PasswordField
           label="Senha"
-          type="password"
           autoComplete="current-password"
           required
           value={senha}

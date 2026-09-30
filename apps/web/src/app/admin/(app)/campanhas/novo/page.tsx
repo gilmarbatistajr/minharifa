@@ -19,6 +19,7 @@ import {
   type TipoChavePix,
 } from '../../../../../lib/api';
 import { formatarMoeda, formatarTelefone, formatarChavePix } from '../../../../../lib/format';
+import { validarChavePix, MENSAGENS_ERRO_CHAVE_PIX } from '../../../../../lib/validacoes-chave-pix';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
 const OPCOES_EXPIRACAO_RESERVA: { valor: string; label: string }[] = [
@@ -37,6 +38,44 @@ const OPCOES_TIPO_CHAVE_PIX: { valor: TipoChavePix; label: string; placeholder: 
   { valor: 'EMAIL', label: 'E-mail', placeholder: 'nome@dominio.com' },
   { valor: 'ALEATORIA', label: 'Chave aleatória (EVP)', placeholder: '123e4567-e89b-12d3-a456-426614174000' },
 ];
+
+const TEMPLATE_DESCRICAO_PADRAO = `🍀 AÇÃO - $NomeDaCampanha 🍀
+
+🎁 O ganhador escolherá um dos perfumes abaixo:
+
+$Premios
+
+💰Cota: R$ $valorDaCota
+
+📌 Apenas $QuantidadeDeCotas cotas disponíveis.
+
+📦 Frete grátis para o ganhador.
+
+(Pedido será enviado em até 7 dias)
+
+$LinkDaCampanhaExibidoAoComprador`;
+
+/**
+ * Preenche o template com os dados já digitados no formulário — o link só
+ * existe depois que a campanha é criada, então esse placeholder é resolvido
+ * à parte, em `aoEnviar`, logo após a criação.
+ */
+function gerarDescricaoPadrao(
+  nome: string,
+  premiosSelecionados: Premio[],
+  valorCota: string,
+  quantidadeCotas: string,
+): string {
+  const listaPremios = premiosSelecionados.map((premio) => `• ${premio.nome}`).join('\n');
+  const valorFormatado = valorCota
+    ? Number(valorCota).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+
+  return TEMPLATE_DESCRICAO_PADRAO.replace('$NomeDaCampanha', nome)
+    .replace('$Premios', listaPremios)
+    .replace('$valorDaCota', valorFormatado)
+    .replace('$QuantidadeDeCotas', quantidadeCotas);
+}
 
 const TIPOS_IMAGEM_PERMITIDOS = [
   'image/jpeg',
@@ -68,9 +107,10 @@ export default function NovaCampanhaPage() {
   // Informações básicas
   const [nome, setNome] = useState('');
   const [telefoneSuporte, setTelefoneSuporte] = useState('');
-  const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix | ''>('');
+  const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix>('CPF');
   const [chavePix, setChavePix] = useState('');
-  const [descricao, setDescricao] = useState('');
+  const [descricao, setDescricao] = useState(() => gerarDescricaoPadrao('', [], '', '100'));
+  const [descricaoAutoGerada, setDescricaoAutoGerada] = useState(true);
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
   const [previewFoto, setPreviewFoto] = useState<string | null>(null);
 
@@ -98,6 +138,14 @@ export default function NovaCampanhaPage() {
     if (!sessao) return;
     premiosApi.listar(sessao.token).then(setPremios);
   }, [sessao]);
+
+  // Mantém a descrição no template padrão até o administrador editá-la à
+  // mão — a partir daí ela para de acompanhar nome/prêmios/valor/cotas.
+  useEffect(() => {
+    if (!descricaoAutoGerada) return;
+    const premiosSelecionados = (premios ?? []).filter((premio) => premioIds.includes(premio.id));
+    setDescricao(gerarDescricaoPadrao(nome, premiosSelecionados, valorCota, quantidadeCotas));
+  }, [descricaoAutoGerada, nome, premioIds, premios, valorCota, quantidadeCotas]);
 
   function alternarPremio(premioId: string) {
     setPremioIds((atual) =>
@@ -128,19 +176,29 @@ export default function NovaCampanhaPage() {
     setPreviewFoto(URL.createObjectURL(arquivoCorrigido));
   }
 
+  const erroChavePix =
+    chavePix.trim() && !validarChavePix(tipoChavePix, chavePix)
+      ? MENSAGENS_ERRO_CHAVE_PIX[tipoChavePix]
+      : undefined;
+
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault();
     if (!sessao) return;
 
+    if (erroChavePix) {
+      setErro(erroChavePix);
+      return;
+    }
+
     setErro(null);
     setCarregando(true);
     try {
-      const resultado = await campanhasApi.criar(sessao.token, {
+      const dadosCampanha = {
         nome,
         descricao,
         telefoneSuporte,
-        tipoChavePix: tipoChavePix || null,
-        chavePix: chavePix.trim() ? chavePix : null,
+        tipoChavePix,
+        chavePix: chavePix.trim(),
         premioIds,
         quantidadeCotas: Number(quantidadeCotas),
         valorCota: Number(valorCota),
@@ -153,10 +211,22 @@ export default function NovaCampanhaPage() {
         reservaExigeNome,
         reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone,
-      });
+      };
+      const resultado = await campanhasApi.criar(sessao.token, dadosCampanha);
 
       if (arquivoFoto) {
         await campanhasApi.enviarFoto(sessao.token, resultado.campanhaId, arquivoFoto);
+      }
+
+      // O link só existe depois de criada a campanha — se o placeholder
+      // ainda está no template (o administrador não editou a descrição
+      // manualmente removendo-o), resolve com o link real agora.
+      if (descricao.includes('$LinkDaCampanhaExibidoAoComprador')) {
+        const linkCampanha = `${window.location.origin}/campanhas/${resultado.campanhaId}`;
+        await campanhasApi.editar(sessao.token, resultado.campanhaId, {
+          ...dadosCampanha,
+          descricao: descricao.replace('$LinkDaCampanhaExibidoAoComprador', linkCampanha),
+        });
       }
 
       router.push(`/admin/campanhas/${resultado.campanhaId}`);
@@ -199,13 +269,13 @@ export default function NovaCampanhaPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
               label="Tipo de chave Pix"
+              required
               value={tipoChavePix}
               onChange={(e) => {
-                setTipoChavePix(e.target.value as TipoChavePix | '');
+                setTipoChavePix(e.target.value as TipoChavePix);
                 setChavePix('');
               }}
             >
-              <option value="">Não informar agora</option>
               {OPCOES_TIPO_CHAVE_PIX.map((opcao) => (
                 <option key={opcao.valor} value={opcao.valor}>
                   {opcao.label}
@@ -216,7 +286,9 @@ export default function NovaCampanhaPage() {
             {tipoChavePix === 'CELULAR' ? (
               <PhoneField
                 label="Chave Pix"
+                required
                 placeholder="(11) 91234-5678"
+                error={erroChavePix}
                 value={chavePix}
                 onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}
               />
@@ -224,7 +296,8 @@ export default function NovaCampanhaPage() {
               <TextField
                 label="Chave Pix"
                 type={tipoChavePix === 'EMAIL' ? 'email' : 'text'}
-                disabled={!tipoChavePix}
+                required
+                error={erroChavePix}
                 placeholder={OPCOES_TIPO_CHAVE_PIX.find((opcao) => opcao.valor === tipoChavePix)?.placeholder}
                 value={chavePix}
                 onChange={(e) => setChavePix(formatarChavePix(tipoChavePix, e.target.value))}
@@ -235,8 +308,13 @@ export default function NovaCampanhaPage() {
           <TextAreaField
             label="Descrição / Regulamento"
             required
+            rows={12}
             value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
+            onChange={(e) => {
+              setDescricao(e.target.value);
+              setDescricaoAutoGerada(false);
+            }}
+            hint="Preenchida automaticamente conforme você completa o formulário — edite à vontade."
           />
 
           <div>

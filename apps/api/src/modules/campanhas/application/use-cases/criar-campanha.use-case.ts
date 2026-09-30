@@ -8,6 +8,7 @@ import {
   TipoChavePix,
 } from '../../domain/entities/campanha.entity';
 import { PREMIO_REPOSITORY, PremioRepository } from '../../../premios/domain/repositories/premio.repository';
+import { resolverChavePix } from '../services/resolver-chave-pix';
 
 export interface CriarCampanhaInput {
   administradorId: string;
@@ -91,6 +92,8 @@ export class CriarCampanhaUseCase {
       throw new Error('Opção de expiração da reserva inválida.');
     }
 
+    const { tipoChavePix, chavePix } = resolverChavePix(input.tipoChavePix, input.chavePix);
+
     const campanha = new Campanha(
       randomUUID(),
       input.administradorId,
@@ -123,8 +126,8 @@ export class CriarCampanhaUseCase {
       false,
       false,
       false,
-      input.tipoChavePix ?? null,
-      input.chavePix ?? null,
+      tipoChavePix,
+      chavePix,
     );
 
     await this.campanhaRepository.criar(campanha);
