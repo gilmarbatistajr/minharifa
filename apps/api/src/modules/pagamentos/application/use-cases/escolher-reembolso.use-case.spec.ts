@@ -48,7 +48,6 @@ describe('EscolherReembolsoUseCase', () => {
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const paymentGateway: PaymentGateway = {
-      gerarCobrancaPix: jest.fn(),
       gerarCobrancaCartao: jest.fn(),
       estornar: jest.fn().mockResolvedValue(undefined),
     };

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CampanhasModule } from '../campanhas/campanhas.module';
 import { GruposModule } from '../grupos/grupos.module';
 import { CompradoresModule } from '../compradores/compradores.module';
+import { AdministradoresModule } from '../administradores/administradores.module';
 import { PAGAMENTO_REPOSITORY } from './domain/repositories/pagamento.repository';
 import {
   ESCOLHA_POS_CANCELAMENTO_REPOSITORY,
@@ -27,7 +28,7 @@ import { ProcessarEscolhasExpiradasUseCase } from './application/use-cases/proce
 import { PagamentosController } from './presentation/pagamentos.controller';
 
 @Module({
-  imports: [CampanhasModule, GruposModule, CompradoresModule],
+  imports: [CampanhasModule, GruposModule, CompradoresModule, AdministradoresModule],
   controllers: [PagamentosController],
   providers: [
     { provide: PAGAMENTO_REPOSITORY, useClass: PrismaPagamentoRepository },

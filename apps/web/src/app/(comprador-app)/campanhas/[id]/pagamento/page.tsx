@@ -193,7 +193,9 @@ function PagamentoPix({
             <IconCopy className="h-4 w-4" /> {copiado ? 'Copiado!' : 'Copiar código copia e cola'}
           </button>
           <p className="text-xs text-muted">
-            Assim que o pagamento for confirmado pelo gateway, {numeros.length > 1 ? 'suas cotas mudam' : 'sua cota muda'} automaticamente para paga.
+            O Pix vai direto para a chave cadastrada pelo administrador da campanha. Depois de pagar, envie o
+            comprovante pelo WhatsApp abaixo — {numeros.length > 1 ? 'suas cotas mudam' : 'sua cota muda'} para paga
+            assim que o administrador confirmar o recebimento.
           </p>
 
           <div className="mt-2 flex w-full flex-col items-stretch gap-4 border-t border-line pt-4 text-left">

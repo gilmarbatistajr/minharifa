@@ -48,5 +48,6 @@ import { AdministradoresMembrosController } from './presentation/administradores
     BuscarAdministradorMembroUseCase,
     ExcluirAdministradorMembroUseCase,
   ],
+  exports: [ADMINISTRADOR_REPOSITORY],
 })
 export class AdministradoresModule {}

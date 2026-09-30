@@ -2,9 +2,10 @@ import { Cota } from '../../../campanhas/domain/entities/cota.entity';
 import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
 import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
+import { Administrador } from '../../../administradores/domain/entities/administrador.entity';
+import { AdministradorRepository } from '../../../administradores/domain/repositories/administrador.repository';
 import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { PagamentoRepository } from '../../domain/repositories/pagamento.repository';
-import { PaymentGateway } from '../../domain/services/payment-gateway';
 import { GerarCobrancaPixUseCase } from './gerar-cobranca-pix.use-case';
 
 describe('GerarCobrancaPixUseCase', () => {
@@ -20,7 +21,7 @@ describe('GerarCobrancaPixUseCase', () => {
     );
   }
 
-  function criarCampanha(): Campanha {
+  function criarCampanha(overrides: Partial<{ chavePix: string | null }> = {}): Campanha {
     return new Campanha(
       'campanha-1',
       'admin-1',
@@ -38,6 +39,41 @@ describe('GerarCobrancaPixUseCase', () => {
       'VENDAS_ABERTAS',
       null,
       null,
+      null,
+      '',
+      1,
+      null,
+      2,
+      true,
+      true,
+      true,
+      false,
+      null,
+      null,
+      null,
+      false,
+      false,
+      false,
+      'CPF',
+      overrides.chavePix === undefined ? '12345678900' : overrides.chavePix,
+    );
+  }
+
+  function criarAdministrador(nome = 'Maria da Silva'): Administrador {
+    return new Administrador(
+      'admin-1',
+      nome,
+      'admin@example.com',
+      'hash',
+      true,
+      new Date(),
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
     );
   }
 
@@ -45,6 +81,7 @@ describe('GerarCobrancaPixUseCase', () => {
     cotasReservadas: Cota[],
     campanha: Campanha | null,
     pagamentosExistentesPorCotaId: Record<string, Pagamento | null> = {},
+    administrador: Administrador | null = criarAdministrador(),
   ) {
     const cotaRepository: CotaRepository = {
       buscarPorId: jest.fn(),
@@ -65,6 +102,18 @@ describe('GerarCobrancaPixUseCase', () => {
       criar: jest.fn(),
       salvar: jest.fn(),
     };
+    const administradorRepository: AdministradorRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(administrador),
+      buscarPorEmail: jest.fn(),
+      buscarPorCpf: jest.fn(),
+      buscarPorTokenConfirmacaoEmail: jest.fn(),
+      buscarPorTokenRecuperacaoSenha: jest.fn(),
+      buscarPorTokenConfirmacaoNovoEmail: jest.fn(),
+      listarMembrosDaConta: jest.fn(),
+      salvar: jest.fn(),
+      criar: jest.fn(),
+      remover: jest.fn(),
+    };
     const pagamentoRepository: PagamentoRepository = {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn((cotaId: string) => Promise.resolve(pagamentosExistentesPorCotaId[cotaId] ?? null)),
@@ -72,55 +121,46 @@ describe('GerarCobrancaPixUseCase', () => {
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn().mockResolvedValue(undefined),
     };
-    const paymentGateway: PaymentGateway = {
-      gerarCobrancaPix: jest.fn().mockResolvedValue({
-        transacaoId: 'txn-pix-1',
-        qrCode: 'qr-code-fake',
-        codigoCopiaCola: 'copia-e-cola-fake',
-      }),
-      gerarCobrancaCartao: jest.fn(),
-      estornar: jest.fn(),
-    };
 
-    return { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway };
+    return { cotaRepository, campanhaRepository, administradorRepository, pagamentoRepository };
+  }
+
+  function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
+    return new GerarCobrancaPixUseCase(
+      deps.cotaRepository,
+      deps.campanhaRepository,
+      deps.administradorRepository,
+      deps.pagamentoRepository,
+    );
   }
 
   const agora = new Date('2026-01-01T10:01:00Z');
 
-  it('gera uma cobrança Pix pelo valor da cota, válida pelo tempo restante da reserva', async () => {
+  it('gera um Pix Copia e Cola pelo valor da cota, direto para a chave Pix da campanha', async () => {
     const cota = criarCota(42);
     const campanha = criarCampanha();
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
-      criarDependencias([cota], campanha);
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias([cota], campanha);
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
       agora,
     );
 
-    expect(resultado.qrCode).toBe('qr-code-fake');
     expect(resultado.valor).toBe(50);
     expect(resultado.validoAte).toEqual(new Date('2026-01-01T10:02:00Z'));
-    expect(pagamentoRepository.criar).toHaveBeenCalledTimes(1);
+    expect(resultado.qrCode).toBe(resultado.codigoCopiaCola);
+    expect(resultado.qrCode).toContain('12345678900');
+    expect(resultado.qrCode).toContain('MARIA DA SILVA');
+    expect(resultado.qrCode).toContain('540550.00');
+    expect(deps.pagamentoRepository.criar).toHaveBeenCalledTimes(1);
   });
 
-  it('gera uma única cobrança cobrindo todas as cotas reservadas de um lote', async () => {
+  it('gera um único Pix cobrindo todas as cotas reservadas de um lote, com o mesmo id de transação', async () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
     const campanha = criarCampanha();
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
-      criarDependencias(cotas, campanha);
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias(cotas, campanha);
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [1, 2, 3], compradorId: 'comprador-maria' },
@@ -128,78 +168,58 @@ describe('GerarCobrancaPixUseCase', () => {
     );
 
     expect(resultado.valor).toBe(150);
-    expect(paymentGateway.gerarCobrancaPix).toHaveBeenCalledTimes(1);
-    expect(paymentGateway.gerarCobrancaPix).toHaveBeenCalledWith(150, expect.any(String));
-    expect(pagamentoRepository.criar).toHaveBeenCalledTimes(3);
-    for (const chamada of (pagamentoRepository.criar as jest.Mock).mock.calls) {
-      expect(chamada[0].idTransacaoGateway).toBe('txn-pix-1');
-    }
+    expect(deps.pagamentoRepository.criar).toHaveBeenCalledTimes(3);
+    const idsTransacao = (deps.pagamentoRepository.criar as jest.Mock).mock.calls.map(
+      (chamada) => chamada[0].idTransacaoGateway,
+    );
+    expect(new Set(idsTransacao).size).toBe(1);
+    expect(resultado.qrCode).toContain(idsTransacao[0].replace(/-/g, '').toUpperCase().slice(0, 25));
+  });
+
+  it('rejeita quando a campanha não tem uma chave Pix cadastrada', async () => {
+    const cota = criarCota(42);
+    const campanha = criarCampanha({ chavePix: null });
+    const deps = criarDependencias([cota], campanha);
+    const useCase = montarUseCase(deps);
+
+    await expect(
+      useCase.executar({ campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' }, agora),
+    ).rejects.toThrow('Esta campanha ainda não tem uma chave Pix cadastrada.');
+    expect(deps.pagamentoRepository.criar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita quando o administrador da campanha não é encontrado', async () => {
+    const cota = criarCota(42);
+    const campanha = criarCampanha();
+    const deps = criarDependencias([cota], campanha, {}, null);
+    const useCase = montarUseCase(deps);
+
+    await expect(
+      useCase.executar({ campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' }, agora),
+    ).rejects.toThrow('Administrador da campanha não encontrado.');
+    expect(deps.pagamentoRepository.criar).not.toHaveBeenCalled();
   });
 
   it('rejeita quando o comprador tenta pagar apenas uma parte das cotas reservadas', async () => {
     const cotas = [criarCota(1), criarCota(2), criarCota(3)];
     const campanha = criarCampanha();
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
-      criarDependencias(cotas, campanha);
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias(cotas, campanha);
+    const useCase = montarUseCase(deps);
 
     await expect(
-      useCase.executar(
-        { campanhaId: 'campanha-1', numerosCotas: [1, 2], compradorId: 'comprador-maria' },
-        agora,
-      ),
+      useCase.executar({ campanhaId: 'campanha-1', numerosCotas: [1, 2], compradorId: 'comprador-maria' }, agora),
     ).rejects.toThrow('Você precisa pagar todas as suas cotas reservadas de uma só vez.');
-    expect(paymentGateway.gerarCobrancaPix).not.toHaveBeenCalled();
-    expect(pagamentoRepository.criar).not.toHaveBeenCalled();
+    expect(deps.pagamentoRepository.criar).not.toHaveBeenCalled();
   });
 
   it('rejeita quando o comprador não tem nenhuma cota reservada para si', async () => {
     const campanha = criarCampanha();
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
-      criarDependencias([], campanha);
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias([], campanha);
+    const useCase = montarUseCase(deps);
 
     await expect(
-      useCase.executar(
-        { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
-        agora,
-      ),
+      useCase.executar({ campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' }, agora),
     ).rejects.toThrow('Você não tem cotas reservadas para pagar nesta campanha.');
-  });
-
-  it('não persiste nada e propaga o erro quando o gateway está indisponível', async () => {
-    const cota = criarCota(42);
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } =
-      criarDependencias([cota], criarCampanha());
-    (paymentGateway.gerarCobrancaPix as jest.Mock).mockRejectedValue(
-      new Error('Gateway indisponível'),
-    );
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
-
-    await expect(
-      useCase.executar(
-        { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
-        agora,
-      ),
-    ).rejects.toThrow('Gateway indisponível');
-
-    expect(pagamentoRepository.criar).not.toHaveBeenCalled();
-    expect(cotaRepository.salvar).not.toHaveBeenCalled();
   });
 
   it('reaproveita um pagamento existente cobrando apenas o valor restante após cashback parcial', async () => {
@@ -216,17 +236,8 @@ describe('GerarCobrancaPixUseCase', () => {
       null,
       new Date(),
     );
-    const { cotaRepository, campanhaRepository, pagamentoRepository, paymentGateway } = criarDependencias(
-      [cota],
-      campanha,
-      { 'cota-42': pagamentoExistente },
-    );
-    const useCase = new GerarCobrancaPixUseCase(
-      cotaRepository,
-      campanhaRepository,
-      pagamentoRepository,
-      paymentGateway,
-    );
+    const deps = criarDependencias([cota], campanha, { 'cota-42': pagamentoExistente });
+    const useCase = montarUseCase(deps);
 
     const resultado = await useCase.executar(
       { campanhaId: 'campanha-1', numerosCotas: [42], compradorId: 'comprador-maria' },
@@ -234,8 +245,8 @@ describe('GerarCobrancaPixUseCase', () => {
     );
 
     expect(resultado.valor).toBe(30);
-    expect(paymentGateway.gerarCobrancaPix).toHaveBeenCalledWith(30, expect.any(String));
-    expect(pagamentoRepository.salvar).toHaveBeenCalledWith(pagamentoExistente);
-    expect(pagamentoRepository.criar).not.toHaveBeenCalled();
+    expect(resultado.qrCode).toContain('540530.00');
+    expect(deps.pagamentoRepository.salvar).toHaveBeenCalledWith(pagamentoExistente);
+    expect(deps.pagamentoRepository.criar).not.toHaveBeenCalled();
   });
 });

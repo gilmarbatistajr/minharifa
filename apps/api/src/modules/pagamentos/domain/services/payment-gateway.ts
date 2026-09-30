@@ -5,23 +5,17 @@ export interface DadosCartao {
   nomeTitular: string;
 }
 
-export interface CobrancaPix {
-  transacaoId: string;
-  qrCode: string;
-  codigoCopiaCola: string;
-}
-
 export interface CobrancaCartao {
   transacaoId: string;
   aprovado: boolean;
 }
 
 /**
- * Porta do domínio para o gateway de pagamento (Mercado Pago em sandbox).
- * A implementação concreta fica na camada de infrastructure.
+ * Porta do domínio para o gateway de pagamento por cartão (Mercado Pago em
+ * sandbox). O Pix não passa por aqui: é gerado localmente, sem gateway, direto
+ * para a chave Pix da campanha (ver `gerarPixCopiaECola`).
  */
 export interface PaymentGateway {
-  gerarCobrancaPix(valor: number, referencia: string): Promise<CobrancaPix>;
   gerarCobrancaCartao(
     valor: number,
     referencia: string,

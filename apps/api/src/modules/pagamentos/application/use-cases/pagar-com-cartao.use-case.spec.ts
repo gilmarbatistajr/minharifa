@@ -73,7 +73,6 @@ describe('PagarComCartaoUseCase', () => {
       salvar: jest.fn().mockResolvedValue(undefined),
     };
     const paymentGateway: PaymentGateway = {
-      gerarCobrancaPix: jest.fn(),
       gerarCobrancaCartao: jest.fn().mockResolvedValue({ transacaoId: 'txn-cartao-1', aprovado }),
       estornar: jest.fn(),
     };
