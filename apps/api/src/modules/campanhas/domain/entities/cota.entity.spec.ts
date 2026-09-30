@@ -64,5 +64,83 @@ describe('Cota (entidade de domínio)', () => {
       expect(cota.reservadaEm).toBeNull();
       expect(cota.reservaExpiraEm).toBeNull();
     });
+
+    it('libera uma cota reservada por um convidado, limpando também o contato', () => {
+      const cota = new Cota('cota-1', 'campanha-1', 42, 'DISPONIVEL', null, null, null);
+      const agora = new Date('2026-01-01T10:00:00Z');
+      cota.reservarParaConvidado(
+        'token-1',
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        agora,
+        2,
+      );
+
+      cota.liberar();
+
+      expect(cota.status).toBe('DISPONIVEL');
+      expect(cota.tokenReservaConvidado).toBeNull();
+      expect(cota.convidadoNome).toBeNull();
+      expect(cota.convidadoEmail).toBeNull();
+      expect(cota.convidadoTelefone).toBeNull();
+    });
+  });
+
+  describe('reservarParaConvidado', () => {
+    it('reserva uma cota disponível pra um convidado, sem compradorId', () => {
+      const cota = new Cota('cota-1', 'campanha-1', 42, 'DISPONIVEL', null, null, null);
+      const agora = new Date('2026-01-01T10:00:00Z');
+
+      cota.reservarParaConvidado(
+        'token-1',
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        agora,
+        2,
+      );
+
+      expect(cota.status).toBe('RESERVADA');
+      expect(cota.compradorId).toBeNull();
+      expect(cota.tokenReservaConvidado).toBe('token-1');
+      expect(cota.convidadoNome).toBe('Maria');
+      expect(cota.convidadoEmail).toBe('maria@exemplo.com');
+      expect(cota.convidadoTelefone).toBe('11988887777');
+      expect(cota.reservadaEm).toBe(agora);
+      expect(cota.reservaExpiraEm).toEqual(new Date('2026-01-01T10:02:00Z'));
+    });
+
+    it('rejeita reservar pra um convidado uma cota já reservada por outra pessoa e ainda dentro do prazo', () => {
+      const cota = new Cota(
+        'cota-1',
+        'campanha-1',
+        42,
+        'RESERVADA',
+        'comprador-joao',
+        new Date(),
+        new Date('2099-01-01T00:00:00Z'),
+      );
+
+      expect(() =>
+        cota.reservarParaConvidado('token-1', { nome: null, email: null, telefone: null }, new Date(), 2),
+      ).toThrow('não está disponível para reserva');
+    });
+  });
+
+  describe('reservarPara', () => {
+    it('limpa um contato de convidado remanescente ao reservar pra um comprador com conta', () => {
+      const cota = new Cota('cota-1', 'campanha-1', 42, 'DISPONIVEL', null, null, null);
+      const agora = new Date('2026-01-01T10:00:00Z');
+      cota.reservarParaConvidado(
+        'token-1',
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        agora,
+        2,
+      );
+      cota.liberar();
+
+      cota.reservarPara('comprador-joao', agora, 2);
+
+      expect(cota.compradorId).toBe('comprador-joao');
+      expect(cota.tokenReservaConvidado).toBeNull();
+      expect(cota.convidadoNome).toBeNull();
+    });
   });
 });

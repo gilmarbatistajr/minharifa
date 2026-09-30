@@ -18,6 +18,9 @@ export interface CotaComComprador {
   compradorId: string | null;
   compradorNome: string | null;
   compradorTelefone: string | null;
+  tokenReservaConvidado: string | null;
+  convidadoNome: string | null;
+  convidadoTelefone: string | null;
 }
 
 /**
@@ -66,6 +69,9 @@ export class ListarCotasParaAdministradorUseCase {
           compradorId: cota.compradorId,
           compradorNome: comprador?.nome ?? null,
           compradorTelefone: comprador?.telefone ?? null,
+          tokenReservaConvidado: cota.tokenReservaConvidado,
+          convidadoNome: cota.convidadoNome,
+          convidadoTelefone: cota.convidadoTelefone,
         };
       });
   }

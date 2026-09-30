@@ -17,6 +17,7 @@ import { SandboxPaymentGateway } from './infrastructure/sandbox-payment-gateway'
 import { HmacWebhookSignatureValidator } from './infrastructure/hmac-webhook-signature-validator';
 import { EscolhasExpiradasScheduler } from './infrastructure/escolhas-expiradas.scheduler';
 import { GerarCobrancaPixUseCase } from './application/use-cases/gerar-cobranca-pix.use-case';
+import { GerarCobrancaPixConvidadoUseCase } from './application/use-cases/gerar-cobranca-pix-convidado.use-case';
 import { PagarComCartaoUseCase } from './application/use-cases/pagar-com-cartao.use-case';
 import { PagarComCashbackUseCase } from './application/use-cases/pagar-com-cashback.use-case';
 import { ConfirmarPagamentoWebhookUseCase } from './application/use-cases/confirmar-pagamento-webhook.use-case';
@@ -38,6 +39,7 @@ import { PagamentosController } from './presentation/pagamentos.controller';
     { provide: WEBHOOK_SIGNATURE_VALIDATOR, useClass: HmacWebhookSignatureValidator },
     EscolhasExpiradasScheduler,
     GerarCobrancaPixUseCase,
+    GerarCobrancaPixConvidadoUseCase,
     PagarComCartaoUseCase,
     PagarComCashbackUseCase,
     ConfirmarPagamentoWebhookUseCase,

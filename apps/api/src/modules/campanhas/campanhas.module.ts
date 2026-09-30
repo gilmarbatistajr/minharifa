@@ -21,6 +21,7 @@ import { ListarCampanhasVisiveisParaCompradorUseCase } from './application/use-c
 import { ListarCotasDaCampanhaUseCase } from './application/use-cases/listar-cotas-campanha.use-case';
 import { ReservarCotaUseCase } from './application/use-cases/reservar-cota.use-case';
 import { ReservarLoteCotasUseCase } from './application/use-cases/reservar-lote-cotas.use-case';
+import { ReservarLoteCotasConvidadoUseCase } from './application/use-cases/reservar-lote-cotas-convidado.use-case';
 import { AtualizarFotoCampanhaUseCase } from './application/use-cases/atualizar-foto-campanha.use-case';
 import { ListarCotasParaAdministradorUseCase } from './application/use-cases/listar-cotas-administrador.use-case';
 import { ConfirmarPagamentoManualUseCase } from './application/use-cases/confirmar-pagamento-manual.use-case';
@@ -64,6 +65,7 @@ import { CampanhasController } from './presentation/campanhas.controller';
     ListarCotasDaCampanhaUseCase,
     ReservarCotaUseCase,
     ReservarLoteCotasUseCase,
+    ReservarLoteCotasConvidadoUseCase,
     AtualizarFotoCampanhaUseCase,
     ListarCotasParaAdministradorUseCase,
     ConfirmarPagamentoManualUseCase,

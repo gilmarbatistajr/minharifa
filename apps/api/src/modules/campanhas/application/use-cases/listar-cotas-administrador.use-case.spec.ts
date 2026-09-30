@@ -69,6 +69,7 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn().mockResolvedValue(cotas),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
@@ -120,6 +121,9 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       compradorId: 'comprador-2',
       compradorNome: 'João Souza',
       compradorTelefone: '11988880000',
+      tokenReservaConvidado: null,
+      convidadoNome: null,
+      convidadoTelefone: null,
     });
     expect(resultado[2]).toEqual({
       numero: 3,
@@ -127,7 +131,51 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       compradorId: null,
       compradorNome: null,
       compradorTelefone: null,
+      tokenReservaConvidado: null,
+      convidadoNome: null,
+      convidadoTelefone: null,
     });
+  });
+
+  it('inclui o contato do convidado nas cotas reservadas sem login, sem tentar buscar um Comprador', async () => {
+    const campanha = criarCampanha();
+    const cotaConvidado = new Cota(
+      'cota-1',
+      'campanha-1',
+      1,
+      'RESERVADA',
+      null,
+      null,
+      null,
+      'token-x',
+      'Maria Convidada',
+      'maria@exemplo.com',
+      '11988887777',
+    );
+    const { campanhaRepository, cotaRepository, compradorRepository } = criarDependencias(
+      campanha,
+      [cotaConvidado],
+      [],
+    );
+    const useCase = new ListarCotasParaAdministradorUseCase(
+      campanhaRepository,
+      cotaRepository,
+      compradorRepository,
+    );
+
+    const resultado = await useCase.executar({ administradorId: 'admin-1', campanhaId: 'campanha-1' });
+
+    expect(resultado[0]).toEqual({
+      numero: 1,
+      status: 'RESERVADA',
+      compradorId: null,
+      compradorNome: null,
+      compradorTelefone: null,
+      tokenReservaConvidado: 'token-x',
+      convidadoNome: 'Maria Convidada',
+      convidadoTelefone: '11988887777',
+    });
+    expect(compradorRepository.buscarPorId).not.toHaveBeenCalled();
   });
 
   it('rejeita quando a campanha não existe', async () => {

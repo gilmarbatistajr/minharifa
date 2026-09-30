@@ -21,6 +21,7 @@ describe('resolverCotasElegiveisParaPagamento', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn(),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(reservadas),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

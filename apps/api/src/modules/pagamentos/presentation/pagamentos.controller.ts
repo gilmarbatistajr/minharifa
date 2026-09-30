@@ -4,6 +4,7 @@ import { CompradorGuard } from '../../../shared/auth/guards/comprador.guard';
 import { CurrentUser } from '../../../shared/auth/decorators/current-user.decorator';
 import { PrincipalAutenticado } from '../../../shared/auth/jwt-payload.interface';
 import { GerarCobrancaPixUseCase } from '../application/use-cases/gerar-cobranca-pix.use-case';
+import { GerarCobrancaPixConvidadoUseCase } from '../application/use-cases/gerar-cobranca-pix-convidado.use-case';
 import { PagarComCartaoUseCase } from '../application/use-cases/pagar-com-cartao.use-case';
 import { PagarComCashbackUseCase } from '../application/use-cases/pagar-com-cashback.use-case';
 import { ConfirmarPagamentoWebhookUseCase } from '../application/use-cases/confirmar-pagamento-webhook.use-case';
@@ -12,6 +13,7 @@ import { EscolherReembolsoUseCase } from '../application/use-cases/escolher-reem
 import { EscolherManterCotasUseCase } from '../application/use-cases/escolher-manter-cotas.use-case';
 import { ResgatarCreditoUseCase } from '../application/use-cases/resgatar-credito.use-case';
 import { GerarCobrancaPixDto } from './dto/gerar-cobranca-pix.dto';
+import { GerarCobrancaPixConvidadoDto } from './dto/gerar-cobranca-pix-convidado.dto';
 import { PagarComCartaoDto } from './dto/pagar-com-cartao.dto';
 import { PagarComCashbackDto } from './dto/pagar-com-cashback.dto';
 import { ConfirmarPagamentoWebhookDto } from './dto/confirmar-pagamento-webhook.dto';
@@ -21,6 +23,7 @@ import { ResgatarCreditoDto } from './dto/resgatar-credito.dto';
 export class PagamentosController {
   constructor(
     private readonly gerarCobrancaPixUseCase: GerarCobrancaPixUseCase,
+    private readonly gerarCobrancaPixConvidadoUseCase: GerarCobrancaPixConvidadoUseCase,
     private readonly pagarComCartaoUseCase: PagarComCartaoUseCase,
     private readonly pagarComCashbackUseCase: PagarComCashbackUseCase,
     private readonly confirmarPagamentoWebhookUseCase: ConfirmarPagamentoWebhookUseCase,
@@ -37,6 +40,18 @@ export class PagamentosController {
       campanhaId: dto.campanhaId,
       numerosCotas: dto.numerosCotas,
       compradorId: usuario.compradorId!,
+    });
+  }
+
+  // Sem guard de propósito: gera o Pix da reserva feita sem login (ver
+  // ReservarLoteCotasConvidadoUseCase) — localizada pelo tokenReservaConvidado
+  // em vez de uma sessão de comprador.
+  @Post('pagamentos/pix/convidado')
+  async gerarCobrancaPixConvidado(@Body() dto: GerarCobrancaPixConvidadoDto) {
+    return this.gerarCobrancaPixConvidadoUseCase.executar({
+      campanhaId: dto.campanhaId,
+      numerosCotas: dto.numerosCotas,
+      tokenReservaConvidado: dto.tokenReservaConvidado,
     });
   }
 

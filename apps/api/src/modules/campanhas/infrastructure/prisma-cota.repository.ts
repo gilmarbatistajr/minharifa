@@ -1,7 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import { Cota as CotaPrisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { Cota, StatusCota } from '../domain/entities/cota.entity';
 import { CotaRepository, ContagemPorComprador } from '../domain/repositories/cota.repository';
+
+function paraDominio(registro: CotaPrisma): Cota {
+  return new Cota(
+    registro.id,
+    registro.campanhaId,
+    registro.numero,
+    registro.status as StatusCota,
+    registro.compradorId,
+    registro.reservadaEm,
+    registro.reservaExpiraEm,
+    registro.tokenReservaConvidado,
+    registro.convidadoNome,
+    registro.convidadoEmail,
+    registro.convidadoTelefone,
+  );
+}
 
 @Injectable()
 export class PrismaCotaRepository implements CotaRepository {
@@ -9,76 +26,33 @@ export class PrismaCotaRepository implements CotaRepository {
 
   async buscarPorId(id: string): Promise<Cota | null> {
     const registro = await this.prisma.cota.findUnique({ where: { id } });
-
-    if (!registro) {
-      return null;
-    }
-
-    return new Cota(
-      registro.id,
-      registro.campanhaId,
-      registro.numero,
-      registro.status as StatusCota,
-      registro.compradorId,
-      registro.reservadaEm,
-      registro.reservaExpiraEm,
-    );
+    return registro ? paraDominio(registro) : null;
   }
 
   async buscarPorCampanhaENumero(campanhaId: string, numero: number): Promise<Cota | null> {
     const registro = await this.prisma.cota.findUnique({
       where: { campanhaId_numero: { campanhaId, numero } },
     });
-
-    if (!registro) {
-      return null;
-    }
-
-    return new Cota(
-      registro.id,
-      registro.campanhaId,
-      registro.numero,
-      registro.status as StatusCota,
-      registro.compradorId,
-      registro.reservadaEm,
-      registro.reservaExpiraEm,
-    );
+    return registro ? paraDominio(registro) : null;
   }
 
   async listarPorCampanha(campanhaId: string): Promise<Cota[]> {
     const registros = await this.prisma.cota.findMany({ where: { campanhaId } });
-
-    return registros.map(
-      (registro) =>
-        new Cota(
-          registro.id,
-          registro.campanhaId,
-          registro.numero,
-          registro.status as StatusCota,
-          registro.compradorId,
-          registro.reservadaEm,
-          registro.reservaExpiraEm,
-        ),
-    );
+    return registros.map(paraDominio);
   }
 
   async listarReservadasPorComprador(campanhaId: string, compradorId: string): Promise<Cota[]> {
     const registros = await this.prisma.cota.findMany({
       where: { campanhaId, compradorId, status: 'RESERVADA' },
     });
+    return registros.map(paraDominio);
+  }
 
-    return registros.map(
-      (registro) =>
-        new Cota(
-          registro.id,
-          registro.campanhaId,
-          registro.numero,
-          registro.status as StatusCota,
-          registro.compradorId,
-          registro.reservadaEm,
-          registro.reservaExpiraEm,
-        ),
-    );
+  async listarReservadasPorTokenConvidado(campanhaId: string, token: string): Promise<Cota[]> {
+    const registros = await this.prisma.cota.findMany({
+      where: { campanhaId, tokenReservaConvidado: token, status: 'RESERVADA' },
+    });
+    return registros.map(paraDominio);
   }
 
   async contarPagasPorCampanha(campanhaId: string): Promise<number> {
@@ -127,6 +101,10 @@ export class PrismaCotaRepository implements CotaRepository {
         compradorId: cota.compradorId,
         reservadaEm: cota.reservadaEm,
         reservaExpiraEm: cota.reservaExpiraEm,
+        tokenReservaConvidado: cota.tokenReservaConvidado,
+        convidadoNome: cota.convidadoNome,
+        convidadoEmail: cota.convidadoEmail,
+        convidadoTelefone: cota.convidadoTelefone,
       })),
     });
   }
@@ -143,6 +121,10 @@ export class PrismaCotaRepository implements CotaRepository {
         compradorId: cota.compradorId,
         reservadaEm: cota.reservadaEm,
         reservaExpiraEm: cota.reservaExpiraEm,
+        tokenReservaConvidado: cota.tokenReservaConvidado,
+        convidadoNome: cota.convidadoNome,
+        convidadoEmail: cota.convidadoEmail,
+        convidadoTelefone: cota.convidadoTelefone,
       },
     });
   }

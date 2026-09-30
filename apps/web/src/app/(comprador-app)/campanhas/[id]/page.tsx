@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card, TicketCard } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Spinner } from '../../../../components/ui/Spinner';
+import { TextField, PhoneField } from '../../../../components/ui/Field';
 import { IconWhatsapp } from '../../../../components/ui/icons';
 import {
   campanhasApi,
@@ -15,7 +16,8 @@ import {
   type Campanha,
   type CampanhaPublica,
 } from '../../../../lib/api';
-import { formatarMoeda } from '../../../../lib/format';
+import { formatarMoeda, formatarTelefone } from '../../../../lib/format';
+import { validarEmail, validarCelular } from '../../../../lib/validacoes-chave-pix';
 import { useSessaoCompradorOpcional } from '../../../../lib/auth';
 
 const LOTES_PRESET = [5, 10, 15, 20, 25, 30];
@@ -29,7 +31,6 @@ export default function DetalheCampanhaPage() {
   const { id } = useParams<{ id: string }>();
   const { sessao, pronto } = useSessaoCompradorOpcional();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [campanha, setCampanha] = useState<CampanhaExibicao | null>(null);
   const [cotas, setCotas] = useState<CotaResumo[] | null>(null);
@@ -42,6 +43,29 @@ export default function DetalheCampanhaPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [reservando, setReservando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+
+  // Checkout sem login: em vez de mandar pro /entrar, "Confirmar cotas" abre
+  // este formulário pedindo só os dados marcados como obrigatórios na
+  // campanha (reservaExige*) — ver reservarComoConvidado.
+  const [mostrarFormularioConvidado, setMostrarFormularioConvidado] = useState(false);
+  const [nomeConvidado, setNomeConvidado] = useState('');
+  const [emailConvidado, setEmailConvidado] = useState('');
+  const [telefoneConvidado, setTelefoneConvidado] = useState('');
+  const [confirmacaoTelefoneConvidado, setConfirmacaoTelefoneConvidado] = useState('');
+
+  // Mesma máscara/validação de formato usada na chave Pix (celular/e-mail) —
+  // só acende depois que o campo já tem conteúdo, pra não gritar "inválido"
+  // com o campo ainda vazio.
+  const erroEmailConvidado =
+    emailConvidado.trim() && !validarEmail(emailConvidado) ? 'Informe um e-mail válido.' : undefined;
+  const erroTelefoneConvidado =
+    telefoneConvidado.trim() && !validarCelular(telefoneConvidado)
+      ? 'Informe um celular válido, com DDD — (11) 91234-5678.'
+      : undefined;
+  const erroConfirmacaoTelefoneConvidado =
+    confirmacaoTelefoneConvidado.trim() && confirmacaoTelefoneConvidado !== telefoneConvidado
+      ? 'A confirmação não confere com o telefone informado.'
+      : undefined;
 
   const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
   const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
@@ -89,17 +113,18 @@ export default function DetalheCampanhaPage() {
 
   function irParaPagamentoComCotas(
     campanhaAtual: CampanhaExibicao,
-    cotasReservadas: CotaResumo[],
-    metodo: 'push' | 'replace' = 'push',
+    numeros: number[],
+    reservaExpiraEm: string | null,
+    opcoes: { metodo?: 'push' | 'replace'; tokenConvidado?: string } = {},
   ) {
-    const numeros = cotasReservadas.map((cota) => cota.numero).sort((a, b) => a - b);
-    const expira = cotasReservadas.find((cota) => cota.reservaExpiraEm)?.reservaExpiraEm;
+    const { metodo = 'push', tokenConvidado } = opcoes;
     const parametros = new URLSearchParams({
-      numeros: numeros.join(','),
+      numeros: numeros.slice().sort((a, b) => a - b).join(','),
       telefoneSuporte: campanhaAtual.telefoneSuporte,
       nomeCampanha: campanhaAtual.nome,
     });
-    if (expira) parametros.set('expira', expira);
+    if (reservaExpiraEm) parametros.set('expira', reservaExpiraEm);
+    if (tokenConvidado) parametros.set('tokenConvidado', tokenConvidado);
     router[metodo](`/campanhas/${id}/pagamento?${parametros.toString()}`);
   }
 
@@ -128,30 +153,6 @@ export default function DetalheCampanhaPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessao, pronto, id]);
-
-  // Restaura a seleção feita antes de ir pro login (ver `confirmarCotas`) —
-  // só faz sentido assim que a sessão aparece, então roda uma vez após o
-  // retorno do /entrar e limpa a URL em seguida.
-  useEffect(() => {
-    if (!sessao) return;
-    const numerosParam = searchParams.get('sel');
-    const loteParam = searchParams.get('loteQtd');
-    if (!numerosParam && !loteParam) return;
-
-    if (numerosParam) {
-      const numeros = numerosParam
-        .split(',')
-        .map(Number)
-        .filter((numero) => !Number.isNaN(numero));
-      setSelecionados(new Set(numeros));
-    }
-    if (loteParam) {
-      const quantidade = Number(loteParam);
-      if (!Number.isNaN(quantidade)) setQuantidadeLote(quantidade);
-    }
-    router.replace(`/campanhas/${id}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessao]);
 
   const minhasCotasReservadas = useMemo(
     () => cotas?.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA').map((cota) => cota.numero) ?? [],
@@ -208,8 +209,8 @@ export default function DetalheCampanhaPage() {
   // Ação única do botão "Confirmar cotas": só agora a reserva é de fato
   // salva no backend (e passa a aparecer no painel do administrador) — nem
   // tocar nos números (modo manual) nem sortear a quantidade (modo lote)
-  // reserva nada por conta própria. Sem sessão, a seleção fica guardada na
-  // própria URL de volta e o login é exigido antes de reservar de verdade.
+  // reserva nada por conta própria. Sem sessão, abre o formulário de
+  // convidado em vez de reservar direto — ver reservarComoConvidado.
   async function confirmarCotas() {
     const modoManual = formaVenda === 'ESCOLHA_NUMERO';
 
@@ -223,14 +224,8 @@ export default function DetalheCampanhaPage() {
     }
 
     if (!sessao) {
-      const parametrosRetorno = new URLSearchParams();
-      if (modoManual) {
-        parametrosRetorno.set('sel', Array.from(selecionados).join(','));
-      } else {
-        parametrosRetorno.set('loteQtd', String(quantidadeLote));
-      }
-      const urlRetorno = `/campanhas/${id}?${parametrosRetorno.toString()}`;
-      router.push(`/entrar?redirect=${encodeURIComponent(urlRetorno)}`);
+      setErro(null);
+      setMostrarFormularioConvidado(true);
       return;
     }
 
@@ -244,6 +239,71 @@ export default function DetalheCampanhaPage() {
       setSelecionados(new Set());
       setLoteStaged(false);
       await carregar();
+    } catch (excecao) {
+      setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
+    } finally {
+      setReservando(false);
+    }
+  }
+
+  // Conclui o checkout sem login: reserva as cotas guardando o contato
+  // informado direto nelas (sem criar conta) e já segue pro pagamento com o
+  // token da reserva — ver ReservarLoteCotasConvidadoUseCase no backend.
+  async function reservarComoConvidado() {
+    if (!campanha) return;
+    const modoManual = formaVenda === 'ESCOLHA_NUMERO';
+
+    if (campanha.reservaExigeNome && !nomeConvidado.trim()) {
+      setErro('Informe seu nome para reservar.');
+      return;
+    }
+    if (campanha.reservaExigeEmail) {
+      if (!emailConvidado.trim()) {
+        setErro('Informe seu e-mail para reservar.');
+        return;
+      }
+      if (erroEmailConvidado) {
+        setErro(erroEmailConvidado);
+        return;
+      }
+    }
+    if (campanha.reservaExigeTelefone) {
+      if (!telefoneConvidado.trim()) {
+        setErro('Informe seu telefone para reservar.');
+        return;
+      }
+      if (erroTelefoneConvidado) {
+        setErro(erroTelefoneConvidado);
+        return;
+      }
+    }
+    if (campanha.reservaExigeConfirmacaoTelefone) {
+      if (!confirmacaoTelefoneConvidado.trim()) {
+        setErro('Confirme seu telefone para reservar.');
+        return;
+      }
+      if (erroConfirmacaoTelefoneConvidado) {
+        setErro(erroConfirmacaoTelefoneConvidado);
+        return;
+      }
+    }
+
+    setErro(null);
+    setReservando(true);
+    try {
+      const resultado = await campanhasApi.reservarLoteConvidado(id, {
+        ...(modoManual ? { numeros: Array.from(selecionados) } : { quantidadeAleatoria: quantidadeLote }),
+        nome: nomeConvidado || undefined,
+        email: emailConvidado || undefined,
+        telefone: telefoneConvidado || undefined,
+        confirmacaoTelefone: confirmacaoTelefoneConvidado || undefined,
+      });
+      setSelecionados(new Set());
+      setLoteStaged(false);
+      setMostrarFormularioConvidado(false);
+      irParaPagamentoComCotas(campanha, resultado.numeros, resultado.reservaExpiraEm, {
+        tokenConvidado: resultado.tokenReservaConvidado,
+      });
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
     } finally {
@@ -271,7 +331,9 @@ export default function DetalheCampanhaPage() {
   function irParaPagamento() {
     if (!sessao || !campanha || !cotas) return;
     const reservasAtivas = cotas.filter((cota) => cota.minhaCota && cota.status === 'RESERVADA');
-    irParaPagamentoComCotas(campanha, reservasAtivas);
+    const numeros = reservasAtivas.map((cota) => cota.numero);
+    const reservaExpiraEm = reservasAtivas.find((cota) => cota.reservaExpiraEm)?.reservaExpiraEm ?? null;
+    irParaPagamentoComCotas(campanha, numeros, reservaExpiraEm);
   }
 
   if (carregandoDados) {
@@ -347,13 +409,33 @@ export default function DetalheCampanhaPage() {
         </Card>
       )}
 
-      {podeComprarMais && (formaVenda === 'ESCOLHA_NUMERO' ? (
+      {podeComprarMais && mostrarFormularioConvidado && (
+        <FormularioConvidado
+          campanha={campanha}
+          nome={nomeConvidado}
+          email={emailConvidado}
+          telefone={telefoneConvidado}
+          confirmacaoTelefone={confirmacaoTelefoneConvidado}
+          erroEmail={erroEmailConvidado}
+          erroTelefone={erroTelefoneConvidado}
+          erroConfirmacaoTelefone={erroConfirmacaoTelefoneConvidado}
+          onNomeChange={setNomeConvidado}
+          onEmailChange={setEmailConvidado}
+          onTelefoneChange={setTelefoneConvidado}
+          onConfirmacaoTelefoneChange={setConfirmacaoTelefoneConvidado}
+          onConfirmar={reservarComoConvidado}
+          onVoltar={() => setMostrarFormularioConvidado(false)}
+          carregando={reservando}
+        />
+      )}
+
+      {podeComprarMais && !mostrarFormularioConvidado && (formaVenda === 'ESCOLHA_NUMERO' ? (
         <Card className="flex flex-col gap-4">
           <p className="text-xs text-muted">
             Toque nos números disponíveis para selecionar {selecionados.size > 0 && `(${selecionados.size} selecionado${selecionados.size > 1 ? 's' : ''})`}.
             A reserva só é salva ao confirmar.
             {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
-            {!sessao && ' Você vai precisar entrar (ou criar uma conta) para confirmar.'}
+            {!sessao && ' Vamos pedir alguns dados de contato para confirmar — sem precisar criar conta.'}
           </p>
 
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -412,7 +494,7 @@ export default function DetalheCampanhaPage() {
             Escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório{quantidadeLote === 1 ? '' : 's'} entre os disponíveis.
             A reserva só é salva ao confirmar.
             {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
-            {!sessao && ' Você vai precisar entrar (ou criar uma conta) para confirmar.'}
+            {!sessao && ' Vamos pedir alguns dados de contato para confirmar — sem precisar criar conta.'}
           </p>
 
           {!loteStaged ? (
@@ -455,6 +537,96 @@ export default function DetalheCampanhaPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+/** Checkout sem login: pede só os campos marcados como obrigatórios na
+ *  campanha (reservaExige*) antes de reservar como convidado. */
+function FormularioConvidado({
+  campanha,
+  nome,
+  email,
+  telefone,
+  confirmacaoTelefone,
+  erroEmail,
+  erroTelefone,
+  erroConfirmacaoTelefone,
+  onNomeChange,
+  onEmailChange,
+  onTelefoneChange,
+  onConfirmacaoTelefoneChange,
+  onConfirmar,
+  onVoltar,
+  carregando,
+}: {
+  campanha: CampanhaExibicao;
+  nome: string;
+  email: string;
+  telefone: string;
+  confirmacaoTelefone: string;
+  erroEmail?: string;
+  erroTelefone?: string;
+  erroConfirmacaoTelefone?: string;
+  onNomeChange: (valor: string) => void;
+  onEmailChange: (valor: string) => void;
+  onTelefoneChange: (valor: string) => void;
+  onConfirmacaoTelefoneChange: (valor: string) => void;
+  onConfirmar: () => void;
+  onVoltar: () => void;
+  carregando: boolean;
+}) {
+  return (
+    <Card className="flex flex-col gap-4 border-accent-ink/40">
+      <div>
+        <p className="text-sm font-medium text-night">Só mais um passo</p>
+        <p className="text-xs text-muted">
+          Informe seus dados para reservar — não é preciso criar conta nem fazer login.
+        </p>
+      </div>
+
+      {campanha.reservaExigeNome && (
+        <TextField label="Nome completo" required value={nome} onChange={(e) => onNomeChange(e.target.value)} />
+      )}
+      {campanha.reservaExigeEmail && (
+        <TextField
+          label="E-mail"
+          type="email"
+          required
+          value={email}
+          error={erroEmail}
+          onChange={(e) => onEmailChange(e.target.value)}
+        />
+      )}
+      {campanha.reservaExigeTelefone && (
+        <PhoneField
+          label="Telefone"
+          required
+          placeholder="(11) 91234-5678"
+          value={telefone}
+          error={erroTelefone}
+          onChange={(e) => onTelefoneChange(formatarTelefone(e.target.value))}
+        />
+      )}
+      {campanha.reservaExigeConfirmacaoTelefone && (
+        <PhoneField
+          label="Confirme o telefone"
+          required
+          placeholder="(11) 91234-5678"
+          value={confirmacaoTelefone}
+          error={erroConfirmacaoTelefone}
+          onChange={(e) => onConfirmacaoTelefoneChange(formatarTelefone(e.target.value))}
+        />
+      )}
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button onClick={onConfirmar} loading={carregando} fullWidth>
+          Confirmar reserva
+        </Button>
+        <Button variant="secondary" onClick={onVoltar} disabled={carregando}>
+          Voltar
+        </Button>
+      </div>
+    </Card>
   );
 }
 

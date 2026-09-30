@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '../../components/layout/AppShell';
 import { Logo } from '../../components/ui/Logo';
 import { IconTicket, IconUser } from '../../components/ui/icons';
@@ -14,18 +14,25 @@ const NAV_ITEMS = [
   { href: '/conta', label: 'Conta', icon: IconUser },
 ];
 
-// Único caminho que funciona sem login: o Link de Vendas de uma campanha
-// específica (/campanhas/<id>) — a lista (/campanhas) e o pagamento
-// (/campanhas/<id>/pagamento) continuam exigindo conta.
+// Dois caminhos funcionam sem login: o Link de Vendas de uma campanha
+// específica (/campanhas/<id>) e, só quando carrega o token da reserva feita
+// como convidado (?tokenConvidado=), a própria página de pagamento — ver
+// ReservarLoteCotasConvidadoUseCase/reservarComoConvidado. A lista
+// (/campanhas) continua exigindo conta.
 const REGEX_CAMPANHA_PUBLICA = /^\/campanhas\/[^/]+$/;
+const REGEX_PAGAMENTO = /^\/campanhas\/[^/]+\/pagamento$/;
 
 export default function CompradorAppLayout({ children }: { children: React.ReactNode }) {
   const { sessao, pronto } = useSessaoCompradorOpcional();
   const { sair } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const permiteAnonimo = REGEX_CAMPANHA_PUBLICA.test(pathname ?? '');
+  const temTokenConvidado = Boolean(searchParams.get('tokenConvidado'));
+  const permiteAnonimo =
+    REGEX_CAMPANHA_PUBLICA.test(pathname ?? '') ||
+    (REGEX_PAGAMENTO.test(pathname ?? '') && temTokenConvidado);
 
   useEffect(() => {
     if (pronto && !sessao && !permiteAnonimo) {

@@ -51,6 +51,7 @@ describe('PagarComCartaoUseCase', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn().mockResolvedValue([]),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

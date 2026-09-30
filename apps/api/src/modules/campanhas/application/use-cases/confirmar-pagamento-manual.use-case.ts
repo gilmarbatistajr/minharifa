@@ -13,7 +13,8 @@ import { NOTIFICATION_SENDER, NotificationSender } from '../../../../shared/doma
 export interface ConfirmarPagamentoManualInput {
   administradorId: string;
   campanhaId: string;
-  compradorId: string;
+  compradorId?: string;
+  tokenReservaConvidado?: string;
 }
 
 /**
@@ -44,10 +45,12 @@ export class ConfirmarPagamentoManualUseCase {
       throw new Error('Campanha não encontrada.');
     }
 
-    const cotasReservadas = await this.cotaRepository.listarReservadasPorComprador(
-      input.campanhaId,
-      input.compradorId,
-    );
+    const cotasReservadas = input.compradorId
+      ? await this.cotaRepository.listarReservadasPorComprador(input.campanhaId, input.compradorId)
+      : await this.cotaRepository.listarReservadasPorTokenConvidado(
+          input.campanhaId,
+          input.tokenReservaConvidado!,
+        );
 
     if (cotasReservadas.length === 0) {
       throw new Error('Este comprador não tem cotas reservadas nesta campanha.');

@@ -43,6 +43,7 @@ describe('ListarCotasDaCampanhaUseCase', () => {
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };

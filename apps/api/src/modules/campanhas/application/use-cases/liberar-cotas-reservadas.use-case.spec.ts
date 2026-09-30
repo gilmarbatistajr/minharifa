@@ -44,6 +44,7 @@ describe('LiberarCotasReservadasUseCase', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn(),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
@@ -94,5 +95,19 @@ describe('LiberarCotasReservadasUseCase', () => {
     await expect(
       useCase.executar({ administradorId: 'admin-1', campanhaId: 'campanha-1', compradorId: 'comprador-1' }),
     ).rejects.toThrow('Este comprador não tem cotas reservadas nesta campanha.');
+  });
+
+  it('libera pelo token de convidado quando a reserva foi feita sem login', async () => {
+    const campanha = criarCampanha();
+    const cota = new Cota('cota-1', 'campanha-1', 1, 'RESERVADA', null, new Date(), null, 'token-x', 'Maria', null, null);
+    const { campanhaRepository, cotaRepository } = criarDependencias(campanha, []);
+    (cotaRepository.listarReservadasPorTokenConvidado as jest.Mock).mockResolvedValue([cota]);
+    const useCase = new LiberarCotasReservadasUseCase(campanhaRepository, cotaRepository);
+
+    await useCase.executar({ administradorId: 'admin-1', campanhaId: 'campanha-1', tokenReservaConvidado: 'token-x' });
+
+    expect(cota.status).toBe('DISPONIVEL');
+    expect(cota.tokenReservaConvidado).toBeNull();
+    expect(cotaRepository.listarReservadasPorComprador).not.toHaveBeenCalled();
   });
 });

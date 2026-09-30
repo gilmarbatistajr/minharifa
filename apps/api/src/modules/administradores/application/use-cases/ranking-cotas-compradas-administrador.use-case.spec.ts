@@ -36,6 +36,7 @@ describe('RankingCotasCompradasAdministradorUseCase', () => {
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn().mockResolvedValue(contagens),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       criarEmLote: jest.fn(),
       salvar: jest.fn(),
     };

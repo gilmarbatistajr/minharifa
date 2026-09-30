@@ -304,9 +304,19 @@ model Cota {
   reservadaEm     DateTime?
   reservaExpiraEm DateTime?
 
+  // Reserva feita sem login (checkout de convidado): em vez de apontar pra um
+  // Comprador, guarda o contato informado direto na cota. `tokenReservaConvidado`
+  // é compartilhado por todas as cotas de um mesmo lote reservado — é o que
+  // permite localizar "minha reserva" e gerar/pagar o Pix sem sessão.
+  tokenReservaConvidado String?
+  convidadoNome          String?
+  convidadoEmail         String?
+  convidadoTelefone      String?
+
   pagamento Pagamento?
 
   @@unique([campanhaId, numero])
+  @@index([tokenReservaConvidado])
   @@map("cotas")
 }
 
@@ -327,8 +337,9 @@ model Pagamento {
   id                    String          @id @default(uuid())
   cotaId                String          @unique
   cota                  Cota            @relation(fields: [cotaId], references: [id])
-  compradorId           String
-  comprador             Comprador       @relation(fields: [compradorId], references: [id])
+  // Nulo para pagamento de uma reserva de convidado (sem Comprador associado).
+  compradorId           String?
+  comprador             Comprador?      @relation(fields: [compradorId], references: [id])
   valor                 Decimal         @db.Decimal(10, 2)
   valorCashbackAplicado Decimal         @default(0) @db.Decimal(10, 2)
   metodo                MetodoPagamento

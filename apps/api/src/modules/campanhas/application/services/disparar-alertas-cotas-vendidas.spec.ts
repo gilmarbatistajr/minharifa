@@ -77,6 +77,7 @@ describe('dispararAlertasCotasVendidas', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn().mockResolvedValue(cotas),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

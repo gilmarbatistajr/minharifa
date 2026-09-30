@@ -16,6 +16,8 @@ export interface CotaRepository {
   listarPorCampanha(campanhaId: string): Promise<Cota[]>;
   /** Cobre a regra de pagamento único do lote: todas as cotas RESERVADA do comprador nessa campanha. */
   listarReservadasPorComprador(campanhaId: string, compradorId: string): Promise<Cota[]>;
+  /** Mesma regra, para reserva de convidado (sem Comprador): agrupa pelo `tokenReservaConvidado` compartilhado pelo lote. */
+  listarReservadasPorTokenConvidado(campanhaId: string, token: string): Promise<Cota[]>;
   contarPagasPorCampanha(campanhaId: string): Promise<number>;
   /** Conta cotas PAGAS por comprador, considerando todas as campanhas de um grupo. */
   contarPagasAgrupadoPorComprador(grupoId: string): Promise<ContagemPorComprador[]>;

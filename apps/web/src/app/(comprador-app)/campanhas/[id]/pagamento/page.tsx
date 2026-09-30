@@ -2,15 +2,16 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { QRCodeSVG } from 'qrcode.react';
 import { PageHeader } from '../../../../../components/ui/PageHeader';
 import { Card } from '../../../../../components/ui/Card';
 import { Button } from '../../../../../components/ui/Button';
 import { Alert } from '../../../../../components/ui/Alert';
 import { Badge } from '../../../../../components/ui/Badge';
-import { IconCopy, IconGift, IconWhatsapp } from '../../../../../components/ui/icons';
+import { IconCheck, IconCopy, IconGift, IconWhatsapp } from '../../../../../components/ui/icons';
 import { pagamentosApi, ApiError } from '../../../../../lib/api';
 import { formatarMoeda } from '../../../../../lib/format';
-import { useSessaoComprador } from '../../../../../lib/auth';
+import { useSessaoCompradorOpcional } from '../../../../../lib/auth';
 
 const TIPOS_IMAGEM_PERMITIDOS = [
   'image/jpeg',
@@ -65,9 +66,18 @@ export default function PagamentoPage() {
   const expira = searchParams.get('expira');
   const telefoneSuporte = searchParams.get('telefoneSuporte') ?? '';
   const nomeCampanha = searchParams.get('nomeCampanha') ?? '';
-  const { sessao } = useSessaoComprador();
+  // Presente só na reserva feita sem login (ver reservarComoConvidado) — troca
+  // a cobrança autenticada pela cobrança de convidado, sem exigir sessão.
+  const tokenConvidado = searchParams.get('tokenConvidado');
+  // O layout já garante login OU tokenConvidado válido nesta rota — aqui só
+  // decide qual das duas cobranças chamar, sem redirecionar de novo.
+  const { sessao } = useSessaoCompradorOpcional();
 
   const contagem = useContagemRegressiva(expira);
+  // Comprador sem conta não tem pra onde voltar depois (a lista de campanhas
+  // exige login) — em vez de mandar pra algum lugar, o pagamento encerra
+  // aqui mesmo com uma mensagem de conclusão.
+  const [compraFinalizada, setCompraFinalizada] = useState(false);
 
   if (numeros.length === 0) {
     return <Alert tone="error">Nenhuma cota informada para pagamento.</Alert>;
@@ -76,18 +86,34 @@ export default function PagamentoPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={numeros.length === 1 ? `Cota nº ${numeros[0]}` : `${numeros.length} cotas selecionadas`}
-        title="Pagamento"
-        description={numeros.length > 1 ? `Nº ${numeros.slice().sort((a, b) => a - b).join(', ')}` : undefined}
-        action={contagem && <Badge tone={contagem === '0:00' ? 'danger' : 'warning'}>Expira em {contagem}</Badge>}
+        eyebrow={
+          compraFinalizada
+            ? undefined
+            : numeros.length === 1
+              ? `Cota nº ${numeros[0]}`
+              : `${numeros.length} cotas selecionadas`
+        }
+        title={compraFinalizada ? 'Tudo certo!' : 'Pagamento'}
+        description={
+          !compraFinalizada && numeros.length > 1
+            ? `Nº ${numeros.slice().sort((a, b) => a - b).join(', ')}`
+            : undefined
+        }
+        action={
+          !compraFinalizada &&
+          contagem && <Badge tone={contagem === '0:00' ? 'danger' : 'warning'}>Expira em {contagem}</Badge>
+        }
       />
 
       <PagamentoPix
         campanhaId={id}
         numeros={numeros}
         token={sessao?.token}
+        tokenConvidado={tokenConvidado}
         telefoneSuporte={telefoneSuporte}
         nomeCampanha={nomeCampanha}
+        compraFinalizada={compraFinalizada}
+        onFinalizarSemConta={() => setCompraFinalizada(true)}
       />
     </div>
   );
@@ -97,14 +123,20 @@ function PagamentoPix({
   campanhaId,
   numeros,
   token,
+  tokenConvidado,
   telefoneSuporte,
   nomeCampanha,
+  compraFinalizada,
+  onFinalizarSemConta,
 }: {
   campanhaId: string;
   numeros: number[];
   token?: string;
+  tokenConvidado: string | null;
   telefoneSuporte: string;
   nomeCampanha: string;
+  compraFinalizada: boolean;
+  onFinalizarSemConta: () => void;
 }) {
   const router = useRouter();
   const inputComprovanteRef = useRef<HTMLInputElement>(null);
@@ -117,11 +149,13 @@ function PagamentoPix({
   const [previewComprovante, setPreviewComprovante] = useState<string | null>(null);
 
   async function gerar() {
-    if (!token) return;
+    if (!token && !tokenConvidado) return;
     setErro(null);
     setCarregando(true);
     try {
-      const cobranca = await pagamentosApi.gerarCobrancaPix(token, campanhaId, numeros);
+      const cobranca = tokenConvidado
+        ? await pagamentosApi.gerarCobrancaPixConvidado(campanhaId, numeros, tokenConvidado)
+        : await pagamentosApi.gerarCobrancaPix(token!, campanhaId, numeros);
       setResultado({
         qrCode: cobranca.qrCode,
         codigoCopiaCola: cobranca.codigoCopiaCola,
@@ -163,6 +197,18 @@ function PagamentoPix({
     ? `https://wa.me/55${telefoneSuporte.replace(/\D/g, '')}?text=${encodeURIComponent(mensagemWhatsapp)}`
     : null;
 
+  if (compraFinalizada) {
+    return (
+      <Card className="flex flex-col items-center gap-3 py-10 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/20 text-accent-ink">
+          <IconCheck className="h-7 w-7" />
+        </span>
+        <p className="font-display text-2xl text-night">Compra realizada com sucesso!</p>
+        <p className="text-sm text-muted">Agora é só aguardar o sorteio e BOA SORTE!</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="flex flex-col items-center gap-4 text-center">
       {erro && <Alert tone="error">{erro}</Alert>}
@@ -180,8 +226,8 @@ function PagamentoPix({
       ) : (
         <>
           <p className="font-display text-3xl text-night">{formatarMoeda(resultado.valorTotal)}</p>
-          <div className="flex h-48 w-48 items-center justify-center rounded-2xl border border-line bg-mist p-4 font-mono text-[10px] leading-tight text-muted break-all">
-            {resultado.qrCode}
+          <div className="flex h-48 w-48 items-center justify-center rounded-2xl border border-line bg-white p-4">
+            <QRCodeSVG value={resultado.qrCode} size={176} />
           </div>
           <button
             onClick={() => {
@@ -248,7 +294,11 @@ function PagamentoPix({
             </a>
           </div>
 
-          <Button type="button" onClick={() => router.push('/campanhas')} fullWidth>
+          <Button
+            type="button"
+            onClick={() => (token ? router.push('/campanhas') : onFinalizarSemConta())}
+            fullWidth
+          >
             Finalizar compra
           </Button>
         </>

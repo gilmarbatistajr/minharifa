@@ -44,6 +44,7 @@ describe('CancelarMinhaReservaUseCase', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn(),
       listarReservadasPorComprador: jest.fn().mockResolvedValue(cotasReservadas),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

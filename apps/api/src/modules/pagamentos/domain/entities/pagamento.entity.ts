@@ -5,7 +5,7 @@ export class Pagamento {
   constructor(
     public readonly id: string,
     public readonly cotaId: string,
-    public readonly compradorId: string,
+    public readonly compradorId: string | null,
     public readonly valor: number,
     public valorCashbackAplicado: number,
     public metodo: MetodoPagamento,

@@ -467,6 +467,10 @@ export interface CampanhaPublica {
   status: StatusCampanha;
   statusVendas: StatusVendasCampanha;
   dataRealizacao: string | null;
+  reservaExigeEmail: boolean;
+  reservaExigeNome: boolean;
+  reservaExigeTelefone: boolean;
+  reservaExigeConfirmacaoTelefone: boolean;
 }
 
 /** Visão administrativa da cota: ao contrário de `CotaResumo` (do comprador), expõe quem é o dono. */
@@ -476,7 +480,14 @@ export interface CotaAdminResumo {
   compradorId: string | null;
   compradorNome: string | null;
   compradorTelefone: string | null;
+  /** Reserva feita sem login (ver `reservarLoteConvidado`): sem `compradorId`, contato guardado direto na cota. */
+  tokenReservaConvidado: string | null;
+  convidadoNome: string | null;
+  convidadoTelefone: string | null;
 }
+
+/** Identifica um lote de cotas reservadas pra confirmar/liberar: por conta (`compradorId`) ou por reserva sem login (`tokenReservaConvidado`). */
+export type IdentificadorReserva = { compradorId: string } | { tokenReservaConvidado: string };
 
 export interface DadosFormularioCampanha {
   nome: string;
@@ -540,18 +551,18 @@ export const campanhasApi = {
   listarCotasAdmin: (token: string, campanhaId: string) =>
     request<CotaAdminResumo[]>(`/campanhas/${campanhaId}/cotas/admin`, { token }),
 
-  confirmarPagamentoManual: (token: string, campanhaId: string, compradorId: string) =>
+  confirmarPagamentoManual: (token: string, campanhaId: string, identificador: IdentificadorReserva) =>
     request<void>(`/campanhas/${campanhaId}/cotas/confirmar-pagamento`, {
       method: 'POST',
       token,
-      body: { compradorId },
+      body: identificador,
     }),
 
-  liberarCotasReservadas: (token: string, campanhaId: string, compradorId: string) =>
+  liberarCotasReservadas: (token: string, campanhaId: string, identificador: IdentificadorReserva) =>
     request<void>(`/campanhas/${campanhaId}/cotas/liberar`, {
       method: 'POST',
       token,
-      body: { compradorId },
+      body: identificador,
     }),
 
   reservarCota: (token: string, campanhaId: string, numero: number) =>
@@ -571,6 +582,21 @@ export const campanhasApi = {
       token,
       body: escolha,
     }),
+
+  /** Mesma reserva em lote, sem login: guarda o contato do convidado direto na cota (ver Link de Vendas). */
+  reservarLoteConvidado: (
+    campanhaId: string,
+    dados: { numeros?: number[]; quantidadeAleatoria?: number } & {
+      nome?: string;
+      email?: string;
+      telefone?: string;
+      confirmacaoTelefone?: string;
+    },
+  ) =>
+    request<{ numeros: number[]; reservaExpiraEm: string | null; tokenReservaConvidado: string }>(
+      `/campanhas/${campanhaId}/cotas/reservar-lote-convidado`,
+      { method: 'POST', body: dados },
+    ),
 
   cancelar: (token: string, campanhaId: string) =>
     request<{ cotasLiberadas: number; escolhasGeradas: number }>(`/campanhas/${campanhaId}/cancelamento`, {
@@ -602,6 +628,13 @@ export const pagamentosApi = {
     request<{ qrCode: string; codigoCopiaCola: string; valor: number; validoAte: string | null }>(
       '/pagamentos/pix',
       { method: 'POST', token, body: { campanhaId, numerosCotas } },
+    ),
+
+  /** Mesma cobrança Pix, pra reserva feita sem login (ver `campanhasApi.reservarLoteConvidado`). */
+  gerarCobrancaPixConvidado: (campanhaId: string, numerosCotas: number[], tokenReservaConvidado: string) =>
+    request<{ qrCode: string; codigoCopiaCola: string; valor: number; validoAte: string | null }>(
+      '/pagamentos/pix/convidado',
+      { method: 'POST', body: { campanhaId, numerosCotas, tokenReservaConvidado } },
     ),
 
   pagarComCartao: (token: string, campanhaId: string, numerosCotas: number[], dadosCartao: DadosCartao) =>

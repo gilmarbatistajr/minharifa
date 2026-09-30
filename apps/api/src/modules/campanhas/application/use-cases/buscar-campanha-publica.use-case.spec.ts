@@ -74,6 +74,10 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       status: 'LIBERADA',
       statusVendas: 'VENDAS_ABERTAS',
       dataRealizacao: campanha.dataRealizacao,
+      reservaExigeEmail: true,
+      reservaExigeNome: true,
+      reservaExigeTelefone: true,
+      reservaExigeConfirmacaoTelefone: false,
     });
     expect(resultado).not.toHaveProperty('chavePix');
     expect(resultado).not.toHaveProperty('tipoChavePix');

@@ -62,6 +62,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       buscarPorCampanhaENumero: jest.fn(),
       listarPorCampanha: jest.fn().mockResolvedValue(Object.values(cotasPorId).filter((cota): cota is Cota => cota !== null)),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       contarPagasPorCampanha: jest.fn(),
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),

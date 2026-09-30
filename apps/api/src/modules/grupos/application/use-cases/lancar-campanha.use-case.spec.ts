@@ -61,6 +61,7 @@ describe('LancarCampanhaUseCase', () => {
       contarPagasAgrupadoPorComprador: jest.fn(),
       contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
       listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
       criarEmLote: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn(),
     };

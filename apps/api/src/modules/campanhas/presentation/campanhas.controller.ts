@@ -31,6 +31,7 @@ import { ListarCampanhasVisiveisParaCompradorUseCase } from '../application/use-
 import { ListarCotasDaCampanhaUseCase } from '../application/use-cases/listar-cotas-campanha.use-case';
 import { ReservarCotaUseCase } from '../application/use-cases/reservar-cota.use-case';
 import { ReservarLoteCotasUseCase } from '../application/use-cases/reservar-lote-cotas.use-case';
+import { ReservarLoteCotasConvidadoUseCase } from '../application/use-cases/reservar-lote-cotas-convidado.use-case';
 import { AtualizarFotoCampanhaUseCase } from '../application/use-cases/atualizar-foto-campanha.use-case';
 import { ListarCotasParaAdministradorUseCase } from '../application/use-cases/listar-cotas-administrador.use-case';
 import { ConfirmarPagamentoManualUseCase } from '../application/use-cases/confirmar-pagamento-manual.use-case';
@@ -42,6 +43,7 @@ import { EditarCampanhaDto } from './dto/editar-campanha.dto';
 import { FinalizarCampanhaDto } from './dto/finalizar-campanha.dto';
 import { ReservarCotaDto } from './dto/reservar-cota.dto';
 import { ReservarLoteCotasDto } from './dto/reservar-lote-cotas.dto';
+import { ReservarLoteCotasConvidadoDto } from './dto/reservar-lote-cotas-convidado.dto';
 import { GerenciarCotaCompradorDto } from './dto/gerenciar-cota-comprador.dto';
 
 const TAMANHO_MAXIMO_UPLOAD_BYTES = 5 * 1024 * 1024; // teto de segurança acima do limite de negócio (3MB)
@@ -63,6 +65,7 @@ export class CampanhasController {
     private readonly listarCotasDaCampanhaUseCase: ListarCotasDaCampanhaUseCase,
     private readonly reservarCotaUseCase: ReservarCotaUseCase,
     private readonly reservarLoteCotasUseCase: ReservarLoteCotasUseCase,
+    private readonly reservarLoteCotasConvidadoUseCase: ReservarLoteCotasConvidadoUseCase,
     private readonly atualizarFotoCampanhaUseCase: AtualizarFotoCampanhaUseCase,
     private readonly listarCotasParaAdministradorUseCase: ListarCotasParaAdministradorUseCase,
     private readonly confirmarPagamentoManualUseCase: ConfirmarPagamentoManualUseCase,
@@ -293,6 +296,25 @@ export class CampanhasController {
     });
   }
 
+  // Sem guard de propósito: reserva feita sem login pelo Link de Vendas — ver
+  // ReservarLoteCotasConvidadoUseCase. Guarda o contato direto na cota, sem
+  // criar Comprador.
+  @Post(':campanhaId/cotas/reservar-lote-convidado')
+  async reservarLoteCotasConvidado(
+    @Param('campanhaId') campanhaId: string,
+    @Body() dto: ReservarLoteCotasConvidadoDto,
+  ) {
+    return this.reservarLoteCotasConvidadoUseCase.executar({
+      campanhaId,
+      numeros: dto.numeros,
+      quantidadeAleatoria: dto.quantidadeAleatoria,
+      nome: dto.nome,
+      email: dto.email,
+      telefone: dto.telefone,
+      confirmacaoTelefone: dto.confirmacaoTelefone,
+    });
+  }
+
   @UseGuards(CompradorGuard)
   @Post(':campanhaId/cotas/cancelar-reserva')
   async cancelarMinhaReserva(
@@ -332,6 +354,7 @@ export class CampanhasController {
       administradorId: usuario.administradorId!,
       campanhaId,
       compradorId: dto.compradorId,
+      tokenReservaConvidado: dto.tokenReservaConvidado,
     });
   }
 
@@ -346,6 +369,7 @@ export class CampanhasController {
       administradorId: usuario.administradorId!,
       campanhaId,
       compradorId: dto.compradorId,
+      tokenReservaConvidado: dto.tokenReservaConvidado,
     });
   }
 }

@@ -20,6 +20,10 @@ export interface CampanhaPublica {
   status: StatusCampanha;
   statusVendas: StatusVendasCampanha;
   dataRealizacao: Date | null;
+  reservaExigeEmail: boolean;
+  reservaExigeNome: boolean;
+  reservaExigeTelefone: boolean;
+  reservaExigeConfirmacaoTelefone: boolean;
 }
 
 /**
@@ -60,6 +64,10 @@ export class BuscarCampanhaPublicaUseCase {
       status: campanha.status,
       statusVendas: campanha.statusVendas,
       dataRealizacao: campanha.dataRealizacao,
+      reservaExigeEmail: campanha.reservaExigeEmail,
+      reservaExigeNome: campanha.reservaExigeNome,
+      reservaExigeTelefone: campanha.reservaExigeTelefone,
+      reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
     };
   }
 }

@@ -140,7 +140,8 @@ export class ConfirmarPagamentoWebhookUseCase {
     }
     await this.paymentGateway.estornar(input.transacaoId);
 
-    const comprador = await this.compradorRepository.buscarPorId(pendentes[0].compradorId);
+    const compradorId = pendentes[0].compradorId;
+    const comprador = compradorId ? await this.compradorRepository.buscarPorId(compradorId) : null;
     if (comprador?.email) {
       await this.notificationSender.enviarEmail(
         comprador.email,

@@ -22,6 +22,7 @@ import {
   type Premio,
   type StatusCota,
   type CotaAdminResumo,
+  type IdentificadorReserva,
 } from '../../../../../../lib/api';
 import { formatarExpiracaoReserva, formatarMoeda, formatarTelefone } from '../../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../../lib/auth';
@@ -75,15 +76,39 @@ export default function SorteioCampanhaPage() {
 
   const comprasPorComprador = useMemo(() => {
     if (!cotas) return [];
-    const mapa = new Map<string, ReservaComprador>();
+    const mapa = new Map<string, Reserva>();
     for (const cota of cotas) {
       if (cota.status !== 'RESERVADA' && cota.status !== 'PAGA') continue;
-      if (!cota.compradorId || !cota.compradorNome || !cota.compradorTelefone) continue;
 
-      const existente = mapa.get(cota.compradorId) ?? {
-        compradorId: cota.compradorId,
-        nome: cota.compradorNome,
-        telefone: cota.compradorTelefone,
+      let chave: string;
+      let identificador: IdentificadorReserva;
+      let nome: string;
+      let telefone: string;
+      let ehConvidado = false;
+
+      if (cota.compradorId && cota.compradorNome && cota.compradorTelefone) {
+        chave = `comprador:${cota.compradorId}`;
+        identificador = { compradorId: cota.compradorId };
+        nome = cota.compradorNome;
+        telefone = cota.compradorTelefone;
+      } else if (cota.tokenReservaConvidado) {
+        // Reserva feita sem login (Link de Vendas): sem Comprador, o contato veio
+        // direto na cota — ver ReservarLoteCotasConvidadoUseCase no backend.
+        chave = `convidado:${cota.tokenReservaConvidado}`;
+        identificador = { tokenReservaConvidado: cota.tokenReservaConvidado };
+        nome = cota.convidadoNome ?? 'Convidado';
+        telefone = cota.convidadoTelefone ?? '';
+        ehConvidado = true;
+      } else {
+        continue;
+      }
+
+      const existente = mapa.get(chave) ?? {
+        chave,
+        identificador,
+        nome,
+        telefone,
+        ehConvidado,
         numerosReservados: [],
         numerosPagos: [],
       };
@@ -92,17 +117,17 @@ export default function SorteioCampanhaPage() {
       } else {
         existente.numerosPagos.push(cota.numero);
       }
-      mapa.set(cota.compradorId, existente);
+      mapa.set(chave, existente);
     }
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [cotas]);
 
-  async function confirmarPagamento(compradorId: string) {
+  async function confirmarPagamento(identificador: IdentificadorReserva, chave: string) {
     if (!sessao) return;
     setErro(null);
-    setProcessando(compradorId);
+    setProcessando(chave);
     try {
-      await campanhasApi.confirmarPagamentoManual(sessao.token, id, compradorId);
+      await campanhasApi.confirmarPagamentoManual(sessao.token, id, identificador);
       // Recarrega a campanha inteira (não só as cotas): confirmar o pagamento pode ser
       // a última cota em aberto, e o backend libera a campanha para sorteio automaticamente.
       await recarregar();
@@ -113,7 +138,7 @@ export default function SorteioCampanhaPage() {
     }
   }
 
-  async function liberarCotasReservadas(compradorId: string) {
+  async function liberarCotasReservadas(identificador: IdentificadorReserva, chave: string) {
     if (!sessao) return;
     if (
       !window.confirm(
@@ -123,10 +148,10 @@ export default function SorteioCampanhaPage() {
       return;
     }
     setErro(null);
-    setProcessando(compradorId);
+    setProcessando(chave);
     try {
       // Liberar cotas nunca completa a campanha, então recarregar só as cotas já basta aqui.
-      await campanhasApi.liberarCotasReservadas(sessao.token, id, compradorId);
+      await campanhasApi.liberarCotasReservadas(sessao.token, id, identificador);
       await recarregarCotas();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível liberar as cotas.');
@@ -309,17 +334,21 @@ export default function SorteioCampanhaPage() {
             {/* Mobile: lista de cards — uma tabela larga não cabe na tela e escondia os botões de ação */}
             <div className="flex flex-col gap-3 sm:hidden">
               {comprasPorComprador.map((reserva) => (
-                <div key={reserva.compradorId} className="flex flex-col gap-3 rounded-xl border border-line p-4">
+                <div key={reserva.chave} className="flex flex-col gap-3 rounded-xl border border-line p-4">
                   <div>
-                    <p className="font-medium text-night">{reserva.nome}</p>
-                    <p className="font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</p>
+                    <p className="font-medium text-night">
+                      {reserva.nome} {reserva.ehConvidado && <Badge tone="neutral">Sem conta</Badge>}
+                    </p>
+                    {reserva.telefone && (
+                      <p className="font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</p>
+                    )}
                   </div>
                   <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                   <AcoesReserva
                     reserva={reserva}
                     onConfirmar={confirmarPagamento}
                     onLiberar={liberarCotasReservadas}
-                    carregando={processando === reserva.compradorId}
+                    carregando={processando === reserva.chave}
                     fullWidth
                   />
                 </div>
@@ -339,9 +368,13 @@ export default function SorteioCampanhaPage() {
                 </thead>
                 <tbody>
                   {comprasPorComprador.map((reserva) => (
-                    <tr key={reserva.compradorId} className="border-b border-line last:border-0">
-                      <td className="py-3 pr-4 font-medium text-night">{reserva.nome}</td>
-                      <td className="py-3 pr-4 font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</td>
+                    <tr key={reserva.chave} className="border-b border-line last:border-0">
+                      <td className="py-3 pr-4 font-medium text-night">
+                        {reserva.nome} {reserva.ehConvidado && <Badge tone="neutral">Sem conta</Badge>}
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-xs text-muted">
+                        {reserva.telefone ? formatarTelefone(reserva.telefone) : '—'}
+                      </td>
                       <td className="py-3 pr-4">
                         <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                       </td>
@@ -350,7 +383,7 @@ export default function SorteioCampanhaPage() {
                           reserva={reserva}
                           onConfirmar={confirmarPagamento}
                           onLiberar={liberarCotasReservadas}
-                          carregando={processando === reserva.compradorId}
+                          carregando={processando === reserva.chave}
                         />
                       </td>
                     </tr>
@@ -414,8 +447,10 @@ function FormularioFinalizar({
     setCotaVencedoraNumero(valor);
     const cota = cotas.find((item) => item.numero === Number(valor) && item.status === 'PAGA');
     if (cota) {
-      setVencedorNome(cota.compradorNome ?? '');
-      setVencedorTelefone(cota.compradorTelefone ? formatarTelefone(cota.compradorTelefone) : '');
+      const nome = cota.compradorNome ?? cota.convidadoNome;
+      const telefone = cota.compradorTelefone ?? cota.convidadoTelefone;
+      setVencedorNome(nome ?? '');
+      setVencedorTelefone(telefone ? formatarTelefone(telefone) : '');
     }
   }
 
@@ -484,10 +519,12 @@ function FormularioFinalizar({
   );
 }
 
-interface ReservaComprador {
-  compradorId: string;
+interface Reserva {
+  chave: string;
+  identificador: IdentificadorReserva;
   nome: string;
   telefone: string;
+  ehConvidado: boolean;
   numerosReservados: number[];
   numerosPagos: number[];
 }
@@ -526,9 +563,9 @@ function AcoesReserva({
   carregando = false,
   fullWidth = false,
 }: {
-  reserva: ReservaComprador;
-  onConfirmar: (compradorId: string) => void;
-  onLiberar: (compradorId: string) => void;
+  reserva: Reserva;
+  onConfirmar: (identificador: IdentificadorReserva, chave: string) => void;
+  onLiberar: (identificador: IdentificadorReserva, chave: string) => void;
   carregando?: boolean;
   fullWidth?: boolean;
 }) {
@@ -546,7 +583,7 @@ function AcoesReserva({
           <Button
             className="px-3 py-2 text-xs"
             loading={carregando}
-            onClick={() => onConfirmar(reserva.compradorId)}
+            onClick={() => onConfirmar(reserva.identificador, reserva.chave)}
           >
             Confirmar pagamento
           </Button>
@@ -554,21 +591,23 @@ function AcoesReserva({
             variant="danger"
             className="px-3 py-2 text-xs"
             loading={carregando}
-            onClick={() => onLiberar(reserva.compradorId)}
+            onClick={() => onLiberar(reserva.identificador, reserva.chave)}
           >
             Liberar cotas reservadas
           </Button>
         </>
       )}
-      <a
-        href={linkWhatsapp(reserva.telefone)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-night transition hover:border-night/30"
-      >
-        <IconWhatsapp className="h-4 w-4" />
-        WhatsApp
-      </a>
+      {reserva.telefone && (
+        <a
+          href={linkWhatsapp(reserva.telefone)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-night transition hover:border-night/30"
+        >
+          <IconWhatsapp className="h-4 w-4" />
+          WhatsApp
+        </a>
+      )}
     </div>
   );
 }
@@ -593,7 +632,7 @@ function CelulaCota({ cota }: { cota: CotaAdminResumo }) {
   return (
     <div
       className={`flex aspect-square items-center justify-center rounded-lg font-mono text-xs font-medium ${CLASSES[cota.status]}`}
-      title={cota.compradorNome ?? undefined}
+      title={cota.compradorNome ?? cota.convidadoNome ?? undefined}
     >
       {cota.numero}
     </div>
