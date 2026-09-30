@@ -30,6 +30,7 @@ type RegistroCampanha = {
   vencedorOptouPorDinheiro: boolean | null;
   vencedorNome: string | null;
   vencedorTelefone: string | null;
+  finalizadoEm: Date | null;
   removidaEm: Date | null;
   telefoneSuporte: string;
   tipoChavePix: string | null;
@@ -82,6 +83,7 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.alerta90PorCentoEnviado,
     registro.tipoChavePix as TipoChavePix | null,
     registro.chavePix,
+    registro.finalizadoEm,
   );
 }
 
@@ -183,6 +185,7 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         vencedorOptouPorDinheiro: campanha.vencedorOptouPorDinheiro,
         vencedorNome: campanha.vencedorNome,
         vencedorTelefone: campanha.vencedorTelefone,
+        finalizadoEm: campanha.finalizadoEm,
         removidaEm: campanha.removidaEm,
         fotoUrl: campanha.fotoUrl,
         alerta50PorCentoEnviado: campanha.alerta50PorCentoEnviado,

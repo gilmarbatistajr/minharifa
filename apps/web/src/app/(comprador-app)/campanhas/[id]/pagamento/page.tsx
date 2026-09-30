@@ -168,6 +168,26 @@ function PagamentoPix({
     }
   }
 
+  // Puramente informativo pro administrador (coluna "Pagamento" em "Cotas
+  // compradas") — a compra em si já foi concluída ao gerar o Pix, então uma
+  // falha aqui não deve travar o fluxo do comprador.
+  async function finalizarCompra() {
+    try {
+      if (tokenConvidado) {
+        await pagamentosApi.finalizarCompraConvidado(campanhaId, numeros, tokenConvidado);
+      } else if (token) {
+        await pagamentosApi.finalizarCompra(token, campanhaId, numeros);
+      }
+    } catch {
+      // melhor esforço: segue o fluxo normalmente mesmo se isso falhar.
+    }
+    if (token) {
+      router.push('/campanhas');
+    } else {
+      onFinalizarSemConta();
+    }
+  }
+
   function aoSelecionarComprovante(evento: ChangeEvent<HTMLInputElement>) {
     const arquivo = evento.target.files?.[0] ?? null;
     evento.target.value = '';
@@ -294,11 +314,7 @@ function PagamentoPix({
             </a>
           </div>
 
-          <Button
-            type="button"
-            onClick={() => (token ? router.push('/campanhas') : onFinalizarSemConta())}
-            fullWidth
-          >
+          <Button type="button" onClick={finalizarCompra} fullWidth>
             Finalizar compra
           </Button>
         </>

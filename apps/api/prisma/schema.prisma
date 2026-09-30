@@ -274,6 +274,9 @@ model Campanha {
   vencedorOptouPorDinheiro Boolean?
   vencedorNome             String?
   vencedorTelefone         String?
+  // Quando a campanha passou pro status FINALIZADA (ver Campanha.finalizar()) —
+  // distinto de dataRealizacao, que é a data prevista/informada no lançamento.
+  finalizadoEm             DateTime?
   removidaEm               DateTime?
   criadoEm                 DateTime              @default(now())
   alerta50PorCentoEnviado  Boolean               @default(false)
@@ -346,6 +349,9 @@ model Pagamento {
   status                StatusPagamento @default(PENDENTE)
   idTransacaoGateway    String?
   criadoEm              DateTime        @default(now())
+  // Quando o comprador clicou em "Finalizar compra" na tela de pagamento —
+  // distinto da confirmação (manual, pelo administrador) do recebimento.
+  finalizadoPeloCompradorEm DateTime?
 
   @@map("pagamentos")
 }

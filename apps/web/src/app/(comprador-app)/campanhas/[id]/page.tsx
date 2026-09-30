@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card, TicketCard } from '../../../../components/ui/Card';
+import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { Alert } from '../../../../components/ui/Alert';
 import { Spinner } from '../../../../components/ui/Spinner';
 import { TextField, PhoneField } from '../../../../components/ui/Field';
-import { IconWhatsapp } from '../../../../components/ui/icons';
+import { IconGift, IconWhatsapp } from '../../../../components/ui/icons';
 import {
   campanhasApi,
+  urlArquivoApi,
   ApiError,
   type CotaResumo,
   type Campanha,
@@ -20,7 +22,7 @@ import { formatarMoeda, formatarTelefone } from '../../../../lib/format';
 import { validarEmail, validarCelular } from '../../../../lib/validacoes-chave-pix';
 import { useSessaoCompradorOpcional } from '../../../../lib/auth';
 
-const LOTES_PRESET = [5, 10, 15, 20, 25, 30];
+const LOTES_PRESET = [1, 5, 10, 15, 20, 25, 30];
 const QUANTIDADE_LOTE_PADRAO = 5;
 
 /** A página funciona tanto logado (dados completos) quanto pelo Link de
@@ -38,7 +40,6 @@ export default function DetalheCampanhaPage() {
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
   const [quantidadeLote, setQuantidadeLote] = useState(QUANTIDADE_LOTE_PADRAO);
-  const [loteStaged, setLoteStaged] = useState(false);
 
   const [erro, setErro] = useState<string | null>(null);
   const [reservando, setReservando] = useState(false);
@@ -70,6 +71,7 @@ export default function DetalheCampanhaPage() {
   const formaVenda = campanha?.formaVenda ?? 'ESCOLHA_NUMERO';
   const mapaInterativo = formaVenda === 'ESCOLHA_NUMERO';
   const vendasEncerradas = campanha?.status === 'LIBERADA_PARA_SORTEIO';
+  const finalizada = campanha?.status === 'FINALIZADA';
   // Sem um máximo configurado na campanha, o teto de cotas por compra é o
   // total de cotas dela — nunca é permitido comprar mais do que isso.
   const quantidadeMaximaPorCompra = campanha
@@ -168,8 +170,19 @@ export default function DetalheCampanhaPage() {
   // sentido oferecer a compra de mais cotas — o comprador só tem duas ações
   // possíveis: ir pagar a reserva atual ou cancelá-la. Vendas encerradas
   // (só é possível saber isso sem sessão, já que logado é redirecionado)
-  // também bloqueia novas seleções.
-  const podeComprarMais = minhasCotasReservadas.length === 0 && !vendasEncerradas;
+  // ou campanha já finalizada (com vencedor definido) também bloqueiam
+  // novas seleções.
+  const podeComprarMais = minhasCotasReservadas.length === 0 && !vendasEncerradas && !finalizada;
+
+  // Quantidade prestes a ser reservada: no modo manual é o que já foi tocado
+  // no mapa, no modo lote é o valor configurado no seletor (é exatamente o
+  // que "Confirmar cotas" reserva ao ser clicado).
+  const quantidadeSelecionada = podeComprarMais
+    ? formaVenda === 'ESCOLHA_NUMERO'
+      ? selecionados.size
+      : quantidadeLote
+    : 0;
+  const valorTotalSelecionado = campanha ? quantidadeSelecionada * campanha.valorCota : 0;
 
   function alternarSelecao(numero: number) {
     setSelecionados((atual) => {
@@ -190,7 +203,6 @@ export default function DetalheCampanhaPage() {
   function escolherQuantidadeLote(quantidade: number) {
     const limite = quantidadeMaximaPorCompra ?? quantidade;
     setQuantidadeLote(Math.min(quantidade, limite));
-    setLoteStaged(false);
   }
 
   function ajustarQuantidadeLote(delta: number) {
@@ -198,28 +210,17 @@ export default function DetalheCampanhaPage() {
       const limite = quantidadeMaximaPorCompra ?? Infinity;
       return Math.min(limite, Math.max(1, atual + delta));
     });
-    setLoteStaged(false);
   }
 
-  function sortearLote() {
-    setErro(null);
-    setLoteStaged(true);
-  }
-
-  // Ação única do botão "Confirmar cotas": só agora a reserva é de fato
-  // salva no backend (e passa a aparecer no painel do administrador) — nem
-  // tocar nos números (modo manual) nem sortear a quantidade (modo lote)
-  // reserva nada por conta própria. Sem sessão, abre o formulário de
-  // convidado em vez de reservar direto — ver reservarComoConvidado.
+  // Ação única do botão "Confirmar cotas": sorteia (no modo lote) e já
+  // reserva de uma vez — nada é salvo antes de clicar aqui. Sem sessão, abre
+  // o formulário de convidado em vez de reservar direto — ver
+  // reservarComoConvidado.
   async function confirmarCotas() {
     const modoManual = formaVenda === 'ESCOLHA_NUMERO';
 
     if (modoManual && selecionados.size === 0) {
       setErro('Selecione pelo menos um número disponível.');
-      return;
-    }
-    if (!modoManual && !loteStaged) {
-      setErro('Toque em "Sortear cotas" antes de confirmar.');
       return;
     }
 
@@ -237,7 +238,6 @@ export default function DetalheCampanhaPage() {
         : { quantidadeAleatoria: quantidadeLote };
       await campanhasApi.reservarLote(sessao.token, id, escolha);
       setSelecionados(new Set());
-      setLoteStaged(false);
       await carregar();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
@@ -299,7 +299,6 @@ export default function DetalheCampanhaPage() {
         confirmacaoTelefone: confirmacaoTelefoneConvidado || undefined,
       });
       setSelecionados(new Set());
-      setLoteStaged(false);
       setMostrarFormularioConvidado(false);
       irParaPagamentoComCotas(campanha, resultado.numeros, resultado.reservaExpiraEm, {
         tokenConvidado: resultado.tokenReservaConvidado,
@@ -354,11 +353,40 @@ export default function DetalheCampanhaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow="Escolha sua cota" title={campanha.nome} />
+      <PageHeader
+        eyebrow={finalizada ? 'Campanha finalizada' : 'Escolha sua cota'}
+        title={campanha.nome}
+        action={finalizada && <Badge tone="night">Campanha finalizada</Badge>}
+      />
+
+      <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-mist">
+        {campanha.fotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- imagem da campanha, vem da API
+          <img
+            src={urlArquivoApi(campanha.fotoUrl)}
+            alt={campanha.nome}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted">
+            <IconGift className="h-10 w-10" />
+          </div>
+        )}
+      </div>
 
       <TicketCard tone="night">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">Valor da cota</p>
-        <p className="mt-1 font-display text-3xl text-white">{formatarMoeda(campanha.valorCota)}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">Valor da cota</p>
+            <p className="mt-1 font-display text-3xl text-white">{formatarMoeda(campanha.valorCota)}</p>
+          </div>
+          {quantidadeSelecionada > 0 && (
+            <div className="text-right">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">Valor total</p>
+              <p className="mt-1 font-display text-3xl text-white">{formatarMoeda(valorTotalSelecionado)}</p>
+            </div>
+          )}
+        </div>
         <p className="mt-2 text-sm text-white/70">{campanha.quantidadeCotas} números disponíveis no total.</p>
       </TicketCard>
 
@@ -366,6 +394,18 @@ export default function DetalheCampanhaPage() {
 
       {vendasEncerradas && (
         <Alert tone="info">Vendas encerradas para esta campanha — aguardando a realização do sorteio.</Alert>
+      )}
+
+      {finalizada && campanha.cotaVencedoraNumero !== null && (
+        <Card className="flex flex-col gap-1 border-accent-ink/40">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Resultado do sorteio</p>
+          <p className="text-sm font-medium text-night">
+            {campanha.vencedorNome} · Cota nº {campanha.cotaVencedoraNumero}
+          </p>
+          {campanha.vencedorTelefone && (
+            <p className="font-mono text-xs text-muted">{formatarTelefone(campanha.vencedorTelefone)}</p>
+          )}
+        </Card>
       )}
 
       {minhasCotasPagas.length > 0 && (
@@ -491,51 +531,42 @@ export default function DetalheCampanhaPage() {
             </button>
           </div>
           <p className="text-center text-xs text-muted">
-            Escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório{quantidadeLote === 1 ? '' : 's'} entre os disponíveis.
-            A reserva só é salva ao confirmar.
+            Ao confirmar, escolhemos {quantidadeLote} número{quantidadeLote === 1 ? '' : 's'} aleatório
+            {quantidadeLote === 1 ? '' : 's'} entre os disponíveis e já reservamos pra você.
             {quantidadeMaximaPorCompra !== null && ` Máximo de ${quantidadeMaximaPorCompra} cota(s) por compra.`}
             {!sessao && ' Vamos pedir alguns dados de contato para confirmar — sem precisar criar conta.'}
           </p>
 
-          {!loteStaged ? (
-            <Button onClick={sortearLote} fullWidth>
-              {`Sortear ${quantidadeLote} cota${quantidadeLote === 1 ? '' : 's'}`}
-            </Button>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-center text-xs font-medium text-accent-ink">
-                {quantidadeLote} cota{quantidadeLote === 1 ? '' : 's'} pronta{quantidadeLote === 1 ? '' : 's'} para
-                confirmar.
-              </p>
-              <Button onClick={confirmarCotas} loading={reservando} fullWidth>
-                Confirmar cotas
-              </Button>
-            </div>
-          )}
+          <Button onClick={confirmarCotas} loading={reservando} fullWidth>
+            Confirmar cotas
+          </Button>
         </Card>
       ))}
 
-      <Card>
-        <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
-          {mapaInterativo && podeComprarMais && <LegendaItem cor="bg-white border border-line" label="Disponível" />}
-          {mapaInterativo && podeComprarMais && <LegendaItem cor="bg-accent" label="Selecionada" />}
-          <LegendaItem cor="bg-accent-ink/15" label="Sua reserva" />
-          <LegendaItem cor="bg-mist" label="Indisponível" />
-        </div>
-        <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10">
-          {cotas?.map((cota) => (
-            <BotaoCota
-              key={cota.numero}
-              cota={cota}
-              selecionada={selecionados.has(cota.numero)}
-              interativo={mapaInterativo && podeComprarMais}
-              onClick={() =>
-                mapaInterativo && podeComprarMais && cota.status === 'DISPONIVEL' && alternarSelecao(cota.numero)
-              }
-            />
-          ))}
-        </div>
-      </Card>
+      {/* Modo lote fechado: os números são sorteados pelo sistema ao confirmar,
+          então o mapa completo de todas as cotas é só informativo demais — o
+          comprador já vê os números dele nos cards de reserva/pagamento acima. */}
+      {mapaInterativo && (
+        <Card>
+          <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
+            {podeComprarMais && <LegendaItem cor="bg-white border border-line" label="Disponível" />}
+            {podeComprarMais && <LegendaItem cor="bg-accent" label="Selecionada" />}
+            <LegendaItem cor="bg-accent-ink/15" label="Sua reserva" />
+            <LegendaItem cor="bg-mist" label="Indisponível" />
+          </div>
+          <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10">
+            {cotas?.map((cota) => (
+              <BotaoCota
+                key={cota.numero}
+                cota={cota}
+                selecionada={selecionados.has(cota.numero)}
+                interativo={podeComprarMais}
+                onClick={() => podeComprarMais && cota.status === 'DISPONIVEL' && alternarSelecao(cota.numero)}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

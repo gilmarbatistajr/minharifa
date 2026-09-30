@@ -23,13 +23,17 @@ export interface FinalizarCampanhaInput {
 
 export interface FinalizarCampanhaOutput {
   campanhaId: string;
-  compradorVencedorId: string;
+  /** Nulo quando a cota vencedora foi comprada por um convidado, sem conta (ver `Cota.tokenReservaConvidado`). */
+  compradorVencedorId: string | null;
 }
 
 /**
  * Permite ao administrador ou a um operador com permissão de edição em
  * campanhas registrar o vencedor de uma campanha já realizada, informando o
- * número da cota vencedora. Alimenta o ranking de vencedores.
+ * número da cota vencedora. Alimenta o ranking de vencedores — que só
+ * contabiliza vitórias de quem tem conta (`compradorVencedorId` não nulo);
+ * um vencedor sem conta ainda pode ser registrado normalmente, só não entra
+ * nesse ranking por não ter uma identidade estável entre campanhas.
  */
 @Injectable()
 export class FinalizarCampanhaUseCase {
@@ -48,7 +52,10 @@ export class FinalizarCampanhaUseCase {
     private readonly notificationSender: NotificationSender,
   ) {}
 
-  async executar(input: FinalizarCampanhaInput): Promise<FinalizarCampanhaOutput> {
+  async executar(
+    input: FinalizarCampanhaInput,
+    agora: Date = new Date(),
+  ): Promise<FinalizarCampanhaOutput> {
     const administradorId = await this.resolverAdministradorId(input);
 
     const campanha = await this.campanhaRepository.buscarPorId(input.campanhaId);
@@ -60,15 +67,18 @@ export class FinalizarCampanhaUseCase {
       input.campanhaId,
       input.cotaVencedoraNumero,
     );
-    if (!cotaVencedora || cotaVencedora.status !== 'PAGA' || !cotaVencedora.compradorId) {
-      throw new Error('A cota vencedora precisa ser uma cota paga por um comprador.');
+    if (!cotaVencedora || cotaVencedora.status !== 'PAGA') {
+      throw new Error('A cota vencedora precisa ser uma cota paga.');
     }
 
-    campanha.finalizar({
-      cotaVencedoraNumero: input.cotaVencedoraNumero,
-      vencedorNome: input.vencedorNome,
-      vencedorTelefone: input.vencedorTelefone,
-    });
+    campanha.finalizar(
+      {
+        cotaVencedoraNumero: input.cotaVencedoraNumero,
+        vencedorNome: input.vencedorNome,
+        vencedorTelefone: input.vencedorTelefone,
+      },
+      agora,
+    );
     await this.campanhaRepository.salvar(campanha);
 
     if (campanha.grupoId) {

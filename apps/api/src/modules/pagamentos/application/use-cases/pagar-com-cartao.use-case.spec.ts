@@ -70,6 +70,7 @@ describe('PagarComCartaoUseCase', () => {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn().mockResolvedValue(null),
       listarPorTransacaoGateway: jest.fn(),
+      listarPorCotaIds: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn().mockResolvedValue(undefined),
     };

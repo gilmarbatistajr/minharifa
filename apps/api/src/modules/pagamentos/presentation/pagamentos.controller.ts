@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AdministradorGuard } from '../../../shared/auth/guards/administrador.guard';
 import { CompradorGuard } from '../../../shared/auth/guards/comprador.guard';
 import { CurrentUser } from '../../../shared/auth/decorators/current-user.decorator';
@@ -12,12 +12,17 @@ import { IniciarCancelamentoCampanhaUseCase } from '../application/use-cases/ini
 import { EscolherReembolsoUseCase } from '../application/use-cases/escolher-reembolso.use-case';
 import { EscolherManterCotasUseCase } from '../application/use-cases/escolher-manter-cotas.use-case';
 import { ResgatarCreditoUseCase } from '../application/use-cases/resgatar-credito.use-case';
+import { FinalizarCompraUseCase } from '../application/use-cases/finalizar-compra.use-case';
+import { FinalizarCompraConvidadoUseCase } from '../application/use-cases/finalizar-compra-convidado.use-case';
+import { ListarPagamentosCampanhaUseCase } from '../application/use-cases/listar-pagamentos-campanha.use-case';
 import { GerarCobrancaPixDto } from './dto/gerar-cobranca-pix.dto';
 import { GerarCobrancaPixConvidadoDto } from './dto/gerar-cobranca-pix-convidado.dto';
 import { PagarComCartaoDto } from './dto/pagar-com-cartao.dto';
 import { PagarComCashbackDto } from './dto/pagar-com-cashback.dto';
 import { ConfirmarPagamentoWebhookDto } from './dto/confirmar-pagamento-webhook.dto';
 import { ResgatarCreditoDto } from './dto/resgatar-credito.dto';
+import { FinalizarCompraDto } from './dto/finalizar-compra.dto';
+import { FinalizarCompraConvidadoDto } from './dto/finalizar-compra-convidado.dto';
 
 @Controller()
 export class PagamentosController {
@@ -31,6 +36,9 @@ export class PagamentosController {
     private readonly escolherReembolsoUseCase: EscolherReembolsoUseCase,
     private readonly escolherManterCotasUseCase: EscolherManterCotasUseCase,
     private readonly resgatarCreditoUseCase: ResgatarCreditoUseCase,
+    private readonly finalizarCompraUseCase: FinalizarCompraUseCase,
+    private readonly finalizarCompraConvidadoUseCase: FinalizarCompraConvidadoUseCase,
+    private readonly listarPagamentosCampanhaUseCase: ListarPagamentosCampanhaUseCase,
   ) {}
 
   @UseGuards(CompradorGuard)
@@ -79,6 +87,41 @@ export class PagamentosController {
   @Post('pagamentos/webhook')
   async confirmarPagamentoWebhook(@Body() dto: ConfirmarPagamentoWebhookDto) {
     return this.confirmarPagamentoWebhookUseCase.executar(dto);
+  }
+
+  // Puramente informativo pro administrador (ver "Cotas compradas") — não
+  // confirma pagamento nem muda status de nada.
+  @UseGuards(CompradorGuard)
+  @Post('pagamentos/finalizar')
+  async finalizarCompra(@CurrentUser() usuario: PrincipalAutenticado, @Body() dto: FinalizarCompraDto) {
+    return this.finalizarCompraUseCase.executar({
+      campanhaId: dto.campanhaId,
+      numerosCotas: dto.numerosCotas,
+      compradorId: usuario.compradorId!,
+    });
+  }
+
+  // Sem guard de propósito: mesma finalização, para quem comprou sem login
+  // (ver ReservarLoteCotasConvidadoUseCase) — localizada pelo tokenReservaConvidado.
+  @Post('pagamentos/finalizar/convidado')
+  async finalizarCompraConvidado(@Body() dto: FinalizarCompraConvidadoDto) {
+    return this.finalizarCompraConvidadoUseCase.executar({
+      campanhaId: dto.campanhaId,
+      numerosCotas: dto.numerosCotas,
+      tokenReservaConvidado: dto.tokenReservaConvidado,
+    });
+  }
+
+  @UseGuards(AdministradorGuard)
+  @Get('pagamentos/campanha/:campanhaId')
+  async listarPagamentosCampanha(
+    @CurrentUser() usuario: PrincipalAutenticado,
+    @Param('campanhaId') campanhaId: string,
+  ) {
+    return this.listarPagamentosCampanhaUseCase.executar({
+      administradorId: usuario.administradorId!,
+      campanhaId,
+    });
   }
 
   @UseGuards(AdministradorGuard)

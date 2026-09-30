@@ -237,14 +237,16 @@ describe('Campanha', () => {
 
     it('registra a cota vencedora, nome e telefone e marca a campanha como finalizada nos dois status', () => {
       const campanha = criarCampanha({ status: 'LIBERADA_PARA_SORTEIO', statusVendas: 'COTAS_ESGOTADAS' });
+      const agora = new Date('2026-01-15T18:30:00Z');
 
-      campanha.finalizar(dadosVencedor);
+      campanha.finalizar(dadosVencedor, agora);
 
       expect(campanha.status).toBe('FINALIZADA');
       expect(campanha.statusVendas).toBe('FINALIZADO');
       expect(campanha.cotaVencedoraNumero).toBe(42);
       expect(campanha.vencedorNome).toBe('Maria Silva');
       expect(campanha.vencedorTelefone).toBe('11999999999');
+      expect(campanha.finalizadoEm).toBe(agora);
     });
 
     it('impede finalizar uma campanha que ainda não está liberada para sorteio', () => {

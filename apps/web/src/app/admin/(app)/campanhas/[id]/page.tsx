@@ -25,6 +25,7 @@ import {
 } from '../../../../../lib/api';
 import {
   formatarData,
+  formatarDataHora,
   formatarExpiracaoReserva,
   formatarMoeda,
   formatarStatusCampanha,
@@ -341,6 +342,12 @@ export default function DetalheCampanhaPage() {
                 <div>
                   <p className="font-mono text-xs uppercase text-muted">Abertura das vendas</p>
                   <p className="text-night">{formatarData(campanha.dataAberturaVendas)}</p>
+                </div>
+              )}
+              {campanha.finalizadoEm && (
+                <div>
+                  <p className="font-mono text-xs uppercase text-muted">Fechamento das vendas</p>
+                  <p className="text-night">{formatarDataHora(campanha.finalizadoEm)}</p>
                 </div>
               )}
               {campanha.dataRealizacao && (

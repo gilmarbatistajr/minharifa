@@ -119,6 +119,7 @@ describe('GerarCobrancaPixUseCase', () => {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn((cotaId: string) => Promise.resolve(pagamentosExistentesPorCotaId[cotaId] ?? null)),
       listarPorTransacaoGateway: jest.fn(),
+      listarPorCotaIds: jest.fn(),
       criar: jest.fn().mockResolvedValue(undefined),
       salvar: jest.fn().mockResolvedValue(undefined),
     };

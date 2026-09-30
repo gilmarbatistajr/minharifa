@@ -131,9 +131,11 @@ describe('FinalizarCampanhaUseCase', () => {
     const cotaVencedora = new Cota('cota-42', 'campanha-1', 42, 'PAGA', 'comprador-maria', new Date(), null);
     const deps = criarDependencias(campanha, cotaVencedora);
     const useCase = montarUseCase(deps);
+    const agora = new Date('2026-01-15T18:30:00Z');
 
     const resultado = await useCase.executar(
       { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
+      agora,
     );
 
     expect(resultado).toEqual({ campanhaId: 'campanha-1', compradorVencedorId: 'comprador-maria' });
@@ -142,6 +144,7 @@ describe('FinalizarCampanhaUseCase', () => {
     expect(campanha.cotaVencedoraNumero).toBe(42);
     expect(campanha.vencedorNome).toBe('Maria Silva');
     expect(campanha.vencedorTelefone).toBe('11999999999');
+    expect(campanha.finalizadoEm).toBe(agora);
     expect(deps.campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
   });
 
@@ -203,7 +206,7 @@ describe('FinalizarCampanhaUseCase', () => {
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 999, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
       ),
-    ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
+    ).rejects.toThrow('A cota vencedora precisa ser uma cota paga.');
   });
 
   it('rejeita quando a cota informada não foi paga', async () => {
@@ -215,7 +218,34 @@ describe('FinalizarCampanhaUseCase', () => {
       useCase.executar(
         { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Silva', vencedorTelefone: '11999999999' },
       ),
-    ).rejects.toThrow('A cota vencedora precisa ser uma cota paga por um comprador.');
+    ).rejects.toThrow('A cota vencedora precisa ser uma cota paga.');
+  });
+
+  it('permite finalizar quando a cota vencedora foi comprada por um convidado, sem conta', async () => {
+    const campanha = criarCampanha();
+    const cotaVencedora = new Cota(
+      'cota-42',
+      'campanha-1',
+      42,
+      'PAGA',
+      null,
+      new Date(),
+      null,
+      'token-convidado-1',
+      'Maria Convidada',
+      'maria@exemplo.com',
+      '11988887777',
+    );
+    const deps = criarDependencias(campanha, cotaVencedora);
+    const useCase = montarUseCase(deps);
+
+    const resultado = await useCase.executar(
+      { administradorId: 'admin-1', campanhaId: 'campanha-1', cotaVencedoraNumero: 42, vencedorNome: 'Maria Convidada', vencedorTelefone: '11988887777' },
+    );
+
+    expect(resultado).toEqual({ campanhaId: 'campanha-1', compradorVencedorId: null });
+    expect(campanha.status).toBe('FINALIZADA');
+    expect(campanha.vencedorNome).toBe('Maria Convidada');
   });
 
   describe('finalização por operador', () => {

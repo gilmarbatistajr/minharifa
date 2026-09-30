@@ -15,6 +15,7 @@ import {
   campanhasApi,
   gruposApi,
   premiosApi,
+  pagamentosApi,
   urlArquivoApi,
   ApiError,
   type Campanha,
@@ -23,8 +24,14 @@ import {
   type StatusCota,
   type CotaAdminResumo,
   type IdentificadorReserva,
+  type PagamentoResumo,
 } from '../../../../../../lib/api';
-import { formatarExpiracaoReserva, formatarMoeda, formatarTelefone } from '../../../../../../lib/format';
+import {
+  formatarExpiracaoReserva,
+  formatarMoeda,
+  formatarTelefone,
+  formatarDataHora,
+} from '../../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../../lib/auth';
 
 function linkWhatsapp(telefone: string): string {
@@ -40,6 +47,7 @@ export default function SorteioCampanhaPage() {
   const [grupo, setGrupo] = useState<DetalheGrupo | null>(null);
   const [premios, setPremios] = useState<Premio[] | null>(null);
   const [cotas, setCotas] = useState<CotaAdminResumo[] | null>(null);
+  const [pagamentos, setPagamentos] = useState<PagamentoResumo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [mostrarFinalizar, setMostrarFinalizar] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
@@ -48,7 +56,12 @@ export default function SorteioCampanhaPage() {
 
   const recarregarCotas = useCallback(async () => {
     if (!sessao) return;
-    setCotas(await campanhasApi.listarCotasAdmin(sessao.token, id));
+    const [cotasData, pagamentosData] = await Promise.all([
+      campanhasApi.listarCotasAdmin(sessao.token, id),
+      pagamentosApi.listarPagamentosCampanha(sessao.token, id),
+    ]);
+    setCotas(cotasData);
+    setPagamentos(pagamentosData);
   }, [sessao, id]);
 
   const recarregar = useCallback(async () => {
@@ -77,6 +90,7 @@ export default function SorteioCampanhaPage() {
 
   const comprasPorComprador = useMemo(() => {
     if (!cotas) return [];
+    const pagamentoPorNumero = new Map((pagamentos ?? []).map((pagamento) => [pagamento.numero, pagamento]));
     const mapa = new Map<string, Reserva>();
     for (const cota of cotas) {
       if (cota.status !== 'RESERVADA' && cota.status !== 'PAGA') continue;
@@ -112,16 +126,24 @@ export default function SorteioCampanhaPage() {
         ehConvidado,
         numerosReservados: [],
         numerosPagos: [],
+        valorPago: 0,
+        finalizadoPeloCompradorEm: null,
       };
       if (cota.status === 'RESERVADA') {
         existente.numerosReservados.push(cota.numero);
       } else {
         existente.numerosPagos.push(cota.numero);
       }
+      const pagamento = pagamentoPorNumero.get(cota.numero);
+      if (pagamento) {
+        existente.valorPago += pagamento.valorPago;
+        // Cotas de um mesmo lote são finalizadas juntas — qualquer uma serve.
+        existente.finalizadoPeloCompradorEm ??= pagamento.finalizadoPeloCompradorEm;
+      }
       mapa.set(chave, existente);
     }
     return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [cotas]);
+  }, [cotas, pagamentos]);
 
   async function confirmarPagamento(identificador: IdentificadorReserva, chave: string) {
     if (!sessao) return;
@@ -371,6 +393,7 @@ export default function SorteioCampanhaPage() {
                     )}
                   </div>
                   <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
+                  <InfoPagamento reserva={reserva} />
                   <AcoesReserva
                     reserva={reserva}
                     onConfirmar={confirmarPagamento}
@@ -390,6 +413,7 @@ export default function SorteioCampanhaPage() {
                     <th className="py-2 pr-4 font-mono font-medium">Comprador</th>
                     <th className="py-2 pr-4 font-mono font-medium">Telefone</th>
                     <th className="py-2 pr-4 font-mono font-medium">Cotas</th>
+                    <th className="py-2 pr-4 font-mono font-medium">Pagamento</th>
                     <th className="py-2 pr-4 font-mono font-medium">Ações</th>
                   </tr>
                 </thead>
@@ -404,6 +428,9 @@ export default function SorteioCampanhaPage() {
                       </td>
                       <td className="py-3 pr-4">
                         <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
+                      </td>
+                      <td className="py-3 pr-4">
+                        <InfoPagamento reserva={reserva} />
                       </td>
                       <td className="py-3 pr-4">
                         <AcoesReserva
@@ -554,6 +581,8 @@ interface Reserva {
   ehConvidado: boolean;
   numerosReservados: number[];
   numerosPagos: number[];
+  valorPago: number;
+  finalizadoPeloCompradorEm: string | null;
 }
 
 function ListaNumeros({ label, numeros }: { label: string; numeros: number[] }) {
@@ -579,6 +608,24 @@ function NumerosComprados({ reservados, pagos }: { reservados: number[]; pagos: 
     <div className="flex flex-col gap-2">
       {pagos.length > 0 && <ListaNumeros label="Pagas" numeros={pagos} />}
       {reservados.length > 0 && <ListaNumeros label="Reservadas" numeros={reservados} />}
+    </div>
+  );
+}
+
+/** Coluna "Pagamento": valor cobrado e quando o comprador clicou em "Finalizar compra" na tela dele. */
+function InfoPagamento({ reserva }: { reserva: Reserva }) {
+  if (reserva.valorPago <= 0) {
+    return <span className="text-xs text-muted">Sem cobrança gerada</span>;
+  }
+
+  return (
+    <div>
+      <p className="font-mono text-xs text-night">{formatarMoeda(reserva.valorPago)}</p>
+      <p className="text-xs text-muted">
+        {reserva.finalizadoPeloCompradorEm
+          ? formatarDataHora(reserva.finalizadoPeloCompradorEm)
+          : 'Ainda não finalizada'}
+      </p>
     </div>
   );
 }

@@ -3,7 +3,16 @@ import { CampanhaRepository } from '../../domain/repositories/campanha.repositor
 import { BuscarCampanhaPublicaUseCase } from './buscar-campanha-publica.use-case';
 
 describe('BuscarCampanhaPublicaUseCase', () => {
-  function criarCampanha(overrides: Partial<{ grupoId: string | null; removidaEm: Date | null }> = {}): Campanha {
+  function criarCampanha(
+    overrides: Partial<{
+      grupoId: string | null;
+      removidaEm: Date | null;
+      status: Campanha['status'];
+      cotaVencedoraNumero: number | null;
+      vencedorNome: string | null;
+      vencedorTelefone: string | null;
+    }> = {},
+  ): Campanha {
     return new Campanha(
       'campanha-1',
       'admin-1',
@@ -17,9 +26,9 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       100,
       50,
       'ESCOLHA_NUMERO',
-      'LIBERADA',
+      overrides.status ?? 'LIBERADA',
       'VENDAS_ABERTAS',
-      null,
+      overrides.cotaVencedoraNumero ?? null,
       null,
       overrides.removidaEm ?? null,
       '11999998888',
@@ -31,8 +40,8 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       true,
       false,
       'https://exemplo.com/foto.png',
-      null,
-      null,
+      overrides.vencedorNome ?? null,
+      overrides.vencedorTelefone ?? null,
       false,
       false,
       false,
@@ -78,10 +87,47 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       reservaExigeNome: true,
       reservaExigeTelefone: true,
       reservaExigeConfirmacaoTelefone: false,
+      cotaVencedoraNumero: null,
+      vencedorNome: null,
+      vencedorTelefone: null,
     });
     expect(resultado).not.toHaveProperty('chavePix');
     expect(resultado).not.toHaveProperty('tipoChavePix');
     expect(resultado).not.toHaveProperty('administradorId');
+  });
+
+  it('inclui os dados do vencedor quando a campanha está finalizada', async () => {
+    const campanha = criarCampanha({
+      status: 'FINALIZADA',
+      cotaVencedoraNumero: 42,
+      vencedorNome: 'Maria Silva',
+      vencedorTelefone: '11999999999',
+    });
+    const { campanhaRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+
+    const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
+
+    expect(resultado.cotaVencedoraNumero).toBe(42);
+    expect(resultado.vencedorNome).toBe('Maria Silva');
+    expect(resultado.vencedorTelefone).toBe('11999999999');
+  });
+
+  it('não inclui dados do vencedor quando a campanha ainda não está finalizada, mesmo se já preenchidos', async () => {
+    const campanha = criarCampanha({
+      status: 'LIBERADA_PARA_SORTEIO',
+      cotaVencedoraNumero: 42,
+      vencedorNome: 'Maria Silva',
+      vencedorTelefone: '11999999999',
+    });
+    const { campanhaRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+
+    const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
+
+    expect(resultado.cotaVencedoraNumero).toBeNull();
+    expect(resultado.vencedorNome).toBeNull();
+    expect(resultado.vencedorTelefone).toBeNull();
   });
 
   it('rejeita quando a campanha não existe', async () => {

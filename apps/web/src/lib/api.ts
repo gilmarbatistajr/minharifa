@@ -215,6 +215,7 @@ export interface Campanha {
   vencedorOptouPorDinheiro: boolean | null;
   vencedorNome: string | null;
   vencedorTelefone: string | null;
+  finalizadoEm: string | null;
   removidaEm: string | null;
 }
 
@@ -238,6 +239,13 @@ export interface DadosCartao {
   validade: string;
   cvv: string;
   nomeTitular: string;
+}
+
+/** Coluna "Pagamento" em "Cotas compradas": valor cobrado e quando o comprador clicou em "Finalizar compra". */
+export interface PagamentoResumo {
+  numero: number;
+  valorPago: number;
+  finalizadoPeloCompradorEm: string | null;
 }
 
 export interface AlertaAutomaticoGrupo {
@@ -452,7 +460,7 @@ export interface CotaResumoPublico {
   status: StatusCota;
 }
 
-/** Subconjunto público da campanha (Link de Vendas): nunca inclui chave Pix, dados do vencedor ou IDs internos. */
+/** Subconjunto público da campanha (Link de Vendas): nunca inclui chave Pix ou IDs internos. */
 export interface CampanhaPublica {
   id: string;
   nome: string;
@@ -471,6 +479,10 @@ export interface CampanhaPublica {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  /** Só preenchido quando `status === 'FINALIZADA'`. */
+  cotaVencedoraNumero: number | null;
+  vencedorNome: string | null;
+  vencedorTelefone: string | null;
 }
 
 /** Visão administrativa da cota: ao contrário de `CotaResumo` (do comprador), expõe quem é o dono. */
@@ -534,7 +546,7 @@ export const campanhasApi = {
     campanhaId: string,
     dados: { cotaVencedoraNumero: number; vencedorNome: string; vencedorTelefone: string },
   ) =>
-    request<{ campanhaId: string; compradorVencedorId: string }>(
+    request<{ campanhaId: string; compradorVencedorId: string | null }>(
       `/campanhas/${campanhaId}/finalizar`,
       { method: 'POST', token, body: dados },
     ),
@@ -649,6 +661,21 @@ export const pagamentosApi = {
       '/pagamentos/cashback',
       { method: 'POST', token, body: { campanhaId, numerosCotas } },
     ),
+
+  // Puramente informativo pro administrador (coluna "Pagamento" em "Cotas
+  // compradas") — registra quando o comprador clicou em "Finalizar compra".
+  finalizarCompra: (token: string, campanhaId: string, numerosCotas: number[]) =>
+    request<void>('/pagamentos/finalizar', { method: 'POST', token, body: { campanhaId, numerosCotas } }),
+
+  /** Mesmo registro, pra quem comprou sem login (ver `campanhasApi.reservarLoteConvidado`). */
+  finalizarCompraConvidado: (campanhaId: string, numerosCotas: number[], tokenReservaConvidado: string) =>
+    request<void>('/pagamentos/finalizar/convidado', {
+      method: 'POST',
+      body: { campanhaId, numerosCotas, tokenReservaConvidado },
+    }),
+
+  listarPagamentosCampanha: (token: string, campanhaId: string) =>
+    request<PagamentoResumo[]>(`/pagamentos/campanha/${campanhaId}`, { token }),
 };
 
 // ---------- Administradores membros (equipe com permissões por seção) ----------

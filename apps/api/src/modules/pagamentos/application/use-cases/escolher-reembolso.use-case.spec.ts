@@ -45,6 +45,7 @@ describe('EscolherReembolsoUseCase', () => {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn().mockResolvedValue(pagamento),
       listarPorTransacaoGateway: jest.fn(),
+      listarPorCotaIds: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };

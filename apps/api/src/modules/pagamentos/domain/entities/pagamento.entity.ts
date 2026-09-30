@@ -12,10 +12,16 @@ export class Pagamento {
     public status: StatusPagamento,
     public idTransacaoGateway: string | null,
     public readonly criadoEm: Date,
+    public finalizadoPeloCompradorEm: Date | null = null,
   ) {}
 
   calcularValorRestante(): number {
     return this.valor - this.valorCashbackAplicado;
+  }
+
+  /** Marca que o comprador passou pela tela de pagamento e clicou em "Finalizar compra". */
+  marcarFinalizadoPeloComprador(agora: Date): void {
+    this.finalizadoPeloCompradorEm = agora;
   }
 
   /**

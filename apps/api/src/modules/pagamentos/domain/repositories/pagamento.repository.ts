@@ -5,6 +5,8 @@ export interface PagamentoRepository {
   buscarPorCotaId(cotaId: string): Promise<Pagamento | null>;
   /** Vários pagamentos (um por cota) podem compartilhar o mesmo `idTransacaoGateway` quando pagos juntos em lote. */
   listarPorTransacaoGateway(idTransacaoGateway: string): Promise<Pagamento[]>;
+  /** Cobre a listagem administrativa de "cotas compradas": um pagamento por cota, buscados em lote. */
+  listarPorCotaIds(cotaIds: string[]): Promise<Pagamento[]>;
   criar(pagamento: Pagamento): Promise<void>;
   salvar(pagamento: Pagamento): Promise<void>;
 }

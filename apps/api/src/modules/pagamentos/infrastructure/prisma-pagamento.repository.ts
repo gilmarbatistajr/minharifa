@@ -15,6 +15,7 @@ function paraDominio(registro: PagamentoPrisma): Pagamento {
     registro.status as StatusPagamento,
     registro.idTransacaoGateway,
     registro.criadoEm,
+    registro.finalizadoPeloCompradorEm,
   );
 }
 
@@ -37,6 +38,12 @@ export class PrismaPagamentoRepository implements PagamentoRepository {
     return registros.map(paraDominio);
   }
 
+  async listarPorCotaIds(cotaIds: string[]): Promise<Pagamento[]> {
+    if (cotaIds.length === 0) return [];
+    const registros = await this.prisma.pagamento.findMany({ where: { cotaId: { in: cotaIds } } });
+    return registros.map(paraDominio);
+  }
+
   async criar(pagamento: Pagamento): Promise<void> {
     await this.prisma.pagamento.create({
       data: {
@@ -49,6 +56,7 @@ export class PrismaPagamentoRepository implements PagamentoRepository {
         status: pagamento.status,
         idTransacaoGateway: pagamento.idTransacaoGateway,
         criadoEm: pagamento.criadoEm,
+        finalizadoPeloCompradorEm: pagamento.finalizadoPeloCompradorEm,
       },
     });
   }
@@ -61,6 +69,7 @@ export class PrismaPagamentoRepository implements PagamentoRepository {
         metodo: pagamento.metodo,
         status: pagamento.status,
         idTransacaoGateway: pagamento.idTransacaoGateway,
+        finalizadoPeloCompradorEm: pagamento.finalizadoPeloCompradorEm,
       },
     });
   }

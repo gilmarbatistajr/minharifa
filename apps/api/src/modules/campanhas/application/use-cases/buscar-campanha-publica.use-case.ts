@@ -24,6 +24,10 @@ export interface CampanhaPublica {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  /** Só preenchido quando `status === 'FINALIZADA'` — antes disso não existe vencedor. */
+  cotaVencedoraNumero: number | null;
+  vencedorNome: string | null;
+  vencedorTelefone: string | null;
 }
 
 /**
@@ -32,9 +36,10 @@ export interface CampanhaPublica {
  * Só existe para campanhas já lançadas para um grupo — devolve exatamente o
  * mesmo "não encontrada" tanto para id inexistente quanto para campanha
  * ainda não lançada, pra não revelar qual dos dois é o caso. Nunca inclui
- * campos sensíveis (chave Pix do administrador, dados do vencedor, IDs
- * internos de administrador/grupo) — só o que a página de compra precisa
- * mostrar.
+ * campos sensíveis (chave Pix do administrador, IDs internos de
+ * administrador/grupo) — só o que a página de compra precisa mostrar. Os
+ * dados do vencedor só saem depois de finalizada (ver `status`); a página
+ * de compra usa isso pra trocar a seleção de cotas pelo resultado.
  */
 @Injectable()
 export class BuscarCampanhaPublicaUseCase {
@@ -49,6 +54,8 @@ export class BuscarCampanhaPublicaUseCase {
     if (!campanha || !campanha.grupoId || campanha.estaRemovida()) {
       throw new Error('Campanha não encontrada.');
     }
+
+    const finalizada = campanha.status === 'FINALIZADA';
 
     return {
       id: campanha.id,
@@ -68,6 +75,9 @@ export class BuscarCampanhaPublicaUseCase {
       reservaExigeNome: campanha.reservaExigeNome,
       reservaExigeTelefone: campanha.reservaExigeTelefone,
       reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
+      cotaVencedoraNumero: finalizada ? campanha.cotaVencedoraNumero : null,
+      vencedorNome: finalizada ? campanha.vencedorNome : null,
+      vencedorTelefone: finalizada ? campanha.vencedorTelefone : null,
     };
   }
 }

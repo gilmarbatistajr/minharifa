@@ -95,6 +95,7 @@ export class Campanha {
     public alerta90PorCentoEnviado: boolean = false,
     public tipoChavePix: TipoChavePix | null = null,
     public chavePix: string | null = null,
+    public finalizadoEm: Date | null = null,
   ) {}
 
   estaRemovida(): boolean {
@@ -245,7 +246,7 @@ export class Campanha {
    * sorteio — ficam gravados na campanha para alimentar o ranking "quem
    * mais ganhou" do dashboard.
    */
-  finalizar(dados: DadosFinalizacaoCampanha): void {
+  finalizar(dados: DadosFinalizacaoCampanha, agora: Date = new Date()): void {
     if (this.status !== 'LIBERADA_PARA_SORTEIO') {
       throw new Error('Somente campanhas liberadas para sorteio podem ser finalizadas.');
     }
@@ -271,6 +272,7 @@ export class Campanha {
     this.cotaVencedoraNumero = dados.cotaVencedoraNumero;
     this.vencedorNome = dados.vencedorNome;
     this.vencedorTelefone = dados.vencedorTelefone;
+    this.finalizadoEm = agora;
   }
 
   /** Cobre o atalho "campanha encerrando em 24h" do dashboard-visao-geral.feature. */

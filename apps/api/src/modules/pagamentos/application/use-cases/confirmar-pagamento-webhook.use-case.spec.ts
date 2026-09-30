@@ -54,6 +54,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       buscarPorId: jest.fn(),
       buscarPorCotaId: jest.fn(),
       listarPorTransacaoGateway: jest.fn().mockResolvedValue(pagamentos),
+      listarPorCotaIds: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn().mockResolvedValue(undefined),
     };

@@ -26,6 +26,9 @@ import { EscolherReembolsoUseCase } from './application/use-cases/escolher-reemb
 import { EscolherManterCotasUseCase } from './application/use-cases/escolher-manter-cotas.use-case';
 import { ResgatarCreditoUseCase } from './application/use-cases/resgatar-credito.use-case';
 import { ProcessarEscolhasExpiradasUseCase } from './application/use-cases/processar-escolhas-expiradas.use-case';
+import { FinalizarCompraUseCase } from './application/use-cases/finalizar-compra.use-case';
+import { FinalizarCompraConvidadoUseCase } from './application/use-cases/finalizar-compra-convidado.use-case';
+import { ListarPagamentosCampanhaUseCase } from './application/use-cases/listar-pagamentos-campanha.use-case';
 import { PagamentosController } from './presentation/pagamentos.controller';
 
 @Module({
@@ -48,6 +51,9 @@ import { PagamentosController } from './presentation/pagamentos.controller';
     EscolherManterCotasUseCase,
     ResgatarCreditoUseCase,
     ProcessarEscolhasExpiradasUseCase,
+    FinalizarCompraUseCase,
+    FinalizarCompraConvidadoUseCase,
+    ListarPagamentosCampanhaUseCase,
   ],
 })
 export class PagamentosModule {}
