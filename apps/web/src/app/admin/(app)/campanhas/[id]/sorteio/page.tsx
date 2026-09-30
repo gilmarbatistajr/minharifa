@@ -44,6 +44,7 @@ export default function SorteioCampanhaPage() {
   const [mostrarFinalizar, setMostrarFinalizar] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [descricaoCopiada, setDescricaoCopiada] = useState(false);
 
   const recarregarCotas = useCallback(async () => {
     if (!sessao) return;
@@ -187,6 +188,13 @@ export default function SorteioCampanhaPage() {
     setLinkCopiado(true);
   }
 
+  const descricaoCampanha = campanha.descricao;
+
+  function copiarDescricao() {
+    navigator.clipboard?.writeText(descricaoCampanha);
+    setDescricaoCopiada(true);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <button
@@ -295,6 +303,25 @@ export default function SorteioCampanhaPage() {
               className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
             >
               <IconCopy className="h-4 w-4" /> {linkCopiado ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-line pt-3">
+          <p className="mb-2 font-mono text-xs uppercase text-muted">Descrição</p>
+          <p className="mb-2 text-xs text-muted">
+            Texto exibido ao comprador na campanha — útil para reenviar a divulgação no grupo.
+          </p>
+          <div className="flex flex-col items-stretch gap-2">
+            <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-mist px-3 py-2.5 font-mono text-xs text-night">
+              {campanha.descricao}
+            </p>
+            <button
+              type="button"
+              onClick={copiarDescricao}
+              className="flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
+            >
+              <IconCopy className="h-4 w-4" /> {descricaoCopiada ? 'Copiado!' : 'Copiar descrição'}
             </button>
           </div>
         </div>
