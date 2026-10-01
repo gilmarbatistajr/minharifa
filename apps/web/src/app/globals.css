@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Marca — extraído de "Minha Rifa Logo.html" */
+  --color-accent: #12e07e; /* Verde Sorte — blocos, botões, badges */
+  --color-accent-ink: #00a862; /* verde acessível para texto/links sobre branco */
+  --color-accent-ink-hover: #007d49;
+  --color-night: #0c1b26; /* Azul Noite — fundo escuro */
+  --color-ink: #08202c; /* Tinta — texto sobre fundo accent */
+  --color-mist: #f4f6f5; /* Névoa — fundo claro */
+  --color-line: #e2e7e5; /* bordas neutras */
+  --color-muted: #6b7c87;
+  --color-muted-strong: #43555f;
+
+  --font-display: var(--font-archivo-black), Archivo, Helvetica, sans-serif;
+  --font-sans: var(--font-archivo), Helvetica, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-ticket: 20px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-mist);
+    color: var(--color-night);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: var(--color-accent-ink);
+  }
+
+  a:hover {
+    color: var(--color-accent-ink-hover);
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  /* Motivo "bilhete recortado": duas mordidas circulares nas laterais,
+     como o miolo perfurado de um talão de rifa. Usar em cards/badges de
+     destaque (não em todo componente — é um acento, não um padrão-base). */
+  .ticket-notch {
+    position: relative;
+  }
+
+  .ticket-notch::before,
+  .ticket-notch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: var(--color-mist);
+    transform: translateY(-50%);
+  }
+
+  .ticket-notch::before {
+    left: -11px;
+  }
+
+  .ticket-notch::after {
+    right: -11px;
+  }
+
+  .ticket-notch-night::before,
+  .ticket-notch-night::after {
+    background: var(--color-night);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,401 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Administrador {
+  id              String   @id @default(uuid())
+  nome            String
+  email           String   @unique
+  senhaHash       String
+  emailConfirmado Boolean  @default(false)
+  criadoEm        DateTime @default(now())
+
+  telefone String?
+  cpf      String? @unique
+  rg       String?
+
+  // null = administrador dono da conta (proprietário); preenchido = membro
+  // adicional cadastrado pelo dono, compartilhando os mesmos dados (grupos,
+  // campanhas, prêmios, operadores) da conta do proprietário.
+  administradorProprietarioId String?
+  administradorProprietario   Administrador?  @relation("MembrosDaConta", fields: [administradorProprietarioId], references: [id])
+  membros                     Administrador[] @relation("MembrosDaConta")
+
+  tokenConfirmacaoEmail         String?   @unique
+  tokenConfirmacaoEmailExpiraEm DateTime?
+
+  tokenRecuperacaoSenha         String?   @unique
+  tokenRecuperacaoSenhaExpiraEm DateTime?
+
+  novoEmailPendente                 String?
+  tokenConfirmacaoNovoEmail         String?   @unique
+  tokenConfirmacaoNovoEmailExpiraEm DateTime?
+
+  grupos     Grupo[]
+  premios    Premio[]
+  campanhas  Campanha[]
+  operadores Operador[]
+  permissoes PermissaoAdministrador[]
+
+  @@map("administradores")
+}
+
+enum RecursoMenuAdmin {
+  CAMPANHAS
+  GRUPOS
+  PREMIOS
+  OPERADORES
+  ALERTAS_AUTOMATICOS
+  ADMINISTRADORES
+}
+
+// Define, por membro administrador (nunca para o proprietário, que tem acesso
+// total), se ele pode criar/editar/remover em cada seção do menu do admin.
+model PermissaoAdministrador {
+  id              String            @id @default(uuid())
+  administradorId String
+  administrador   Administrador     @relation(fields: [administradorId], references: [id], onDelete: Cascade)
+  recurso         RecursoMenuAdmin
+  podeCriar       Boolean           @default(false)
+  podeEditar      Boolean           @default(false)
+  podeRemover     Boolean           @default(false)
+
+  @@unique([administradorId, recurso])
+  @@map("permissoes_administrador")
+}
+
+model Grupo {
+  id                    String        @id @default(uuid())
+  administradorId       String
+  administrador         Administrador @relation(fields: [administradorId], references: [id])
+  nome                  String
+  identificadorWhatsapp String
+  linkWhatsapp          String?
+  criadoEm              DateTime      @default(now())
+
+  agenteChatbot     AgenteChatbot?
+  linksConvite      LinkConvite[]
+  compradores       Comprador[]
+  campanhas         Campanha[]
+  creditosPendentes CreditoPendente[]
+  operadores        Operador[]        @relation("OperadoresGrupos")
+
+  @@map("grupos")
+}
+
+model Operador {
+  id              String   @id @default(uuid())
+  administradorId String
+  administrador   Administrador @relation(fields: [administradorId], references: [id])
+  nomeCompleto    String
+  endereco        String
+  cpf             String   @unique
+  rg              String
+  telefone        String
+  login           String   @unique
+  senhaHash       String
+  criadoEm        DateTime @default(now())
+
+  grupos     Grupo[]            @relation("OperadoresGrupos")
+  permissoes PermissaoOperador[]
+
+  @@map("operadores")
+}
+
+enum RecursoMenuOperador {
+  CAMPANHAS
+  GRUPOS
+  PREMIOS
+  ALERTAS_AUTOMATICOS
+}
+
+// Define, por operador, se ele pode criar/editar/remover em cada seção
+// permitida do menu (mais restrita que a de administradores membros — nunca
+// inclui Operadores nem Administradores).
+model PermissaoOperador {
+  id          String              @id @default(uuid())
+  operadorId  String
+  operador    Operador            @relation(fields: [operadorId], references: [id], onDelete: Cascade)
+  recurso     RecursoMenuOperador
+  podeCriar   Boolean             @default(false)
+  podeEditar  Boolean             @default(false)
+  podeRemover Boolean             @default(false)
+
+  @@unique([operadorId, recurso])
+  @@map("permissoes_operador")
+}
+
+model AgenteChatbot {
+  id                         String  @id @default(uuid())
+  grupoId                    String  @unique
+  grupo                      Grupo   @relation(fields: [grupoId], references: [id])
+  ativo                      Boolean @default(false)
+  avisa50PorCentoVendido     Boolean @default(true)
+  avisa80PorCentoVendido     Boolean @default(true)
+  avisa90PorCentoVendido     Boolean @default(true)
+  avisaNovaCampanha          Boolean @default(true)
+  avisaResultado             Boolean @default(true)
+  mensagem50PorCentoVendido  String?
+  mensagem80PorCentoVendido  String?
+  mensagem90PorCentoVendido  String?
+  mensagemNovaCampanha       String?
+  mensagemResultado          String?
+
+  @@map("agentes_chatbot")
+}
+
+enum StatusLinkConvite {
+  ATIVO
+  REVOGADO
+}
+
+model LinkConvite {
+  id       String            @id @default(uuid())
+  grupoId  String
+  grupo    Grupo             @relation(fields: [grupoId], references: [id])
+  codigo   String            @unique
+  status   StatusLinkConvite @default(ATIVO)
+  criadoEm DateTime          @default(now())
+
+  @@map("links_convite")
+}
+
+model Comprador {
+  id                 String   @id @default(uuid())
+  grupoId            String
+  grupo              Grupo    @relation(fields: [grupoId], references: [id])
+  nome               String
+  apelido            String?
+  dataNascimento     DateTime
+  telefone           String
+  cpf                String   @unique
+  endereco           String
+  email              String?  @unique
+  senhaHash          String?
+  cashbackDisponivel Decimal  @default(0) @db.Decimal(10, 2)
+  aceitouTermoEm     DateTime
+  criadoEm           DateTime @default(now())
+
+  googleId   String? @unique
+  facebookId String? @unique
+  appleId    String? @unique
+
+  tokenRecuperacaoSenha         String?   @unique
+  tokenRecuperacaoSenhaExpiraEm DateTime?
+
+  cotas                   Cota[]
+  pagamentos              Pagamento[]
+  creditosPendentes       CreditoPendente[]
+  escolhasPosCancelamento EscolhaPosCancelamento[]
+
+  @@map("compradores")
+}
+
+model Premio {
+  id                 String        @id @default(uuid())
+  administradorId    String
+  administrador      Administrador @relation(fields: [administradorId], references: [id])
+  nome               String
+  descricao          String
+  fotoUrl            String?
+  valor              Decimal       @db.Decimal(10, 2)
+  valorOpcaoDinheiro Decimal?      @db.Decimal(10, 2)
+  criadoEm           DateTime      @default(now())
+
+  campanhas Campanha[]
+
+  @@map("premios")
+}
+
+enum StatusVendasCampanha {
+  AGUARDANDO_ABERTURA
+  VENDAS_ABERTAS
+  VENDAS_ENCERRADAS
+  COTAS_ESGOTADAS
+  FINALIZADO
+  CANCELADO
+}
+
+enum StatusCampanha {
+  NOVO
+  AGUARDANDO_LIBERACAO
+  LIBERADA
+  LIBERADA_PARA_SORTEIO
+  FINALIZADA
+}
+
+enum FormaVendaCotas {
+  ESCOLHA_NUMERO
+  LOTE_FECHADO
+}
+
+enum TipoChavePix {
+  CPF
+  CNPJ
+  CELULAR
+  EMAIL
+  ALEATORIA
+}
+
+model Campanha {
+  id                       String                @id @default(uuid())
+  administradorId          String
+  administrador            Administrador         @relation(fields: [administradorId], references: [id])
+  grupoId                  String?
+  grupo                    Grupo?                @relation(fields: [grupoId], references: [id])
+  nome                     String
+  descricao                String
+  telefoneSuporte          String                @default("")
+  tipoChavePix             TipoChavePix?
+  chavePix                 String?
+  fotoUrl                  String?
+  premios                  Premio[]
+  dataAberturaVendas       DateTime?
+  dataEncerramentoVendas   DateTime?
+  dataRealizacao           DateTime?
+  quantidadeCotas          Int
+  valorCota                Decimal               @db.Decimal(10, 2)
+  quantidadeMinimaPorCompra       Int            @default(1)
+  quantidadeMaximaPorCompra       Int?
+  expiracaoReservaMinutos         Int?           @default(2)
+  reservaExigeEmail               Boolean        @default(true)
+  reservaExigeNome                Boolean        @default(true)
+  reservaExigeTelefone            Boolean        @default(true)
+  reservaExigeConfirmacaoTelefone Boolean        @default(false)
+  formaVenda               FormaVendaCotas       @default(ESCOLHA_NUMERO)
+  status                   StatusCampanha        @default(NOVO)
+  statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
+  cotaVencedoraNumero      Int?
+  vencedorOptouPorDinheiro Boolean?
+  vencedorNome             String?
+  vencedorTelefone         String?
+  // Quando a campanha passou pro status FINALIZADA (ver Campanha.finalizar()) —
+  // distinto de dataRealizacao, que é a data prevista/informada no lançamento.
+  finalizadoEm             DateTime?
+  removidaEm               DateTime?
+  criadoEm                 DateTime              @default(now())
+  alerta50PorCentoEnviado  Boolean               @default(false)
+  alerta80PorCentoEnviado  Boolean               @default(false)
+  alerta90PorCentoEnviado  Boolean               @default(false)
+
+  cotas                   Cota[]
+  escolhasPosCancelamento EscolhaPosCancelamento[]
+
+  @@map("campanhas")
+}
+
+enum StatusCota {
+  DISPONIVEL
+  RESERVADA
+  PAGA
+  CANCELADA_REEMBOLSADA
+}
+
+model Cota {
+  id              String     @id @default(uuid())
+  campanhaId      String
+  campanha        Campanha   @relation(fields: [campanhaId], references: [id])
+  compradorId     String?
+  comprador       Comprador? @relation(fields: [compradorId], references: [id])
+  numero          Int
+  status          StatusCota @default(DISPONIVEL)
+  reservadaEm     DateTime?
+  reservaExpiraEm DateTime?
+
+  // Reserva feita sem login (checkout de convidado): em vez de apontar pra um
+  // Comprador, guarda o contato informado direto na cota. `tokenReservaConvidado`
+  // é compartilhado por todas as cotas de um mesmo lote reservado — é o que
+  // permite localizar "minha reserva" e gerar/pagar o Pix sem sessão.
+  tokenReservaConvidado String?
+  convidadoNome          String?
+  convidadoEmail         String?
+  convidadoTelefone      String?
+
+  pagamento Pagamento?
+
+  @@unique([campanhaId, numero])
+  @@index([tokenReservaConvidado])
+  @@map("cotas")
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+  CASHBACK
+}
+
+enum StatusPagamento {
+  PENDENTE
+  APROVADO
+  RECUSADO
+  ESTORNADO
+}
+
+model Pagamento {
+  id                    String          @id @default(uuid())
+  cotaId                String          @unique
+  cota                  Cota            @relation(fields: [cotaId], references: [id])
+  // Nulo para pagamento de uma reserva de convidado (sem Comprador associado).
+  compradorId           String?
+  comprador             Comprador?      @relation(fields: [compradorId], references: [id])
+  valor                 Decimal         @db.Decimal(10, 2)
+  valorCashbackAplicado Decimal         @default(0) @db.Decimal(10, 2)
+  metodo                MetodoPagamento
+  status                StatusPagamento @default(PENDENTE)
+  idTransacaoGateway    String?
+  criadoEm              DateTime        @default(now())
+  // Quando o comprador clicou em "Finalizar compra" na tela de pagamento —
+  // distinto da confirmação (manual, pelo administrador) do recebimento.
+  finalizadoPeloCompradorEm DateTime?
+
+  @@map("pagamentos")
+}
+
+// Crédito gerado quando um comprador opta por manter cotas de uma campanha
+// cancelada para a próxima campanha do mesmo grupo, mas ainda não existe uma
+// próxima campanha no momento da escolha (ver cancelamento-de-sorteio.feature).
+model CreditoPendente {
+  id                String    @id @default(uuid())
+  compradorId       String
+  comprador         Comprador @relation(fields: [compradorId], references: [id])
+  grupoId           String
+  grupo             Grupo     @relation(fields: [grupoId], references: [id])
+  campanhaOrigemId  String
+  quantidadeCotas   Int
+  valorTotal        Decimal   @db.Decimal(10, 2)
+  utilizado         Boolean   @default(false)
+  criadoEm          DateTime  @default(now())
+
+  @@map("creditos_pendentes")
+}
+
+enum StatusEscolhaPosCancelamento {
+  PENDENTE
+  REEMBOLSO
+  CREDITO_PROXIMA_CAMPANHA
+  CASHBACK
+}
+
+// Registra, por comprador, a janela de decisão após o cancelamento de uma
+// campanha: reembolso, manter cotas via crédito, ou (se não se manifestar
+// no prazo) conversão automática em cashback.
+model EscolhaPosCancelamento {
+  id              String                       @id @default(uuid())
+  campanhaId      String
+  campanha        Campanha                     @relation(fields: [campanhaId], references: [id])
+  compradorId     String
+  comprador       Comprador                    @relation(fields: [compradorId], references: [id])
+  quantidadeCotas Int
+  valorTotal      Decimal                      @db.Decimal(10, 2)
+  status          StatusEscolhaPosCancelamento @default(PENDENTE)
+  prazoExpiraEm   DateTime
+  decididoEm      DateTime?
+  criadoEm        DateTime                     @default(now())
+
+  @@map("escolhas_pos_cancelamento")
+}

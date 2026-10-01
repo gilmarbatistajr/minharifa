@@ -1,0 +1,228 @@
+import { Grupo } from '../../domain/entities/grupo.entity';
+import { GrupoRepository } from '../../domain/repositories/grupo.repository';
+import { Campanha } from '../../../campanhas/domain/entities/campanha.entity';
+import { CampanhaRepository } from '../../../campanhas/domain/repositories/campanha.repository';
+import { Cota } from '../../../campanhas/domain/entities/cota.entity';
+import { CotaRepository } from '../../../campanhas/domain/repositories/cota.repository';
+import { AgenteChatbot } from '../../domain/entities/agente-chatbot.entity';
+import { AgenteChatbotRepository } from '../../domain/repositories/agente-chatbot.repository';
+import { NotificationSender } from '../../../../shared/domain/notification-sender';
+import { LancarCampanhaUseCase } from './lancar-campanha.use-case';
+
+describe('LancarCampanhaUseCase', () => {
+  const grupo = new Grupo('grupo-1', 'admin-1', 'Amigos do bem', '5511999999999', new Date());
+
+  function criarCampanha(administradorId = 'admin-1'): Campanha {
+    return new Campanha(
+      'campanha-1',
+      administradorId,
+      null,
+      'Campanha de Natal',
+      'Descrição',
+      ['premio-1'],
+      null,
+      null,
+      null,
+      10,
+      50,
+      'ESCOLHA_NUMERO',
+      'AGUARDANDO_LIBERACAO',
+      'AGUARDANDO_ABERTURA',
+      null,
+      null,
+    );
+  }
+
+  function criarDependencias(
+    grupoRetornado: Grupo | null,
+    campanha: Campanha | null,
+    agente: AgenteChatbot | null = null,
+  ) {
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(grupoRetornado),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+    };
+    const campanhaRepository: CampanhaRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(campanha),
+      listarPorPremioId: jest.fn(),
+      listarPorGrupo: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      criar: jest.fn(),
+      salvar: jest.fn().mockResolvedValue(undefined),
+    };
+    const cotaRepository: CotaRepository = {
+      buscarPorId: jest.fn(),
+      buscarPorCampanhaENumero: jest.fn(),
+      listarPorCampanha: jest.fn(),
+      contarPagasPorCampanha: jest.fn(),
+      contarPagasAgrupadoPorComprador: jest.fn(),
+      contarPagasAgrupadoPorCompradorDoAdministrador: jest.fn(),
+      listarReservadasPorComprador: jest.fn(),
+      listarReservadasPorTokenConvidado: jest.fn(),
+      criarEmLote: jest.fn().mockResolvedValue(undefined),
+      salvar: jest.fn(),
+    };
+
+    const agenteChatbotRepository: AgenteChatbotRepository = {
+      buscarPorGrupoId: jest.fn().mockResolvedValue(agente),
+      criar: jest.fn(),
+      salvar: jest.fn(),
+    };
+    const notificationSender: NotificationSender = {
+      enviarEmail: jest.fn(),
+      enviarWhatsapp: jest.fn().mockResolvedValue(undefined),
+    };
+
+    return { grupoRepository, campanhaRepository, cotaRepository, agenteChatbotRepository, notificationSender };
+  }
+
+  function montarUseCase(deps: ReturnType<typeof criarDependencias>) {
+    return new LancarCampanhaUseCase(
+      deps.grupoRepository,
+      deps.campanhaRepository,
+      deps.cotaRepository,
+      deps.agenteChatbotRepository,
+      deps.notificationSender,
+    );
+  }
+
+  const inputBase = {
+    administradorId: 'admin-1',
+    grupoId: 'grupo-1',
+    campanhaId: 'campanha-1',
+    dataAberturaVendas: new Date('2026-02-01T00:00:00Z'),
+    dataEncerramentoVendas: new Date('2026-02-10T00:00:00Z'),
+    dataRealizacao: new Date('2026-02-11T00:00:00Z'),
+  };
+
+  it('lança a campanha, vinculando o grupo e materializando as cotas', async () => {
+    const campanha = criarCampanha();
+    const deps = criarDependencias(grupo, campanha);
+    const useCase = montarUseCase(deps);
+
+    const resultado = await useCase.executar(inputBase);
+
+    expect(resultado.campanhaId).toBe('campanha-1');
+    expect(campanha.status).toBe('LIBERADA');
+    expect(campanha.grupoId).toBe('grupo-1');
+    expect(deps.campanhaRepository.salvar).toHaveBeenCalledWith(campanha);
+    expect(deps.cotaRepository.criarEmLote).toHaveBeenCalledTimes(1);
+    const cotasCriadas = (deps.cotaRepository.criarEmLote as jest.Mock).mock.calls[0][0] as Cota[];
+    expect(cotasCriadas).toHaveLength(10);
+    expect(cotasCriadas[0].numero).toBe(1);
+    expect(cotasCriadas[9].numero).toBe(10);
+    expect(cotasCriadas.every((cota) => cota.status === 'DISPONIVEL' && cota.campanhaId === 'campanha-1')).toBe(
+      true,
+    );
+  });
+
+  it('dispara o alerta de nova campanha do agente chatbot do grupo ao lançar', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Nova campanha no ar!');
+  });
+
+  it('envia também a descrição da campanha, além da mensagem configurada em Alertas automáticos', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledTimes(2);
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenNthCalledWith(1, '11988887777', 'Nova campanha no ar!');
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenNthCalledWith(2, '11988887777', 'Descrição');
+  });
+
+  it('envia só a descrição da campanha quando não há mensagem configurada em Alertas automáticos', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, true, true, null, null);
+    const deps = criarDependencias(grupo, campanha, agente);
+    (deps.grupoRepository.listarCompradores as jest.Mock).mockResolvedValue([
+      { id: 'comprador-1', nome: 'Maria', telefone: '11988887777' },
+    ]);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledTimes(1);
+    expect(deps.notificationSender.enviarWhatsapp).toHaveBeenCalledWith('11988887777', 'Descrição');
+  });
+
+  it('não dispara o alerta de nova campanha quando o agente está desativado', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', false, true, true, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
+  });
+
+  it('não dispara nada (nem a descrição) quando o toggle "avisa nova campanha" está desligado', async () => {
+    const campanha = criarCampanha();
+    const agente = new AgenteChatbot('agente-1', 'grupo-1', true, true, false, true, null, 'Nova campanha no ar!');
+    const deps = criarDependencias(grupo, campanha, agente);
+    const useCase = montarUseCase(deps);
+
+    await useCase.executar(inputBase);
+
+    expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
+  });
+
+  it('rejeita quando o grupo não existe', async () => {
+    const deps = criarDependencias(null, criarCampanha());
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar(inputBase)).rejects.toThrow('Grupo não encontrado.');
+  });
+
+  it('rejeita quando o grupo pertence a outro administrador', async () => {
+    const outroGrupo = new Grupo('grupo-1', 'admin-2', 'Amigos do bem', '5511999999999', new Date());
+    const deps = criarDependencias(outroGrupo, criarCampanha());
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar(inputBase)).rejects.toThrow('Grupo não encontrado.');
+  });
+
+  it('rejeita quando a campanha não existe', async () => {
+    const deps = criarDependencias(grupo, null);
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar(inputBase)).rejects.toThrow('Campanha não encontrada.');
+  });
+
+  it('rejeita quando a campanha pertence a outro administrador', async () => {
+    const deps = criarDependencias(grupo, criarCampanha('admin-2'));
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar(inputBase)).rejects.toThrow('Campanha não encontrada.');
+  });
+
+  it('propaga o erro de negócio quando a campanha não está aguardando liberação', async () => {
+    const campanha = criarCampanha();
+    campanha.status = 'NOVO';
+    const deps = criarDependencias(grupo, campanha);
+    const useCase = montarUseCase(deps);
+
+    await expect(useCase.executar(inputBase)).rejects.toThrow('Somente campanhas aguardando liberação');
+    expect(deps.campanhaRepository.salvar).not.toHaveBeenCalled();
+    expect(deps.cotaRepository.criarEmLote).not.toHaveBeenCalled();
+  });
+});

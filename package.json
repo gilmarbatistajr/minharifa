@@ -1,0 +1,24 @@
+{
+  "name": "minharifa",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Aplicação web para gestão de sorteios",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0",
+    "pnpm": ">=9.12.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @minharifa/api start:dev",
+    "dev:web": "pnpm --filter @minharifa/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:cov": "pnpm -r test:cov",
+    "test:e2e": "pnpm --filter @minharifa/e2e test",
+    "prisma:migrate": "pnpm --filter @minharifa/api prisma:migrate",
+    "prisma:generate": "pnpm --filter @minharifa/api prisma:generate",
+    "prisma:studio": "pnpm --filter @minharifa/api prisma:studio"
+  }
+}
