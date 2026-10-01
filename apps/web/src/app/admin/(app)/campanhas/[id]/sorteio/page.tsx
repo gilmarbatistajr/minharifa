@@ -53,6 +53,7 @@ export default function SorteioCampanhaPage() {
   const [processando, setProcessando] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [descricaoCopiada, setDescricaoCopiada] = useState(false);
+  const [fotoCopiada, setFotoCopiada] = useState(false);
 
   const recarregarCotas = useCallback(async () => {
     if (!sessao) return;
@@ -211,10 +212,46 @@ export default function SorteioCampanhaPage() {
   }
 
   const descricaoCampanha = campanha.descricao;
+  const fotoCampanhaUrl = campanha.fotoUrl ?? premioPrincipal?.fotoUrl ?? null;
 
   function copiarDescricao() {
     navigator.clipboard?.writeText(descricaoCampanha);
     setDescricaoCopiada(true);
+  }
+
+  /**
+   * Copia só a foto (sem o texto junto): apps como o WhatsApp, ao colar um
+   * clipboard que tem imagem E texto ao mesmo tempo, descartam o texto e
+   * anexam só a imagem — foi exatamente esse bug relatado. Por isso a foto e
+   * a descrição viram duas ações separadas: cola a foto primeiro (abre o
+   * anexo no WhatsApp), depois cola a descrição já copiada como legenda.
+   * Precisa reconverter pra PNG: a Clipboard API só aceita esse formato pra
+   * imagens de forma confiável entre navegadores, então uma foto enviada
+   * como JPEG/WEBP/etc. precisa passar por um canvas antes.
+   */
+  async function copiarFoto() {
+    if (!fotoCampanhaUrl) return;
+    setErro(null);
+    try {
+      const resposta = await fetch(urlArquivoApi(fotoCampanhaUrl));
+      if (!resposta.ok) throw new Error('Não foi possível carregar a imagem da campanha.');
+      const bitmap = await createImageBitmap(await resposta.blob());
+
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const contexto = canvas.getContext('2d');
+      if (!contexto) throw new Error('Não foi possível preparar a imagem para copiar.');
+      contexto.drawImage(bitmap, 0, 0);
+
+      const blobPng = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blobPng) throw new Error('Não foi possível preparar a imagem para copiar.');
+
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPng })]);
+      setFotoCopiada(true);
+    } catch {
+      setErro('Seu navegador não permite copiar essa imagem. Baixe a foto da campanha e anexe manualmente.');
+    }
   }
 
   return (
@@ -332,19 +369,33 @@ export default function SorteioCampanhaPage() {
         <div className="border-t border-line pt-3">
           <p className="mb-2 font-mono text-xs uppercase text-muted">Descrição</p>
           <p className="mb-2 text-xs text-muted">
-            Texto exibido ao comprador na campanha — útil para reenviar a divulgação no grupo.
+            {fotoCampanhaUrl
+              ? 'No WhatsApp, colar foto e texto juntos faz o texto ser descartado — por isso são duas cópias separadas: cole a foto primeiro (abre o anexo) e depois cole a descrição como legenda.'
+              : 'Texto exibido ao comprador na campanha — útil para reenviar a divulgação no grupo.'}
           </p>
           <div className="flex flex-col items-stretch gap-2">
             <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-mist px-3 py-2.5 font-mono text-xs text-night">
               {campanha.descricao}
             </p>
-            <button
-              type="button"
-              onClick={copiarDescricao}
-              className="flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
-            >
-              <IconCopy className="h-4 w-4" /> {descricaoCopiada ? 'Copiado!' : 'Copiar descrição'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {fotoCampanhaUrl && (
+                <button
+                  type="button"
+                  onClick={copiarFoto}
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
+                >
+                  <IconCopy className="h-4 w-4" /> {fotoCopiada ? 'Foto copiada!' : '1. Copiar foto'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={copiarDescricao}
+                className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-semibold text-night transition hover:border-night/30"
+              >
+                <IconCopy className="h-4 w-4" />{' '}
+                {descricaoCopiada ? 'Copiado!' : fotoCampanhaUrl ? '2. Copiar descrição' : 'Copiar descrição'}
+              </button>
+            </div>
           </div>
         </div>
       </Card>
