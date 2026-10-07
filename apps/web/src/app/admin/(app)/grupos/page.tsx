@@ -31,7 +31,7 @@ export default function ListaGruposPage() {
       <PageHeader
         eyebrow="Multi-tenant"
         title="Meus grupos"
-        description="Cada grupo de WhatsApp tem seus próprios compradores e campanhas."
+        description="Cada grupo de WhatsApp tem seus próprios jogadores e campanhas."
         action={
           !mostrarFormulario && (
             <Button onClick={() => setMostrarFormulario(true)}>

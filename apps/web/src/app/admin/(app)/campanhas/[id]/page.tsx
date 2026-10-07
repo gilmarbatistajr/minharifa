@@ -677,7 +677,7 @@ function FormularioEditarCampanha({
 
       <Card className="flex flex-col gap-4">
         <p className="text-sm font-medium text-night">Forma de venda das cotas</p>
-        <p className="text-xs text-muted">Defina como o comprador vai escolher as cotas na tela de compra.</p>
+        <p className="text-xs text-muted">Defina como o jogador vai escolher as cotas na tela de compra.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
@@ -688,9 +688,9 @@ function FormularioEditarCampanha({
                 : 'border-line bg-white hover:border-accent-ink/60'
             }`}
           >
-            <p className="text-sm font-semibold text-night">O comprador escolhe os números</p>
+            <p className="text-sm font-semibold text-night">O jogador escolhe os números</p>
             <p className="mt-1 text-xs text-muted">
-              Mapa de números disponíveis; o comprador seleciona manualmente (mínimo 1).
+              Mapa de números disponíveis; o jogador seleciona manualmente (mínimo 1).
             </p>
           </button>
           <button
@@ -704,7 +704,7 @@ function FormularioEditarCampanha({
           >
             <p className="text-sm font-semibold text-night">Lotes fechados</p>
             <p className="mt-1 text-xs text-muted">
-              O comprador escolhe apenas a quantidade; os números são sorteados pelo sistema.
+              O jogador escolhe apenas a quantidade; os números são sorteados pelo sistema.
             </p>
           </button>
         </div>
@@ -734,7 +734,7 @@ function FormularioEditarCampanha({
           label="Expiração da reserva"
           value={expiracaoReservaMinutos}
           onChange={(e) => setExpiracaoReservaMinutos(e.target.value)}
-          hint="Tempo que o comprador tem para pagar antes da cota voltar a ficar disponível."
+          hint="Tempo que o jogador tem para pagar antes da cota voltar a ficar disponível."
         >
           {OPCOES_EXPIRACAO_RESERVA.map((opcao) => (
             <option key={opcao.valor} value={opcao.valor}>
@@ -748,7 +748,7 @@ function FormularioEditarCampanha({
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-night">Dados obrigatórios para reserva</p>
           <p className="text-xs text-muted">
-            Escolha quais informações o comprador precisa preencher para reservar uma cota.
+            Escolha quais informações o jogador precisa preencher para reservar uma cota.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <CheckboxField

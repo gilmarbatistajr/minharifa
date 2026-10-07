@@ -26,7 +26,7 @@ export default function RecuperarSenhaCompradorPage() {
 
   return (
     <AuthLayout
-      eyebrow="Área do comprador"
+      eyebrow="Área do jogador"
       title="Recuperar senha"
       subtitle="Informe o e-mail da sua conta para receber o link de redefinição."
       footer={

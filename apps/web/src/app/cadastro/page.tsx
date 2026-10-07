@@ -199,7 +199,7 @@ function CadastroForm() {
 export default function CadastroCompradorPage() {
   return (
     <AuthLayout
-      eyebrow="Área do comprador"
+      eyebrow="Área do jogador"
       title="Criar conta"
       subtitle="Preencha seus dados para participar das campanhas do grupo."
       footer={

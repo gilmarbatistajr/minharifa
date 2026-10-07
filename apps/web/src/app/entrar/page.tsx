@@ -44,7 +44,7 @@ export default function LoginCompradorPage() {
 
   return (
     <AuthLayout
-      eyebrow="Área do comprador"
+      eyebrow="Área do jogador"
       title="Entrar"
       subtitle="Acesse sua conta para ver as campanhas que você tem acesso."
       footer={

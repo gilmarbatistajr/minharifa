@@ -170,7 +170,7 @@ export default function SorteioCampanhaPage() {
     if (!sessao) return;
     if (
       !window.confirm(
-        'Liberar as cotas reservadas deste comprador? Elas voltam a ficar disponíveis para outros compradores.',
+        'Liberar as cotas reservadas deste jogador? Elas voltam a ficar disponíveis para outros jogadores.',
       )
     ) {
       return;
@@ -354,7 +354,7 @@ export default function SorteioCampanhaPage() {
         <div className="border-t border-line pt-3">
           <p className="mb-2 font-mono text-xs uppercase text-muted">Link de Vendas</p>
           <p className="mb-2 text-xs text-muted">
-            Link exibido ao comprador para acessar e comprar cotas desta campanha.
+            Link exibido ao jogador para acessar e comprar cotas desta campanha.
           </p>
           <div className="flex items-center gap-2">
             <p className="flex-1 truncate rounded-lg border border-line bg-mist px-3 py-2.5 font-mono text-xs text-night">
@@ -375,7 +375,7 @@ export default function SorteioCampanhaPage() {
           <p className="mb-2 text-xs text-muted">
             {fotoCampanhaUrl
               ? 'No WhatsApp, colar foto e texto juntos faz o texto ser descartado — por isso são duas cópias separadas: cole a foto primeiro (abre o anexo) e depois cole a descrição como legenda.'
-              : 'Texto exibido ao comprador na campanha — útil para reenviar a divulgação no grupo.'}
+              : 'Texto exibido ao jogador na campanha — útil para reenviar a divulgação no grupo.'}
           </p>
           <div className="flex flex-col items-stretch gap-2">
             <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-mist px-3 py-2.5 font-mono text-xs text-night">
@@ -431,7 +431,7 @@ export default function SorteioCampanhaPage() {
         {comprasPorComprador.length === 0 ? (
           <EmptyState
             title="Nenhuma cota comprada"
-            description="Assim que compradores reservarem ou pagarem cotas, eles aparecem aqui."
+            description="Assim que jogadores reservarem ou pagarem cotas, eles aparecem aqui."
           />
         ) : (
           <>
@@ -466,7 +466,7 @@ export default function SorteioCampanhaPage() {
               <table className="w-full min-w-[640px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="py-2 pr-4 font-mono font-medium">Comprador</th>
+                    <th className="py-2 pr-4 font-mono font-medium">Jogador</th>
                     <th className="py-2 pr-4 font-mono font-medium">Telefone</th>
                     <th className="py-2 pr-4 font-mono font-medium">Cotas</th>
                     <th className="py-2 pr-4 font-mono font-medium">Pagamento</th>
@@ -602,7 +602,7 @@ function FormularioFinalizar({
       <p className="text-sm font-medium text-night">Finalizar campanha</p>
       <p className="text-xs text-muted">
         Todas as cotas foram pagas. Informe o número da cota vencedora — o nome e o telefone
-        são preenchidos automaticamente a partir do comprador dela e não podem ser editados.
+        são preenchidos automaticamente a partir do jogador dela e não podem ser editados.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <TextField

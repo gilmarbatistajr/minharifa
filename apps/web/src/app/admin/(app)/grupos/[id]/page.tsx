@@ -135,11 +135,11 @@ export default function DetalheGrupoPage() {
 
         <Card className="flex flex-col gap-3 lg:col-span-2">
           <p className="font-mono text-xs uppercase tracking-wide text-muted">
-            Compradores ({compradores?.length ?? '...'})
+            Jogadores ({compradores?.length ?? '...'})
           </p>
           {compradores === null && <Spinner size={18} />}
           {compradores?.length === 0 && (
-            <EmptyState title="Nenhum comprador ainda" description="Compartilhe o link de convite no grupo." />
+            <EmptyState title="Nenhum jogador ainda" description="Compartilhe o link de convite no grupo." />
           )}
           <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
             {compradores?.map((comprador) => (
@@ -363,7 +363,7 @@ function SecaoLinkConvite({
   return (
     <Card className="flex flex-col gap-3">
       <p className="font-mono text-xs uppercase tracking-wide text-muted">Link de convite</p>
-      <p className="text-sm text-muted">Compartilhe este link no grupo para que novos compradores se cadastrem.</p>
+      <p className="text-sm text-muted">Compartilhe este link no grupo para que novos jogadores se cadastrem.</p>
 
       {link ? (
         <div className="flex flex-col gap-2">

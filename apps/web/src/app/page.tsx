@@ -230,11 +230,11 @@ function Hero() {
           <p className="text-sm text-white/55">
             Já tem conta?{' '}
             <Link href="/entrar" className="font-semibold text-white underline-offset-4 hover:underline">
-              Sou comprador
+              Sou jogador
             </Link>{' '}
             ·{' '}
             <Link href="/admin/entrar" className="font-semibold text-white underline-offset-4 hover:underline">
-              Sou administrador
+              Sou organizador
             </Link>
           </p>
 
@@ -593,13 +593,13 @@ function ChamadaFinal() {
             href="/admin/cadastro"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-night px-6 py-3.5 text-sm font-semibold text-white transition hover:brightness-110"
           >
-            Criar minha campanha <span aria-hidden>→</span>
+            Sou organizador <span aria-hidden>→</span>
           </Link>
           <Link
             href="/entrar"
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/25 px-6 py-3.5 text-sm font-semibold text-ink transition hover:border-ink/50"
           >
-            Sou comprador
+            Sou jogador
           </Link>
         </div>
       </div>
@@ -620,13 +620,13 @@ function Rodape() {
 
         <nav aria-label="Acesso" className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
           <Link href="/entrar" className="text-white/70 hover:text-white">
-            Sou comprador
+            Sou jogador
           </Link>
           <a href="#plataforma" className="text-white/70 hover:text-white">
             Plataforma
           </a>
           <Link href="/admin/entrar" className="text-white/70 hover:text-white">
-            Sou administrador
+            Sou organizador
           </Link>
           <a href="#recursos" className="text-white/70 hover:text-white">
             Recursos
@@ -641,7 +641,7 @@ function Rodape() {
       </div>
 
       <p className="mx-auto mt-10 max-w-6xl border-t border-white/10 pt-6 text-xs text-white/40">
-        Recebeu um link de convite de um grupo pelo WhatsApp? Abra-o diretamente para ir ao cadastro de comprador.
+        Recebeu um link de convite de um grupo pelo WhatsApp? Abra-o diretamente para ir ao cadastro de jogador.
       </p>
     </footer>
   );

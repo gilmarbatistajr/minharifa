@@ -76,7 +76,7 @@ function RedefinirSenhaForm() {
 
 export default function RedefinirSenhaCompradorPage() {
   return (
-    <AuthLayout eyebrow="Área do comprador" title="Redefinir senha">
+    <AuthLayout eyebrow="Área do jogador" title="Redefinir senha">
       <Suspense fallback={null}>
         <RedefinirSenhaForm />
       </Suspense>
