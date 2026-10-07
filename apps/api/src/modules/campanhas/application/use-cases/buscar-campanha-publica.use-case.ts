@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
+import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import { FormaVendaCotas, StatusCampanha, StatusVendasCampanha } from '../../domain/entities/campanha.entity';
 
 export interface BuscarCampanhaPublicaInput {
@@ -24,6 +25,9 @@ export interface CampanhaPublica {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  reservaExigeCpf: boolean;
+  /** Link de convite do grupo de WhatsApp da campanha — feito pra ser compartilhado, então é público. */
+  linkGrupoWhatsapp: string | null;
   /** Só preenchido quando `status === 'FINALIZADA'` — antes disso não existe vencedor. */
   cotaVencedoraNumero: number | null;
   vencedorNome: string | null;
@@ -46,6 +50,8 @@ export class BuscarCampanhaPublicaUseCase {
   constructor(
     @Inject(CAMPANHA_REPOSITORY)
     private readonly campanhaRepository: CampanhaRepository,
+    @Inject(GRUPO_REPOSITORY)
+    private readonly grupoRepository: GrupoRepository,
   ) {}
 
   async executar(input: BuscarCampanhaPublicaInput): Promise<CampanhaPublica> {
@@ -56,6 +62,7 @@ export class BuscarCampanhaPublicaUseCase {
     }
 
     const finalizada = campanha.status === 'FINALIZADA';
+    const grupo = await this.grupoRepository.buscarPorId(campanha.grupoId);
 
     return {
       id: campanha.id,
@@ -75,6 +82,8 @@ export class BuscarCampanhaPublicaUseCase {
       reservaExigeNome: campanha.reservaExigeNome,
       reservaExigeTelefone: campanha.reservaExigeTelefone,
       reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
+      reservaExigeCpf: campanha.reservaExigeCpf,
+      linkGrupoWhatsapp: grupo?.linkWhatsapp ?? null,
       cotaVencedoraNumero: finalizada ? campanha.cotaVencedoraNumero : null,
       vencedorNome: finalizada ? campanha.vencedorNome : null,
       vencedorTelefone: finalizada ? campanha.vencedorTelefone : null,

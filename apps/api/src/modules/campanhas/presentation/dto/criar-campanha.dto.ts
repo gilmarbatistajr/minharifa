@@ -64,4 +64,8 @@ export class CriarCampanhaDto {
   @IsOptional()
   @IsBoolean()
   reservaExigeConfirmacaoTelefone?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  reservaExigeCpf?: boolean;
 }

@@ -124,6 +124,7 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       tokenReservaConvidado: null,
       convidadoNome: null,
       convidadoTelefone: null,
+      convidadoCpf: null,
     });
     expect(resultado[2]).toEqual({
       numero: 3,
@@ -134,6 +135,7 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       tokenReservaConvidado: null,
       convidadoNome: null,
       convidadoTelefone: null,
+      convidadoCpf: null,
     });
   });
 
@@ -174,6 +176,7 @@ describe('ListarCotasParaAdministradorUseCase', () => {
       tokenReservaConvidado: 'token-x',
       convidadoNome: 'Maria Convidada',
       convidadoTelefone: '11988887777',
+      convidadoCpf: null,
     });
     expect(compradorRepository.buscarPorId).not.toHaveBeenCalled();
   });

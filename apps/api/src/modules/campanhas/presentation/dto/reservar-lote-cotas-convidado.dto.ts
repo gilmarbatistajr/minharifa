@@ -27,4 +27,8 @@ export class ReservarLoteCotasConvidadoDto {
   @IsOptional()
   @IsString()
   confirmacaoTelefone?: string;
+
+  @IsOptional()
+  @IsString()
+  cpf?: string;
 }

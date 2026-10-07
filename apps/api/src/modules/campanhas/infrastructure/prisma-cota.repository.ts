@@ -17,6 +17,7 @@ function paraDominio(registro: CotaPrisma): Cota {
     registro.convidadoNome,
     registro.convidadoEmail,
     registro.convidadoTelefone,
+    registro.convidadoCpf,
   );
 }
 
@@ -105,6 +106,7 @@ export class PrismaCotaRepository implements CotaRepository {
         convidadoNome: cota.convidadoNome,
         convidadoEmail: cota.convidadoEmail,
         convidadoTelefone: cota.convidadoTelefone,
+        convidadoCpf: cota.convidadoCpf,
       })),
     });
   }
@@ -125,6 +127,7 @@ export class PrismaCotaRepository implements CotaRepository {
         convidadoNome: cota.convidadoNome,
         convidadoEmail: cota.convidadoEmail,
         convidadoTelefone: cota.convidadoTelefone,
+        convidadoCpf: cota.convidadoCpf,
       },
     });
   }

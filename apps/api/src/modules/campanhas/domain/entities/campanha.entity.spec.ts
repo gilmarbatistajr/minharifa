@@ -95,6 +95,7 @@ describe('Campanha', () => {
       reservaExigeNome: false,
       reservaExigeTelefone: false,
       reservaExigeConfirmacaoTelefone: true,
+      reservaExigeCpf: true,
     };
 
     it('substitui todos os dados editáveis de uma campanha nova', () => {
@@ -116,6 +117,7 @@ describe('Campanha', () => {
       expect(campanha.expiracaoReservaMinutos).toBe(30);
       expect(campanha.reservaExigeEmail).toBe(false);
       expect(campanha.reservaExigeConfirmacaoTelefone).toBe(true);
+      expect(campanha.reservaExigeCpf).toBe(true);
     });
 
     it('rejeita editar uma campanha que não está mais NOVA', () => {

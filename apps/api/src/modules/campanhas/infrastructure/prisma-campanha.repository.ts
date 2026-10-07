@@ -43,6 +43,7 @@ type RegistroCampanha = {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  reservaExigeCpf: boolean;
   alerta50PorCentoEnviado: boolean;
   alerta80PorCentoEnviado: boolean;
   alerta90PorCentoEnviado: boolean;
@@ -84,6 +85,7 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.tipoChavePix as TipoChavePix | null,
     registro.chavePix,
     registro.finalizadoEm,
+    registro.reservaExigeCpf,
   );
 }
 
@@ -150,6 +152,7 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         reservaExigeNome: campanha.reservaExigeNome,
         reservaExigeTelefone: campanha.reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
+        reservaExigeCpf: campanha.reservaExigeCpf,
         fotoUrl: campanha.fotoUrl,
       },
     });
@@ -179,6 +182,7 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         reservaExigeNome: campanha.reservaExigeNome,
         reservaExigeTelefone: campanha.reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone: campanha.reservaExigeConfirmacaoTelefone,
+        reservaExigeCpf: campanha.reservaExigeCpf,
         status: campanha.status,
         statusVendas: campanha.statusVendas,
         cotaVencedoraNumero: campanha.cotaVencedoraNumero,

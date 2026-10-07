@@ -521,6 +521,7 @@ function FormularioEditarCampanha({
   const [reservaExigeConfirmacaoTelefone, setReservaExigeConfirmacaoTelefone] = useState(
     campanha.reservaExigeConfirmacaoTelefone,
   );
+  const [reservaExigeCpf, setReservaExigeCpf] = useState(campanha.reservaExigeCpf);
   const [premioIds, setPremioIds] = useState<string[]>(campanha.premioIds);
   const [enviando, setEnviando] = useState(false);
   const [marcandoRevisada, setMarcandoRevisada] = useState(false);
@@ -565,6 +566,7 @@ function FormularioEditarCampanha({
         reservaExigeNome,
         reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone,
+        reservaExigeCpf,
       });
       aoConcluir();
     } catch (excecao) {
@@ -768,6 +770,11 @@ function FormularioEditarCampanha({
               label="Confirmação do telefone"
               checked={reservaExigeConfirmacaoTelefone}
               onChange={(e) => setReservaExigeConfirmacaoTelefone(e.target.checked)}
+            />
+            <CheckboxField
+              label="CPF"
+              checked={reservaExigeCpf}
+              onChange={(e) => setReservaExigeCpf(e.target.checked)}
             />
           </div>
         </div>

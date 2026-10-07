@@ -1,5 +1,7 @@
 import { Campanha } from '../../domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../domain/repositories/campanha.repository';
+import { Grupo } from '../../../grupos/domain/entities/grupo.entity';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import { BuscarCampanhaPublicaUseCase } from './buscar-campanha-publica.use-case';
 
 describe('BuscarCampanhaPublicaUseCase', () => {
@@ -50,7 +52,7 @@ describe('BuscarCampanhaPublicaUseCase', () => {
     );
   }
 
-  function criarDependencias(campanha: Campanha | null) {
+  function criarDependencias(campanha: Campanha | null, linkWhatsapp: string | null = 'https://chat.whatsapp.com/ABC123') {
     const campanhaRepository: CampanhaRepository = {
       buscarPorId: jest.fn().mockResolvedValue(campanha),
       listarPorPremioId: jest.fn(),
@@ -59,13 +61,20 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       criar: jest.fn(),
       salvar: jest.fn(),
     };
-    return { campanhaRepository };
+    const grupoRepository: GrupoRepository = {
+      buscarPorId: jest.fn().mockResolvedValue(new Grupo('grupo-1', 'admin-1', 'Grupo', '11999998888', new Date(), linkWhatsapp)),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn(),
+      criar: jest.fn(),
+    };
+    return { campanhaRepository, grupoRepository };
   }
 
   it('retorna só os campos públicos da campanha, sem dados sensíveis', async () => {
     const campanha = criarCampanha();
-    const { campanhaRepository } = criarDependencias(campanha);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
 
@@ -87,6 +96,8 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       reservaExigeNome: true,
       reservaExigeTelefone: true,
       reservaExigeConfirmacaoTelefone: false,
+      reservaExigeCpf: false,
+      linkGrupoWhatsapp: 'https://chat.whatsapp.com/ABC123',
       cotaVencedoraNumero: null,
       vencedorNome: null,
       vencedorTelefone: null,
@@ -103,8 +114,8 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       vencedorNome: 'Maria Silva',
       vencedorTelefone: '11999999999',
     });
-    const { campanhaRepository } = criarDependencias(campanha);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
 
@@ -120,8 +131,8 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       vencedorNome: 'Maria Silva',
       vencedorTelefone: '11999999999',
     });
-    const { campanhaRepository } = criarDependencias(campanha);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
 
@@ -130,25 +141,34 @@ describe('BuscarCampanhaPublicaUseCase', () => {
     expect(resultado.vencedorTelefone).toBeNull();
   });
 
+  it('devolve linkGrupoWhatsapp nulo quando o grupo não tem link cadastrado', async () => {
+    const { campanhaRepository, grupoRepository } = criarDependencias(criarCampanha(), null);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
+
+    const resultado = await useCase.executar({ campanhaId: 'campanha-1' });
+
+    expect(resultado.linkGrupoWhatsapp).toBeNull();
+  });
+
   it('rejeita quando a campanha não existe', async () => {
-    const { campanhaRepository } = criarDependencias(null);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(null);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     await expect(useCase.executar({ campanhaId: 'inexistente' })).rejects.toThrow('Campanha não encontrada.');
   });
 
   it('rejeita quando a campanha ainda não foi lançada para um grupo', async () => {
     const campanha = criarCampanha({ grupoId: null });
-    const { campanhaRepository } = criarDependencias(campanha);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     await expect(useCase.executar({ campanhaId: 'campanha-1' })).rejects.toThrow('Campanha não encontrada.');
   });
 
   it('rejeita quando a campanha foi removida', async () => {
     const campanha = criarCampanha({ removidaEm: new Date('2026-01-01T00:00:00Z') });
-    const { campanhaRepository } = criarDependencias(campanha);
-    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository);
+    const { campanhaRepository, grupoRepository } = criarDependencias(campanha);
+    const useCase = new BuscarCampanhaPublicaUseCase(campanhaRepository, grupoRepository);
 
     await expect(useCase.executar({ campanhaId: 'campanha-1' })).rejects.toThrow('Campanha não encontrada.');
   });

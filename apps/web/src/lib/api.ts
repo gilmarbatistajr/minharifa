@@ -208,6 +208,7 @@ export interface Campanha {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  reservaExigeCpf: boolean;
   formaVenda: FormaVendaCotas;
   status: StatusCampanha;
   statusVendas: StatusVendasCampanha;
@@ -479,6 +480,9 @@ export interface CampanhaPublica {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  reservaExigeCpf: boolean;
+  /** Link de convite do grupo de WhatsApp da campanha (null se o grupo não cadastrou). */
+  linkGrupoWhatsapp: string | null;
   /** Só preenchido quando `status === 'FINALIZADA'`. */
   cotaVencedoraNumero: number | null;
   vencedorNome: string | null;
@@ -496,6 +500,7 @@ export interface CotaAdminResumo {
   tokenReservaConvidado: string | null;
   convidadoNome: string | null;
   convidadoTelefone: string | null;
+  convidadoCpf: string | null;
 }
 
 /** Identifica um lote de cotas reservadas pra confirmar/liberar: por conta (`compradorId`) ou por reserva sem login (`tokenReservaConvidado`). */
@@ -518,6 +523,7 @@ export interface DadosFormularioCampanha {
   reservaExigeNome?: boolean;
   reservaExigeTelefone?: boolean;
   reservaExigeConfirmacaoTelefone?: boolean;
+  reservaExigeCpf?: boolean;
 }
 
 export const campanhasApi = {
@@ -603,6 +609,7 @@ export const campanhasApi = {
       email?: string;
       telefone?: string;
       confirmacaoTelefone?: string;
+      cpf?: string;
     },
   ) =>
     request<{ numeros: number[]; reservaExpiraEm: string | null; tokenReservaConvidado: string }>(

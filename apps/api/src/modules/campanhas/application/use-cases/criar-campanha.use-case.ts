@@ -28,6 +28,7 @@ export interface CriarCampanhaInput {
   reservaExigeNome?: boolean;
   reservaExigeTelefone?: boolean;
   reservaExigeConfirmacaoTelefone?: boolean;
+  reservaExigeCpf?: boolean;
 }
 
 export interface CriarCampanhaOutput {
@@ -128,6 +129,8 @@ export class CriarCampanhaUseCase {
       false,
       tipoChavePix,
       chavePix,
+      null,
+      input.reservaExigeCpf ?? false,
     );
 
     await this.campanhaRepository.criar(campanha);

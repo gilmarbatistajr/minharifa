@@ -127,6 +127,7 @@ export default function NovaCampanhaPage() {
   const [reservaExigeNome, setReservaExigeNome] = useState(true);
   const [reservaExigeTelefone, setReservaExigeTelefone] = useState(true);
   const [reservaExigeConfirmacaoTelefone, setReservaExigeConfirmacaoTelefone] = useState(false);
+  const [reservaExigeCpf, setReservaExigeCpf] = useState(false);
 
   // Prêmios
   const [premioIds, setPremioIds] = useState<string[]>([]);
@@ -211,6 +212,7 @@ export default function NovaCampanhaPage() {
         reservaExigeNome,
         reservaExigeTelefone,
         reservaExigeConfirmacaoTelefone,
+        reservaExigeCpf,
       };
       const resultado = await campanhasApi.criar(sessao.token, dadosCampanha);
 
@@ -470,6 +472,11 @@ export default function NovaCampanhaPage() {
                 label="Confirmação do telefone"
                 checked={reservaExigeConfirmacaoTelefone}
                 onChange={(e) => setReservaExigeConfirmacaoTelefone(e.target.checked)}
+              />
+              <CheckboxField
+                label="CPF"
+                checked={reservaExigeCpf}
+                onChange={(e) => setReservaExigeCpf(e.target.checked)}
               />
             </div>
           </div>

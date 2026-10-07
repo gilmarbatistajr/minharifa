@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../../components/ui/PageHeader';
 import { Card, TicketCard } from '../../../../components/ui/Card';
@@ -18,8 +19,8 @@ import {
   type Campanha,
   type CampanhaPublica,
 } from '../../../../lib/api';
-import { formatarMoeda, formatarTelefone } from '../../../../lib/format';
-import { validarEmail, validarCelular } from '../../../../lib/validacoes-chave-pix';
+import { formatarCpf, formatarMoeda, formatarTelefone } from '../../../../lib/format';
+import { validarEmail, validarCelular, validarCpf } from '../../../../lib/validacoes-chave-pix';
 import { useSessaoCompradorOpcional } from '../../../../lib/auth';
 
 const LOTES_PRESET = [1, 5, 10, 15, 20, 25, 30];
@@ -53,6 +54,7 @@ export default function DetalheCampanhaPage() {
   const [emailConvidado, setEmailConvidado] = useState('');
   const [telefoneConvidado, setTelefoneConvidado] = useState('');
   const [confirmacaoTelefoneConvidado, setConfirmacaoTelefoneConvidado] = useState('');
+  const [cpfConvidado, setCpfConvidado] = useState('');
 
   // Mesma máscara/validação de formato usada na chave Pix (celular/e-mail) —
   // só acende depois que o campo já tem conteúdo, pra não gritar "inválido"
@@ -63,6 +65,8 @@ export default function DetalheCampanhaPage() {
     telefoneConvidado.trim() && !validarCelular(telefoneConvidado)
       ? 'Informe um celular válido, com DDD — (11) 91234-5678.'
       : undefined;
+  const erroCpfConvidado =
+    cpfConvidado.trim() && !validarCpf(cpfConvidado) ? 'Esse CPF não é válido.' : undefined;
   const erroConfirmacaoTelefoneConvidado =
     confirmacaoTelefoneConvidado.trim() && confirmacaoTelefoneConvidado !== telefoneConvidado
       ? 'A confirmação não confere com o telefone informado.'
@@ -236,8 +240,12 @@ export default function DetalheCampanhaPage() {
       const escolha = modoManual
         ? { numeros: Array.from(selecionados) }
         : { quantidadeAleatoria: quantidadeLote };
-      await campanhasApi.reservarLote(sessao.token, id, escolha);
+      const reserva = await campanhasApi.reservarLote(sessao.token, id, escolha);
       setSelecionados(new Set());
+      if (campanha) {
+        irParaPagamentoComCotas(campanha, reserva.numeros, reserva.reservaExpiraEm);
+        return;
+      }
       await carregar();
     } catch (excecao) {
       setErro(excecao instanceof ApiError ? excecao.message : 'Não foi possível reservar as cotas.');
@@ -288,6 +296,17 @@ export default function DetalheCampanhaPage() {
       }
     }
 
+    if (campanha.reservaExigeCpf) {
+      if (!cpfConvidado.trim()) {
+        setErro('Informe seu CPF para reservar.');
+        return;
+      }
+      if (erroCpfConvidado) {
+        setErro(erroCpfConvidado);
+        return;
+      }
+    }
+
     setErro(null);
     setReservando(true);
     try {
@@ -297,6 +316,7 @@ export default function DetalheCampanhaPage() {
         email: emailConvidado || undefined,
         telefone: telefoneConvidado || undefined,
         confirmacaoTelefone: confirmacaoTelefoneConvidado || undefined,
+        cpf: cpfConvidado || undefined,
       });
       setSelecionados(new Set());
       setMostrarFormularioConvidado(false);
@@ -456,6 +476,9 @@ export default function DetalheCampanhaPage() {
           email={emailConvidado}
           telefone={telefoneConvidado}
           confirmacaoTelefone={confirmacaoTelefoneConvidado}
+          cpf={cpfConvidado}
+          erroCpf={erroCpfConvidado}
+          onCpfChange={setCpfConvidado}
           erroEmail={erroEmailConvidado}
           erroTelefone={erroTelefoneConvidado}
           erroConfirmacaoTelefone={erroConfirmacaoTelefoneConvidado}
@@ -543,6 +566,18 @@ export default function DetalheCampanhaPage() {
         </Card>
       ))}
 
+      {!sessao && podeComprarMais && !mostrarFormularioConvidado && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-strong">Já tem cadastro? Entre para acompanhar suas campanhas.</p>
+          <Link
+            href={`/entrar?redirect=${encodeURIComponent(`/campanhas/${id}`)}`}
+            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-line bg-white px-5 py-2.5 text-sm font-semibold text-night transition hover:border-night/30"
+          >
+            Entre na sua conta
+          </Link>
+        </div>
+      )}
+
       {/* Modo lote fechado: os números são sorteados pelo sistema ao confirmar,
           então o mapa completo de todas as cotas é só informativo demais — o
           comprador já vê os números dele nos cards de reserva/pagamento acima. */}
@@ -579,6 +614,9 @@ function FormularioConvidado({
   email,
   telefone,
   confirmacaoTelefone,
+  cpf,
+  erroCpf,
+  onCpfChange,
   erroEmail,
   erroTelefone,
   erroConfirmacaoTelefone,
@@ -595,6 +633,9 @@ function FormularioConvidado({
   email: string;
   telefone: string;
   confirmacaoTelefone: string;
+  cpf: string;
+  erroCpf?: string;
+  onCpfChange: (valor: string) => void;
   erroEmail?: string;
   erroTelefone?: string;
   erroConfirmacaoTelefone?: string;
@@ -617,6 +658,17 @@ function FormularioConvidado({
 
       {campanha.reservaExigeNome && (
         <TextField label="Nome completo" required value={nome} onChange={(e) => onNomeChange(e.target.value)} />
+      )}
+      {campanha.reservaExigeCpf && (
+        <TextField
+          label="CPF"
+          required
+          inputMode="numeric"
+          placeholder="000.000.000-00"
+          value={cpf}
+          error={erroCpf}
+          onChange={(e) => onCpfChange(formatarCpf(e.target.value))}
+        />
       )}
       {campanha.reservaExigeEmail && (
         <TextField

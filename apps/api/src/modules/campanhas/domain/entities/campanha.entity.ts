@@ -52,6 +52,7 @@ export interface DadosAtualizacaoCampanha {
   reservaExigeNome: boolean;
   reservaExigeTelefone: boolean;
   reservaExigeConfirmacaoTelefone: boolean;
+  reservaExigeCpf: boolean;
 }
 
 export interface DadosFinalizacaoCampanha {
@@ -96,6 +97,7 @@ export class Campanha {
     public tipoChavePix: TipoChavePix | null = null,
     public chavePix: string | null = null,
     public finalizadoEm: Date | null = null,
+    public reservaExigeCpf: boolean = false,
   ) {}
 
   estaRemovida(): boolean {
@@ -182,6 +184,7 @@ export class Campanha {
     this.reservaExigeNome = dados.reservaExigeNome;
     this.reservaExigeTelefone = dados.reservaExigeTelefone;
     this.reservaExigeConfirmacaoTelefone = dados.reservaExigeConfirmacaoTelefone;
+    this.reservaExigeCpf = dados.reservaExigeCpf;
   }
 
   /**

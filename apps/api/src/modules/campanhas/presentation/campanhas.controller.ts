@@ -94,6 +94,7 @@ export class CampanhasController {
       reservaExigeNome: dto.reservaExigeNome,
       reservaExigeTelefone: dto.reservaExigeTelefone,
       reservaExigeConfirmacaoTelefone: dto.reservaExigeConfirmacaoTelefone,
+      reservaExigeCpf: dto.reservaExigeCpf,
     });
   }
 
@@ -163,6 +164,7 @@ export class CampanhasController {
       reservaExigeNome: dto.reservaExigeNome,
       reservaExigeTelefone: dto.reservaExigeTelefone,
       reservaExigeConfirmacaoTelefone: dto.reservaExigeConfirmacaoTelefone,
+      reservaExigeCpf: dto.reservaExigeCpf,
     });
   }
 
@@ -312,6 +314,7 @@ export class CampanhasController {
       email: dto.email,
       telefone: dto.telefone,
       confirmacaoTelefone: dto.confirmacaoTelefone,
+      cpf: dto.cpf,
     });
   }
 

@@ -21,6 +21,7 @@ export interface CotaComComprador {
   tokenReservaConvidado: string | null;
   convidadoNome: string | null;
   convidadoTelefone: string | null;
+  convidadoCpf: string | null;
 }
 
 /**
@@ -72,6 +73,7 @@ export class ListarCotasParaAdministradorUseCase {
           tokenReservaConvidado: cota.tokenReservaConvidado,
           convidadoNome: cota.convidadoNome,
           convidadoTelefone: cota.convidadoTelefone,
+          convidadoCpf: cota.convidadoCpf,
         };
       });
   }

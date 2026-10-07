@@ -4,6 +4,7 @@ export interface DadosContatoConvidado {
   nome: string | null;
   email: string | null;
   telefone: string | null;
+  cpf: string | null;
 }
 
 export class Cota {
@@ -19,6 +20,7 @@ export class Cota {
     public convidadoNome: string | null = null,
     public convidadoEmail: string | null = null,
     public convidadoTelefone: string | null = null,
+    public convidadoCpf: string | null = null,
   ) {}
 
   /** Regra de negócio: uma cota só pode ser reservada se estiver disponível,
@@ -47,6 +49,7 @@ export class Cota {
     this.convidadoNome = null;
     this.convidadoEmail = null;
     this.convidadoTelefone = null;
+    this.convidadoCpf = null;
     this.reservadaEm = agora;
     this.reservaExpiraEm = minutosExpiracao === null ? null : new Date(agora.getTime() + minutosExpiracao * 60_000);
   }
@@ -69,6 +72,7 @@ export class Cota {
     this.convidadoNome = dadosContato.nome;
     this.convidadoEmail = dadosContato.email;
     this.convidadoTelefone = dadosContato.telefone;
+    this.convidadoCpf = dadosContato.cpf;
     this.reservadaEm = agora;
     this.reservaExpiraEm = minutosExpiracao === null ? null : new Date(agora.getTime() + minutosExpiracao * 60_000);
   }
@@ -114,5 +118,6 @@ export class Cota {
     this.convidadoNome = null;
     this.convidadoEmail = null;
     this.convidadoTelefone = null;
+    this.convidadoCpf = null;
   }
 }

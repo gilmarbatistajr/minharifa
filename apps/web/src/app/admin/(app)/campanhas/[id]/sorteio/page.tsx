@@ -31,6 +31,7 @@ import {
   formatarMoeda,
   formatarTelefone,
   formatarDataHora,
+  formatarCpf,
 } from '../../../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../../../lib/auth';
 
@@ -101,6 +102,7 @@ export default function SorteioCampanhaPage() {
       let nome: string;
       let telefone: string;
       let ehConvidado = false;
+      let cpf: string | null = null;
 
       if (cota.compradorId && cota.compradorNome && cota.compradorTelefone) {
         chave = `comprador:${cota.compradorId}`;
@@ -115,6 +117,7 @@ export default function SorteioCampanhaPage() {
         nome = cota.convidadoNome ?? 'Convidado';
         telefone = cota.convidadoTelefone ?? '';
         ehConvidado = true;
+        cpf = cota.convidadoCpf;
       } else {
         continue;
       }
@@ -125,6 +128,7 @@ export default function SorteioCampanhaPage() {
         nome,
         telefone,
         ehConvidado,
+        cpf,
         numerosReservados: [],
         numerosPagos: [],
         valorPago: 0,
@@ -442,6 +446,7 @@ export default function SorteioCampanhaPage() {
                     {reserva.telefone && (
                       <p className="font-mono text-xs text-muted">{formatarTelefone(reserva.telefone)}</p>
                     )}
+                    {reserva.cpf && <p className="font-mono text-xs text-muted">CPF {formatarCpf(reserva.cpf)}</p>}
                   </div>
                   <NumerosComprados reservados={reserva.numerosReservados} pagos={reserva.numerosPagos} />
                   <InfoPagamento reserva={reserva} />
@@ -473,6 +478,9 @@ export default function SorteioCampanhaPage() {
                     <tr key={reserva.chave} className="border-b border-line last:border-0">
                       <td className="py-3 pr-4 font-medium text-night">
                         {reserva.nome} {reserva.ehConvidado && <Badge tone="neutral">Sem conta</Badge>}
+                        {reserva.cpf && (
+                          <p className="font-mono text-xs font-normal text-muted">CPF {formatarCpf(reserva.cpf)}</p>
+                        )}
                       </td>
                       <td className="py-3 pr-4 font-mono text-xs text-muted">
                         {reserva.telefone ? formatarTelefone(reserva.telefone) : '—'}
@@ -630,6 +638,7 @@ interface Reserva {
   nome: string;
   telefone: string;
   ehConvidado: boolean;
+  cpf: string | null;
   numerosReservados: number[];
   numerosPagos: number[];
   valorPago: number;

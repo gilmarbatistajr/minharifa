@@ -267,6 +267,7 @@ model Campanha {
   reservaExigeNome                Boolean        @default(true)
   reservaExigeTelefone            Boolean        @default(true)
   reservaExigeConfirmacaoTelefone Boolean        @default(false)
+  reservaExigeCpf                 Boolean        @default(false)
   formaVenda               FormaVendaCotas       @default(ESCOLHA_NUMERO)
   status                   StatusCampanha        @default(NOVO)
   statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
@@ -315,6 +316,7 @@ model Cota {
   convidadoNome          String?
   convidadoEmail         String?
   convidadoTelefone      String?
+  convidadoCpf           String?
 
   pagamento Pagamento?
 

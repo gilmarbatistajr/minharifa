@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
 import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositories/campanha.repository';
 import { resolverCotasParaReservar } from '../services/resolver-cotas-para-reservar';
+import { validarCpf } from '../../domain/services/validacoes-chave-pix';
 
 export interface ReservarLoteCotasConvidadoInput {
   campanhaId: string;
@@ -12,6 +13,7 @@ export interface ReservarLoteCotasConvidadoInput {
   email?: string;
   telefone?: string;
   confirmacaoTelefone?: string;
+  cpf?: string;
 }
 
 export interface ReservarLoteCotasConvidadoOutput {
@@ -51,6 +53,7 @@ export class ReservarLoteCotasConvidadoUseCase {
     const nome = input.nome?.trim() || null;
     const email = input.email?.trim() || null;
     const telefone = input.telefone?.trim() || null;
+    const cpf = input.cpf?.trim() || null;
 
     if (campanha.reservaExigeNome && !nome) {
       throw new Error('Informe seu nome para reservar.');
@@ -74,6 +77,13 @@ export class ReservarLoteCotasConvidadoUseCase {
       }
     }
 
+    if (campanha.reservaExigeCpf && !cpf) {
+      throw new Error('Informe seu CPF para reservar.');
+    }
+    if (cpf && !validarCpf(cpf)) {
+      throw new Error('Informe um CPF válido.');
+    }
+
     const cotasParaReservar = await resolverCotasParaReservar(
       this.cotaRepository,
       campanha,
@@ -84,7 +94,7 @@ export class ReservarLoteCotasConvidadoUseCase {
 
     const token = randomUUID();
     for (const cota of cotasParaReservar) {
-      cota.reservarParaConvidado(token, { nome, email, telefone }, agora, campanha.expiracaoReservaMinutos);
+      cota.reservarParaConvidado(token, { nome, email, telefone, cpf: cpf ? cpf.replace(/\D/g, '') : null }, agora, campanha.expiracaoReservaMinutos);
     }
 
     for (const cota of cotasParaReservar) {

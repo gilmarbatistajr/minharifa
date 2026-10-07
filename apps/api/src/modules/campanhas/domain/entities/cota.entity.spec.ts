@@ -70,7 +70,7 @@ describe('Cota (entidade de domínio)', () => {
       const agora = new Date('2026-01-01T10:00:00Z');
       cota.reservarParaConvidado(
         'token-1',
-        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777', cpf: null },
         agora,
         2,
       );
@@ -92,7 +92,7 @@ describe('Cota (entidade de domínio)', () => {
 
       cota.reservarParaConvidado(
         'token-1',
-        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777', cpf: null },
         agora,
         2,
       );
@@ -119,7 +119,7 @@ describe('Cota (entidade de domínio)', () => {
       );
 
       expect(() =>
-        cota.reservarParaConvidado('token-1', { nome: null, email: null, telefone: null }, new Date(), 2),
+        cota.reservarParaConvidado('token-1', { nome: null, email: null, telefone: null, cpf: null }, new Date(), 2),
       ).toThrow('não está disponível para reserva');
     });
   });
@@ -130,7 +130,7 @@ describe('Cota (entidade de domínio)', () => {
       const agora = new Date('2026-01-01T10:00:00Z');
       cota.reservarParaConvidado(
         'token-1',
-        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777' },
+        { nome: 'Maria', email: 'maria@exemplo.com', telefone: '11988887777', cpf: null },
         agora,
         2,
       );

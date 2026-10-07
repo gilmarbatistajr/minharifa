@@ -27,6 +27,7 @@ export interface EditarCampanhaInput {
   reservaExigeNome?: boolean;
   reservaExigeTelefone?: boolean;
   reservaExigeConfirmacaoTelefone?: boolean;
+  reservaExigeCpf?: boolean;
 }
 
 /**
@@ -111,6 +112,7 @@ export class EditarCampanhaUseCase {
       reservaExigeNome: input.reservaExigeNome ?? true,
       reservaExigeTelefone: input.reservaExigeTelefone ?? true,
       reservaExigeConfirmacaoTelefone: input.reservaExigeConfirmacaoTelefone ?? false,
+      reservaExigeCpf: input.reservaExigeCpf ?? false,
     });
 
     await this.campanhaRepository.salvar(campanha);

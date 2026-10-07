@@ -199,6 +199,50 @@ describe('ReservarLoteCotasConvidadoUseCase', () => {
     expect(resultado.numeros).toEqual([1]);
   });
 
+  it('rejeita quando a campanha exige CPF e ele não foi informado', async () => {
+    const campanha = criarCampanha();
+    campanha.reservaExigeCpf = true;
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(3), campanha);
+    const useCase = new ReservarLoteCotasConvidadoUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', numeros: [1], nome: 'Maria', email: 'a@a.com', telefone: '11988887777' },
+        agora,
+      ),
+    ).rejects.toThrow('Informe seu CPF para reservar.');
+    expect(cotaRepository.salvar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita CPF com dígitos verificadores inválidos', async () => {
+    const campanha = criarCampanha();
+    campanha.reservaExigeCpf = true;
+    const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(3), campanha);
+    const useCase = new ReservarLoteCotasConvidadoUseCase(cotaRepository, campanhaRepository);
+
+    await expect(
+      useCase.executar(
+        { campanhaId: 'campanha-1', numeros: [1], nome: 'Maria', email: 'a@a.com', telefone: '11988887777', cpf: '111.111.111-11' },
+        agora,
+      ),
+    ).rejects.toThrow('Informe um CPF válido.');
+  });
+
+  it('guarda o CPF válido (só dígitos) na cota quando a campanha exige', async () => {
+    const cotas = criarCotas(3);
+    const campanha = criarCampanha();
+    campanha.reservaExigeCpf = true;
+    const { cotaRepository, campanhaRepository } = criarRepositorios(cotas, campanha);
+    const useCase = new ReservarLoteCotasConvidadoUseCase(cotaRepository, campanhaRepository);
+
+    await useCase.executar(
+      { campanhaId: 'campanha-1', numeros: [1], nome: 'Maria', email: 'a@a.com', telefone: '11988887777', cpf: '529.982.247-25' },
+      agora,
+    );
+
+    expect(cotas[0].convidadoCpf).toBe('52998224725');
+  });
+
   it('rejeita quando a campanha não existe', async () => {
     const { cotaRepository, campanhaRepository } = criarRepositorios(criarCotas(3), criarCampanha());
     (campanhaRepository.buscarPorId as jest.Mock).mockResolvedValue(null);

@@ -64,4 +64,8 @@ export class EditarCampanhaDto {
   @IsOptional()
   @IsBoolean()
   reservaExigeConfirmacaoTelefone?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  reservaExigeCpf?: boolean;
 }
