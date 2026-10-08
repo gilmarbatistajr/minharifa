@@ -20,6 +20,20 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+/** Selo vermelho com a contagem, no canto do ícone — como o contador de e-mails não lidos. Oculto quando 0. */
+function SeloContador({ valor }: { valor?: number }) {
+  if (!valor) return null;
+
+  return (
+    <span
+      aria-label={`${valor} não lidas`}
+      className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-night"
+    >
+      {valor > 99 ? '99+' : valor}
+    </span>
+  );
+}
+
 function itemAtivo(pathname: string, href: string): boolean {
   return href === pathname || (href !== '/' && pathname.startsWith(href));
 }
@@ -47,11 +61,14 @@ export function AppShell({ navItems, nome, onSair, children }: AppShellProps) {
                   ativo ? 'bg-accent text-ink' : 'text-white/70 hover:bg-white/10 hover:text-white',
                 ].join(' ')}
               >
-                <item.icon className="h-5 w-5" />
+                <span className="relative">
+                  <item.icon className="h-5 w-5" />
+                  <SeloContador valor={item.badge} />
+                </span>
                 {item.label}
                 {item.badge ? (
-                  <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-ink">
-                    {item.badge > 99 ? '99+' : item.badge}
+                  <span className="ml-auto text-xs font-semibold text-white/80">
+                    {item.badge > 99 ? '99+' : item.badge} {item.badge === 1 ? 'nova' : 'novas'}
                   </span>
                 ) : null}
               </Link>
@@ -103,11 +120,7 @@ export function AppShell({ navItems, nome, onSair, children }: AppShellProps) {
             >
               <span className="relative">
                 <item.icon className="h-5 w-5" />
-                {item.badge ? (
-                  <span className="absolute -right-2 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold leading-4 text-ink">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                ) : null}
+                <SeloContador valor={item.badge} />
               </span>
               {item.label}
             </Link>

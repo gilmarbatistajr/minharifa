@@ -138,7 +138,7 @@ function LinhaNotificacao({ notificacao, aoLer }: { notificacao: Notificacao; ao
             onClick={aoLer}
             className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-night transition hover:bg-mist"
           >
-            {novaVenda ? 'Confirmar pagamento' : 'Ver campanha'}
+            Ver campanha
           </Link>
         )}
         {naoLida && (

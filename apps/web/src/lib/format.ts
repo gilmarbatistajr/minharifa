@@ -62,6 +62,24 @@ export function formatarCpf(valor: string): string {
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 }
 
+/**
+ * Máscara de RG no padrão 00.000.000-0: 8 dígitos + dígito verificador, que
+ * pode ser "X" (só vale na última posição, depois dos 8 dígitos).
+ */
+export function formatarRg(valor: string): string {
+  const digitos = valor.replace(/\D/g, '').slice(0, 9);
+  const terminaEmX = digitos.length === 8 && /x\s*$/i.test(valor);
+  const caracteres = terminaEmX ? `${digitos}X` : digitos;
+
+  const [a, b, c, d] = [
+    caracteres.slice(0, 2),
+    caracteres.slice(2, 5),
+    caracteres.slice(5, 8),
+    caracteres.slice(8, 9),
+  ];
+  return a + (b ? `.${b}` : '') + (c ? `.${c}` : '') + (d ? `-${d}` : '');
+}
+
 export function formatarTelefone(valor: string): string {
   const digitos = valor.replace(/\D/g, '').slice(0, 11);
   if (digitos.length <= 10) {

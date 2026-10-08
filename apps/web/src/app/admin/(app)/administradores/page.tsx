@@ -17,7 +17,7 @@ import {
   type PermissaoRecurso,
   type RecursoMenuAdmin,
 } from '../../../../lib/api';
-import { formatarCpf, formatarTelefone } from '../../../../lib/format';
+import { formatarCpf, formatarRg, formatarTelefone } from '../../../../lib/format';
 import { useSessaoAdministrador } from '../../../../lib/auth';
 
 const RECURSOS: { valor: RecursoMenuAdmin; label: string }[] = [
@@ -200,7 +200,7 @@ function FormularioAdministrador({
   const [email, setEmail] = useState(membro?.email ?? '');
   const [telefone, setTelefone] = useState(membro?.telefone ? formatarTelefone(membro.telefone) : '');
   const [cpf, setCpf] = useState(membro?.cpf ? formatarCpf(membro.cpf) : '');
-  const [rg, setRg] = useState(membro?.rg ?? '');
+  const [rg, setRg] = useState(formatarRg(membro?.rg ?? ''));
   const [senha, setSenha] = useState('');
   const [permissoes, setPermissoes] = useState<PermissaoRecurso[]>(membro?.permissoes ?? permissoesVazias());
   const [erro, setErro] = useState<string | null>(null);
@@ -269,7 +269,13 @@ function FormularioAdministrador({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="RG" required value={rg} onChange={(e) => setRg(e.target.value)} />
+          <TextField
+            label="RG"
+            required
+            placeholder="00.000.000-0"
+            value={rg}
+            onChange={(e) => setRg(formatarRg(e.target.value))}
+          />
           <TextField
             label="Senha"
             type="password"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { AppShell } from '../../../components/layout/AppShell';
 import {
   IconDashboard,
@@ -33,6 +34,13 @@ export default function AdminAppLayout({ children }: { children: React.ReactNode
   const { sessao, pronto } = useSessaoAdministrador();
   const { sair } = useAuth();
   const naoLidas = useNotificacoesNaoLidas(sessao?.token);
+  const pathname = usePathname();
+
+  // Contador também no título da aba, como num cliente de e-mail: "(3) Minha Rifa".
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    document.title = naoLidas > 0 ? `(${naoLidas > 99 ? '99+' : naoLidas}) ${base}` : base;
+  }, [naoLidas, pathname]);
 
   if (!pronto || !sessao) {
     return (

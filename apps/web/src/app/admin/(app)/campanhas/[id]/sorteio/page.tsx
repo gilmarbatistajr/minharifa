@@ -455,7 +455,6 @@ export default function SorteioCampanhaPage() {
                     onConfirmar={confirmarPagamento}
                     onLiberar={liberarCotasReservadas}
                     carregando={processando === reserva.chave}
-                    fullWidth
                   />
                 </div>
               ))}
@@ -695,18 +694,17 @@ function AcoesReserva({
   onConfirmar,
   onLiberar,
   carregando = false,
-  fullWidth = false,
 }: {
   reserva: Reserva;
   onConfirmar: (identificador: IdentificadorReserva, chave: string) => void;
   onLiberar: (identificador: IdentificadorReserva, chave: string) => void;
   carregando?: boolean;
-  fullWidth?: boolean;
 }) {
   const semReservaPendente = reserva.numerosReservados.length === 0;
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${fullWidth ? 'flex-col items-stretch' : ''}`}>
+    // Um botão embaixo do outro (Confirmar pagamento, Liberar cotas, WhatsApp), sempre com a mesma largura.
+    <div className="flex min-w-44 flex-col items-stretch gap-2">
       {semReservaPendente ? (
         <span className="inline-flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/15 px-3 py-2 text-xs font-semibold text-accent-ink">
           <IconCheck className="h-4 w-4" />
