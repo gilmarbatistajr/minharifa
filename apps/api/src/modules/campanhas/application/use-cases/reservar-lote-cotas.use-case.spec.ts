@@ -38,7 +38,6 @@ describe('ReservarLoteCotasUseCase', () => {
       null,
       null,
       null,
-      '',
       opcoes.quantidadeMinimaPorCompra ?? 1,
       opcoes.quantidadeMaximaPorCompra ?? null,
       opcoes.expiracaoReservaMinutos === undefined ? 2 : opcoes.expiracaoReservaMinutos,

@@ -499,7 +499,6 @@ function FormularioEditarCampanha({
   aoErro: (mensagem: string) => void;
 }) {
   const [nome, setNome] = useState(campanha.nome);
-  const [telefoneSuporte, setTelefoneSuporte] = useState(campanha.telefoneSuporte);
   const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix>(campanha.tipoChavePix ?? 'CPF');
   const [chavePix, setChavePix] = useState(campanha.chavePix ?? '');
   const [descricao, setDescricao] = useState(campanha.descricao);
@@ -551,7 +550,6 @@ function FormularioEditarCampanha({
       await campanhasApi.editar(token, campanha.id, {
         nome,
         descricao,
-        telefoneSuporte,
         tipoChavePix,
         chavePix: chavePix.trim(),
         premioIds,
@@ -595,13 +593,6 @@ function FormularioEditarCampanha({
         <p className="text-sm font-medium text-night">Informações básicas</p>
 
         <TextField label="Nome da campanha" required value={nome} onChange={(e) => setNome(e.target.value)} />
-        <PhoneField
-          label="Telefone para suporte"
-          required
-          placeholder="(11) 91234-5678"
-          value={telefoneSuporte}
-          onChange={(e) => setTelefoneSuporte(formatarTelefone(e.target.value))}
-        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField

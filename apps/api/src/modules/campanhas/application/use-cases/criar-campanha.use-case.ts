@@ -14,7 +14,6 @@ export interface CriarCampanhaInput {
   administradorId: string;
   nome: string;
   descricao: string;
-  telefoneSuporte: string;
   tipoChavePix?: TipoChavePix | null;
   chavePix?: string | null;
   premioIds: string[];
@@ -70,10 +69,6 @@ export class CriarCampanhaUseCase {
       throw new Error('O valor da cota deve ser maior que zero.');
     }
 
-    if (!input.telefoneSuporte.trim()) {
-      throw new Error('Informe o telefone de suporte da campanha.');
-    }
-
     const quantidadeMinimaPorCompra = input.quantidadeMinimaPorCompra ?? 1;
     if (quantidadeMinimaPorCompra <= 0) {
       throw new Error('A quantidade mínima por compra deve ser maior que zero.');
@@ -113,7 +108,6 @@ export class CriarCampanhaUseCase {
       null,
       null,
       null,
-      input.telefoneSuporte,
       quantidadeMinimaPorCompra,
       quantidadeMaximaPorCompra,
       expiracaoReservaMinutos,

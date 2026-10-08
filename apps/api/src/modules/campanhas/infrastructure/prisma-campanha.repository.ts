@@ -32,7 +32,6 @@ type RegistroCampanha = {
   vencedorTelefone: string | null;
   finalizadoEm: Date | null;
   removidaEm: Date | null;
-  telefoneSuporte: string;
   tipoChavePix: string | null;
   chavePix: string | null;
   fotoUrl: string | null;
@@ -68,7 +67,6 @@ function paraDominio(registro: RegistroCampanha): Campanha {
     registro.cotaVencedoraNumero,
     registro.vencedorOptouPorDinheiro,
     registro.removidaEm,
-    registro.telefoneSuporte,
     registro.quantidadeMinimaPorCompra,
     registro.quantidadeMaximaPorCompra,
     registro.expiracaoReservaMinutos,
@@ -142,7 +140,6 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         formaVenda: campanha.formaVenda,
         status: campanha.status,
         statusVendas: campanha.statusVendas,
-        telefoneSuporte: campanha.telefoneSuporte,
         tipoChavePix: campanha.tipoChavePix,
         chavePix: campanha.chavePix,
         quantidadeMinimaPorCompra: campanha.quantidadeMinimaPorCompra,
@@ -165,7 +162,6 @@ export class PrismaCampanhaRepository implements CampanhaRepository {
         grupoId: campanha.grupoId,
         nome: campanha.nome,
         descricao: campanha.descricao,
-        telefoneSuporte: campanha.telefoneSuporte,
         tipoChavePix: campanha.tipoChavePix,
         chavePix: campanha.chavePix,
         premios: { set: campanha.premioIds.map((id) => ({ id })) },

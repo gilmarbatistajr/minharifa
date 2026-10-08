@@ -1,5 +1,7 @@
 import { Campanha } from '../../domain/entities/campanha.entity';
 import { CampanhaRepository } from '../../domain/repositories/campanha.repository';
+import { Grupo } from '../../../grupos/domain/entities/grupo.entity';
+import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import { ListarCampanhasVisiveisParaCompradorUseCase } from './listar-campanhas-visiveis-comprador.use-case';
 
 describe('ListarCampanhasVisiveisParaCompradorUseCase', () => {
@@ -11,6 +13,16 @@ describe('ListarCampanhasVisiveisParaCompradorUseCase', () => {
       listarPorAdministrador: jest.fn(),
       criar: jest.fn(),
       salvar: jest.fn(),
+    };
+  }
+
+  function criarGrupoRepositorio(grupos: Grupo[]): GrupoRepository {
+    return {
+      buscarPorId: jest.fn().mockImplementation(async (id: string) => grupos.find((g) => g.id === id) ?? null),
+      buscarPorIdentificadorWhatsapp: jest.fn(),
+      listarPorAdministrador: jest.fn(),
+      listarCompradores: jest.fn(),
+      criar: jest.fn(),
     };
   }
 
@@ -42,17 +54,19 @@ describe('ListarCampanhasVisiveisParaCompradorUseCase', () => {
       'grupo-a': [campanhaDoGrupoA],
       'grupo-b': [campanhaDoGrupoB],
     });
-    const useCase = new ListarCampanhasVisiveisParaCompradorUseCase(repositorio);
+    const grupoA = new Grupo('grupo-a', 'admin-1', 'Grupo A', '11999998888', new Date(), null);
+    const useCase = new ListarCampanhasVisiveisParaCompradorUseCase(repositorio, criarGrupoRepositorio([grupoA]));
 
     const resultado = await useCase.executar({ grupoId: 'grupo-a' });
 
     expect(resultado).toEqual([campanhaDoGrupoA]);
+    expect(resultado[0].telefoneSuporte).toBe('11999998888');
     expect(repositorio.listarPorGrupo).toHaveBeenCalledWith('grupo-a');
   });
 
   it('não retorna nenhuma campanha quando o grupo não possui campanhas cadastradas', async () => {
     const repositorio = criarCampanhaRepositorio({});
-    const useCase = new ListarCampanhasVisiveisParaCompradorUseCase(repositorio);
+    const useCase = new ListarCampanhasVisiveisParaCompradorUseCase(repositorio, criarGrupoRepositorio([]));
 
     const resultado = await useCase.executar({ grupoId: 'grupo-sem-campanhas' });
 

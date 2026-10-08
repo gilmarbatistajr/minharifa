@@ -17,6 +17,7 @@ export interface CampanhaPublica {
   quantidadeMinimaPorCompra: number;
   quantidadeMaximaPorCompra: number | null;
   formaVenda: FormaVendaCotas;
+  /** Contato de suporte do grupo ao qual a campanha está vinculada. */
   telefoneSuporte: string;
   status: StatusCampanha;
   statusVendas: StatusVendasCampanha;
@@ -74,7 +75,7 @@ export class BuscarCampanhaPublicaUseCase {
       quantidadeMinimaPorCompra: campanha.quantidadeMinimaPorCompra,
       quantidadeMaximaPorCompra: campanha.quantidadeMaximaPorCompra,
       formaVenda: campanha.formaVenda,
-      telefoneSuporte: campanha.telefoneSuporte,
+      telefoneSuporte: grupo?.identificadorWhatsapp ?? '',
       status: campanha.status,
       statusVendas: campanha.statusVendas,
       dataRealizacao: campanha.dataRealizacao,

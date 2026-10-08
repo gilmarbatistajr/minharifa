@@ -191,7 +191,8 @@ export interface Campanha {
   grupoId: string | null;
   nome: string;
   descricao: string;
-  telefoneSuporte: string;
+  /** Contato de suporte do grupo (preenchido nas listagens do jogador). */
+  telefoneSuporte?: string;
   tipoChavePix: TipoChavePix | null;
   chavePix: string | null;
   fotoUrl: string | null;
@@ -509,7 +510,6 @@ export type IdentificadorReserva = { compradorId: string } | { tokenReservaConvi
 export interface DadosFormularioCampanha {
   nome: string;
   descricao: string;
-  telefoneSuporte: string;
   tipoChavePix?: TipoChavePix | null;
   chavePix?: string | null;
   premioIds: string[];

@@ -18,7 +18,7 @@ import {
   type FormaVendaCotas,
   type TipoChavePix,
 } from '../../../../../lib/api';
-import { formatarMoeda, formatarTelefone, formatarChavePix } from '../../../../../lib/format';
+import { formatarMoeda, formatarChavePix } from '../../../../../lib/format';
 import { validarChavePix, MENSAGENS_ERRO_CHAVE_PIX } from '../../../../../lib/validacoes-chave-pix';
 import { useSessaoAdministrador } from '../../../../../lib/auth';
 
@@ -106,7 +106,6 @@ export default function NovaCampanhaPage() {
 
   // Informações básicas
   const [nome, setNome] = useState('');
-  const [telefoneSuporte, setTelefoneSuporte] = useState('');
   const [tipoChavePix, setTipoChavePix] = useState<TipoChavePix>('CPF');
   const [chavePix, setChavePix] = useState('');
   const [descricao, setDescricao] = useState(() => gerarDescricaoPadrao('', [], '', '100'));
@@ -197,7 +196,6 @@ export default function NovaCampanhaPage() {
       const dadosCampanha = {
         nome,
         descricao,
-        telefoneSuporte,
         tipoChavePix,
         chavePix: chavePix.trim(),
         premioIds,
@@ -260,13 +258,6 @@ export default function NovaCampanhaPage() {
           <p className="text-sm font-medium text-night">Informações básicas</p>
 
           <TextField label="Nome da campanha" required value={nome} onChange={(e) => setNome(e.target.value)} />
-          <PhoneField
-            label="Telefone para suporte"
-            required
-            placeholder="(11) 91234-5678"
-            value={telefoneSuporte}
-            onChange={(e) => setTelefoneSuporte(formatarTelefone(e.target.value))}
-          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField

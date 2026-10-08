@@ -33,7 +33,6 @@ describe('EditarCampanhaUseCase', () => {
     campanhaId: 'campanha-1',
     nome: 'Campanha de Natal (editada)',
     descricao: 'Descrição editada',
-    telefoneSuporte: '5511999998888',
     premioIds: ['premio-1'],
     quantidadeCotas: 20,
     valorCota: 75,
@@ -154,16 +153,6 @@ describe('EditarCampanhaUseCase', () => {
 
     await expect(useCase.executar({ ...inputBase, valorCota: -1 })).rejects.toThrow(
       'valor da cota deve ser maior que zero',
-    );
-  });
-
-  it('rejeita telefone de suporte vazio', async () => {
-    const campanha = criarCampanha();
-    const deps = criarDependencias(campanha);
-    const useCase = montarUseCase(deps);
-
-    await expect(useCase.executar({ ...inputBase, telefoneSuporte: '  ' })).rejects.toThrow(
-      'Informe o telefone de suporte',
     );
   });
 

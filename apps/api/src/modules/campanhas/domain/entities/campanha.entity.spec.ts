@@ -81,7 +81,6 @@ describe('Campanha', () => {
     const novosDados = {
       nome: 'Campanha editada',
       descricao: 'Descrição editada',
-      telefoneSuporte: '5511988887777',
       tipoChavePix: 'CPF' as const,
       chavePix: '123.456.789-00',
       premioIds: ['premio-2', 'premio-3'],
@@ -105,7 +104,6 @@ describe('Campanha', () => {
 
       expect(campanha.nome).toBe('Campanha editada');
       expect(campanha.descricao).toBe('Descrição editada');
-      expect(campanha.telefoneSuporte).toBe('5511988887777');
       expect(campanha.tipoChavePix).toBe('CPF');
       expect(campanha.chavePix).toBe('123.456.789-00');
       expect(campanha.premioIds).toEqual(['premio-2', 'premio-3']);

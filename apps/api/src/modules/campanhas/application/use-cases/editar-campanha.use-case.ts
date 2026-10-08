@@ -13,7 +13,6 @@ export interface EditarCampanhaInput {
   campanhaId: string;
   nome: string;
   descricao: string;
-  telefoneSuporte: string;
   tipoChavePix?: TipoChavePix | null;
   chavePix?: string | null;
   premioIds: string[];
@@ -70,10 +69,6 @@ export class EditarCampanhaUseCase {
       throw new Error('O valor da cota deve ser maior que zero.');
     }
 
-    if (!input.telefoneSuporte.trim()) {
-      throw new Error('Informe o telefone de suporte da campanha.');
-    }
-
     const quantidadeMinimaPorCompra = input.quantidadeMinimaPorCompra ?? 1;
     if (quantidadeMinimaPorCompra <= 0) {
       throw new Error('A quantidade mínima por compra deve ser maior que zero.');
@@ -98,7 +93,6 @@ export class EditarCampanhaUseCase {
     campanha.atualizar({
       nome: input.nome,
       descricao: input.descricao,
-      telefoneSuporte: input.telefoneSuporte,
       tipoChavePix,
       chavePix,
       premioIds: input.premioIds,

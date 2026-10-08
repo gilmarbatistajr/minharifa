@@ -46,7 +46,6 @@ describe('GerarCobrancaPixConvidadoUseCase', () => {
       null,
       null,
       null,
-      '',
       1,
       null,
       2,

@@ -38,7 +38,6 @@ const HORAS_ALERTA_ENCERRAMENTO = 24;
 export interface DadosAtualizacaoCampanha {
   nome: string;
   descricao: string;
-  telefoneSuporte: string;
   tipoChavePix: TipoChavePix | null;
   chavePix: string | null;
   premioIds: string[];
@@ -80,7 +79,6 @@ export class Campanha {
     public cotaVencedoraNumero: number | null,
     public vencedorOptouPorDinheiro: boolean | null,
     public removidaEm: Date | null = null,
-    public telefoneSuporte: string = '',
     public quantidadeMinimaPorCompra: number = 1,
     public quantidadeMaximaPorCompra: number | null = null,
     public expiracaoReservaMinutos: number | null = 2,
@@ -170,7 +168,6 @@ export class Campanha {
 
     this.nome = dados.nome;
     this.descricao = dados.descricao;
-    this.telefoneSuporte = dados.telefoneSuporte;
     this.tipoChavePix = dados.tipoChavePix;
     this.chavePix = dados.chavePix;
     this.premioIds = dados.premioIds;

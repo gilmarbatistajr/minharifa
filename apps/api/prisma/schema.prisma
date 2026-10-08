@@ -250,7 +250,6 @@ model Campanha {
   grupo                    Grupo?                @relation(fields: [grupoId], references: [id])
   nome                     String
   descricao                String
-  telefoneSuporte          String                @default("")
   tipoChavePix             TipoChavePix?
   chavePix                 String?
   fotoUrl                  String?

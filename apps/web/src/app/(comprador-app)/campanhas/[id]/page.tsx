@@ -126,7 +126,7 @@ export default function DetalheCampanhaPage() {
     const { metodo = 'push', tokenConvidado } = opcoes;
     const parametros = new URLSearchParams({
       numeros: numeros.slice().sort((a, b) => a - b).join(','),
-      telefoneSuporte: campanhaAtual.telefoneSuporte,
+      telefoneSuporte: campanhaAtual.telefoneSuporte ?? '',
       nomeCampanha: campanhaAtual.nome,
     });
     if (reservaExpiraEm) parametros.set('expira', reservaExpiraEm);
@@ -718,7 +718,7 @@ function LinkWhatsappSuporte({ campanha, numeros }: { campanha: CampanhaExibicao
   const mensagem =
     `Olá! Tenho a(s) cota(s) nº ${numerosOrdenados.join(', ')} reservada(s)` +
     ` na campanha "${campanha.nome}", aguardando confirmação de pagamento.`;
-  const telefone = campanha.telefoneSuporte.replace(/\D/g, '');
+  const telefone = (campanha.telefoneSuporte ?? '').replace(/\D/g, '');
   const link = telefone ? `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}` : null;
 
   return (

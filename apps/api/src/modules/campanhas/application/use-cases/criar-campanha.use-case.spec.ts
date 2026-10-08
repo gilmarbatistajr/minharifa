@@ -10,7 +10,6 @@ describe('CriarCampanhaUseCase', () => {
     administradorId: 'admin-1',
     nome: 'Campanha de Natal',
     descricao: 'Campanha especial de fim de ano',
-    telefoneSuporte: '5511999998888',
     premioIds: ['premio-1'],
     quantidadeCotas: 10,
     valorCota: 50,
@@ -108,15 +107,6 @@ describe('CriarCampanhaUseCase', () => {
     );
   });
 
-  it('rejeita telefone de suporte vazio', async () => {
-    const deps = criarDependencias();
-    const useCase = montarUseCase(deps);
-
-    await expect(useCase.executar({ ...inputBase, telefoneSuporte: '  ' })).rejects.toThrow(
-      'Informe o telefone de suporte',
-    );
-  });
-
   it('aplica os valores padrão de compra, expiração e dados obrigatórios quando não informados', async () => {
     const deps = criarDependencias();
     const useCase = montarUseCase(deps);
@@ -124,7 +114,6 @@ describe('CriarCampanhaUseCase', () => {
     await useCase.executar(inputBase);
 
     const campanhaCriada = (deps.campanhaRepository.criar as jest.Mock).mock.calls[0][0];
-    expect(campanhaCriada.telefoneSuporte).toBe('5511999998888');
     expect(campanhaCriada.quantidadeMinimaPorCompra).toBe(1);
     expect(campanhaCriada.quantidadeMaximaPorCompra).toBeNull();
     expect(campanhaCriada.expiracaoReservaMinutos).toBe(5);

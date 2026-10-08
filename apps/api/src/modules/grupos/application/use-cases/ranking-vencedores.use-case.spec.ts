@@ -40,7 +40,6 @@ describe('RankingVencedoresUseCase', () => {
       cotaVencedoraNumero,
       null,
       null,
-      '',
       1,
       null,
       2,

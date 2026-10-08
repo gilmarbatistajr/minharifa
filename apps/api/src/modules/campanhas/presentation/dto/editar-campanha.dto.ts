@@ -10,9 +10,6 @@ export class EditarCampanhaDto {
   @IsString()
   descricao!: string;
 
-  @IsString()
-  telefoneSuporte!: string;
-
   @IsOptional()
   @IsIn(TIPOS_CHAVE_PIX)
   tipoChavePix?: (typeof TIPOS_CHAVE_PIX)[number] | null;

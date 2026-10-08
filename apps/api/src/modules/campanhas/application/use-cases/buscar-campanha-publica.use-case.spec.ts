@@ -33,7 +33,6 @@ describe('BuscarCampanhaPublicaUseCase', () => {
       overrides.cotaVencedoraNumero ?? null,
       null,
       overrides.removidaEm ?? null,
-      '11999998888',
       1,
       10,
       2,
