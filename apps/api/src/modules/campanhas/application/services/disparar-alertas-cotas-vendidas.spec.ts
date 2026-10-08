@@ -116,7 +116,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(campanha.alerta50PorCentoEnviado).toBe(true);
@@ -140,7 +140,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(campanha.alerta50PorCentoEnviado).toBe(true);
@@ -162,7 +162,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
@@ -199,7 +199,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.cotaRepository.listarPorCampanha).not.toHaveBeenCalled();
@@ -217,7 +217,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
@@ -236,7 +236,7 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
@@ -255,10 +255,70 @@ describe('dispararAlertasCotasVendidas', () => {
       deps.grupoRepository,
       deps.agenteChatbotRepository,
       deps.notificationSender,
-      campanha,
+      campanha, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     expect(deps.notificationSender.enviarWhatsapp).not.toHaveBeenCalled();
     expect(deps.campanhaRepository.salvar).not.toHaveBeenCalled();
+  });
+
+  describe('notificações do painel (marcos de cotas vendidas)', () => {
+    function chamar(cotas: Cota[], campanha: Campanha, grupoId: string | null = 'grupo-1') {
+      const deps = criarDependencias(cotas, null);
+      const registrarMarcos = { executar: jest.fn().mockResolvedValue(undefined) };
+      campanha.grupoId = grupoId;
+      return {
+        registrarMarcos,
+        promessa: dispararAlertasCotasVendidas(
+          deps.campanhaRepository,
+          deps.cotaRepository,
+          deps.grupoRepository,
+          deps.agenteChatbotRepository,
+          deps.notificationSender,
+          campanha,
+          registrarMarcos as never,
+        ),
+      };
+    }
+
+    it('registra os marcos mesmo sem agente chatbot ativo, com o percentual de cotas pagas', async () => {
+      const { registrarMarcos, promessa } = chamar(criarCotas(10, 2), criarCampanha());
+
+      await promessa;
+
+      expect(registrarMarcos.executar).toHaveBeenCalledWith({
+        administradorId: 'admin-1',
+        campanhaId: 'campanha-1',
+        grupoId: 'grupo-1',
+        nomeCampanha: 'Campanha de teste',
+        percentualVendido: 20,
+      });
+    });
+
+    it('informa 100% só quando todas as cotas estão pagas', async () => {
+      const { registrarMarcos, promessa } = chamar(criarCotas(10, 10), criarCampanha());
+
+      await promessa;
+
+      expect(registrarMarcos.executar).toHaveBeenCalledWith(expect.objectContaining({ percentualVendido: 100 }));
+    });
+
+    it('não arredonda para 100% quando ainda falta uma cota', async () => {
+      const campanha = criarCampanha();
+      campanha.quantidadeCotas = 1000;
+      const { registrarMarcos, promessa } = chamar(criarCotas(1000, 996), campanha);
+
+      await promessa;
+
+      expect(registrarMarcos.executar).toHaveBeenCalledWith(expect.objectContaining({ percentualVendido: 99 }));
+    });
+
+    it('não registra nada para campanha sem grupo vinculado', async () => {
+      const { registrarMarcos, promessa } = chamar(criarCotas(10, 5), criarCampanha({ grupoId: null }), null);
+
+      await promessa;
+
+      expect(registrarMarcos.executar).not.toHaveBeenCalled();
+    });
   });
 });

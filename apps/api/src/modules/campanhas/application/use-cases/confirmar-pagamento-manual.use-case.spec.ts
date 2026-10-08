@@ -85,7 +85,7 @@ describe('ConfirmarPagamentoManualUseCase', () => {
       deps.cotaRepository,
       deps.grupoRepository,
       deps.agenteChatbotRepository,
-      deps.notificationSender,
+      deps.notificationSender, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
   }
 

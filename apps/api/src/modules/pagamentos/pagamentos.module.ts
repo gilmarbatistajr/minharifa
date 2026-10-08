@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CampanhasModule } from '../campanhas/campanhas.module';
+import { NotificacoesModule } from '../notificacoes/notificacoes.module';
 import { GruposModule } from '../grupos/grupos.module';
 import { CompradoresModule } from '../compradores/compradores.module';
 import { AdministradoresModule } from '../administradores/administradores.module';
@@ -32,7 +33,7 @@ import { ListarPagamentosCampanhaUseCase } from './application/use-cases/listar-
 import { PagamentosController } from './presentation/pagamentos.controller';
 
 @Module({
-  imports: [CampanhasModule, GruposModule, CompradoresModule, AdministradoresModule],
+  imports: [NotificacoesModule, CampanhasModule, GruposModule, CompradoresModule, AdministradoresModule],
   controllers: [PagamentosController],
   providers: [
     { provide: PAGAMENTO_REPOSITORY, useClass: PrismaPagamentoRepository },

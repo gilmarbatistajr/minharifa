@@ -9,6 +9,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: (props: { className?: string }) => React.ReactNode;
+  /** Contador exibido ao lado do item (ex.: notificações não lidas). Oculto quando 0. */
+  badge?: number;
 }
 
 interface AppShellProps {
@@ -47,6 +49,11 @@ export function AppShell({ navItems, nome, onSair, children }: AppShellProps) {
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
+                {item.badge ? (
+                  <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-ink">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -94,7 +101,14 @@ export function AppShell({ navItems, nome, onSair, children }: AppShellProps) {
                 ativo ? 'text-accent-ink' : 'text-muted'
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              <span className="relative">
+                <item.icon className="h-5 w-5" />
+                {item.badge ? (
+                  <span className="absolute -right-2 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold leading-4 text-ink">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                ) : null}
+              </span>
               {item.label}
             </Link>
           );

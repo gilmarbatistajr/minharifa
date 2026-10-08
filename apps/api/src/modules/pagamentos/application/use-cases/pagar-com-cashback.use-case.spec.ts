@@ -141,7 +141,7 @@ describe('PagarComCashbackUseCase', () => {
       deps.pagamentoRepository,
       deps.grupoRepository,
       deps.agenteChatbotRepository,
-      deps.notificationSender,
+      deps.notificationSender, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
   }
 

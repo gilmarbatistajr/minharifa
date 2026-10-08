@@ -5,6 +5,7 @@ import { GrupoRepository } from '../../../grupos/domain/repositories/grupo.repos
 import { AgenteChatbotRepository } from '../../../grupos/domain/repositories/agente-chatbot.repository';
 import { NotificationSender } from '../../../../shared/domain/notification-sender';
 import { notificarGrupo } from './notificar-grupo';
+import { RegistrarMarcosDeVendaUseCase } from '../../../notificacoes/application/use-cases/registrar-marcos-de-venda.use-case';
 
 const LIMIARES_COTAS_VENDIDAS = [50, 80, 90] as const;
 
@@ -14,8 +15,8 @@ const LIMIARES_COTAS_VENDIDAS = [50, 80, 90] as const;
  * limiares de cotas vendidas (50/80/90%) e, se sim, dispara o aviso do agente
  * chatbot do grupo — uma única vez por campanha por limiar (ver
  * `Campanha.marcarLimiarDeCotasVendidasAlertado`). Não faz nada se a
- * campanha ainda não tiver grupo vinculado, ou se o grupo não tiver um
- * agente chatbot ativo.
+ * campanha ainda não tiver grupo vinculado; sem agente chatbot ativo, só
+ * pula o aviso no grupo (as notificações do painel continuam sendo registradas).
  */
 export async function dispararAlertasCotasVendidas(
   campanhaRepository: CampanhaRepository,
@@ -24,6 +25,7 @@ export async function dispararAlertasCotasVendidas(
   agenteChatbotRepository: AgenteChatbotRepository,
   notificationSender: NotificationSender,
   campanha: Campanha,
+  registrarMarcosDeVenda: RegistrarMarcosDeVendaUseCase,
 ): Promise<void> {
   if (!campanha.grupoId) {
     return;
@@ -36,6 +38,16 @@ export async function dispararAlertasCotasVendidas(
 
   const cotasPagas = cotas.filter((cota) => cota.status === 'PAGA').length;
   const percentualVendido = campanha.calcularPercentualVendido(cotasPagas);
+
+  // Notificações do painel (administrador/operador): não dependem do agente chatbot.
+  await registrarMarcosDeVenda.executar({
+    administradorId: campanha.administradorId,
+    campanhaId: campanha.id,
+    grupoId: campanha.grupoId,
+    nomeCampanha: campanha.nome,
+    // O arredondamento de `calcularPercentualVendido` poderia marcar 100% com 1 cota ainda livre.
+    percentualVendido: cotasPagas >= campanha.quantidadeCotas ? 100 : Math.min(percentualVendido, 99),
+  });
 
   const limiaresParaAlertar = LIMIARES_COTAS_VENDIDAS.filter(
     (limiar) => percentualVendido >= limiar && !campanha.limiarDeCotasVendidasJaAlertado(limiar),

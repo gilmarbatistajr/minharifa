@@ -11,6 +11,7 @@ import { CompradoresModule } from './modules/compradores/compradores.module';
 import { PremiosModule } from './modules/premios/premios.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
 import { OperadoresModule } from './modules/operadores/operadores.module';
+import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { OperadoresModule } from './modules/operadores/operadores.module';
     PremiosModule,
     PagamentosModule,
     OperadoresModule,
+    NotificacoesModule,
   ],
 })
 export class AppModule {}

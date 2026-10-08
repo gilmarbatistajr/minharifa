@@ -9,6 +9,7 @@ import {
 } from '../../../campanhas/domain/repositories/campanha.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { RegistrarMarcosDeVendaUseCase } from '../../../notificacoes/application/use-cases/registrar-marcos-de-venda.use-case';
 import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import {
   AGENTE_CHATBOT_REPOSITORY,
@@ -68,6 +69,7 @@ export class ConfirmarPagamentoWebhookUseCase {
     private readonly grupoRepository: GrupoRepository,
     @Inject(AGENTE_CHATBOT_REPOSITORY)
     private readonly agenteChatbotRepository: AgenteChatbotRepository,
+    private readonly registrarMarcosDeVenda: RegistrarMarcosDeVendaUseCase,
   ) {}
 
   async executar(input: ConfirmarPagamentoWebhookInput): Promise<void> {
@@ -129,6 +131,7 @@ export class ConfirmarPagamentoWebhookUseCase {
           this.agenteChatbotRepository,
           this.notificationSender,
           campanha,
+        this.registrarMarcosDeVenda,
         );
       }
       return;

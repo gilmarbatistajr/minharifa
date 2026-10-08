@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { NotificacoesModule } from '../notificacoes/notificacoes.module';
 import { PremiosModule } from '../premios/premios.module';
 import { OperadoresModule } from '../operadores/operadores.module';
 import { CompradoresModule } from '../compradores/compradores.module';
@@ -42,6 +43,7 @@ import { CampanhasController } from './presentation/campanhas.controller';
   // para disparar os alertas automáticos do agente chatbot do grupo.
   // CompradoresModule não depende de nada aqui, então entra sem forwardRef.
   imports: [
+    NotificacoesModule,
     forwardRef(() => PremiosModule),
     forwardRef(() => OperadoresModule),
     forwardRef(() => GruposModule),

@@ -834,3 +834,38 @@ export const cancelamentosApi = {
       body: dados,
     }),
 };
+
+// ---------- Notificações (painel do administrador/operador) ----------
+
+export type TipoNotificacao =
+  | 'NOVA_VENDA'
+  | 'COTAS_VENDIDAS_20'
+  | 'COTAS_VENDIDAS_50'
+  | 'COTAS_VENDIDAS_75'
+  | 'COTAS_VENDIDAS_90'
+  | 'COTAS_VENDIDAS_100';
+
+export interface Notificacao {
+  id: string;
+  campanhaId: string | null;
+  grupoId: string | null;
+  tipo: TipoNotificacao;
+  mensagem: string;
+  lidaEm: string | null;
+  criadoEm: string;
+}
+
+export interface ListaNotificacoes {
+  notificacoes: Notificacao[];
+  naoLidas: number;
+}
+
+export const notificacoesApi = {
+  listar: (token: string) => request<ListaNotificacoes>('/notificacoes', { token }),
+
+  marcarLida: (token: string, notificacaoId: string) =>
+    request<void>(`/notificacoes/${notificacaoId}/lida`, { method: 'POST', token }),
+
+  marcarTodasLidas: (token: string) =>
+    request<void>('/notificacoes/marcar-todas-lidas', { method: 'POST', token }),
+};

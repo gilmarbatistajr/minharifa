@@ -239,13 +239,13 @@ function PagamentoPix({
 
   if (compraFinalizada) {
     return (
-      <Card className="flex flex-col items-center gap-3 overflow-hidden py-10 text-center">
+      <Card className="flex flex-col items-center gap-3 py-10 text-center">
         {fotoCampanhaUrl && (
           // eslint-disable-next-line @next/next/no-img-element -- imagem da campanha, vem da API
           <img
             src={urlArquivoApi(fotoCampanhaUrl)}
             alt={nomeCampanhaPublico}
-            className="-mt-10 mb-4 aspect-video w-[calc(100%+2.5rem)] max-w-none object-cover"
+            className="mb-2 aspect-[3/4] w-full max-w-[280px] rounded-2xl object-cover"
           />
         )}
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/20 text-accent-ink">

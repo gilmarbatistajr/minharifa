@@ -36,11 +36,12 @@ model Administrador {
   tokenConfirmacaoNovoEmail         String?   @unique
   tokenConfirmacaoNovoEmailExpiraEm DateTime?
 
-  grupos     Grupo[]
-  premios    Premio[]
-  campanhas  Campanha[]
-  operadores Operador[]
-  permissoes PermissaoAdministrador[]
+  grupos       Grupo[]
+  premios      Premio[]
+  notificacoes Notificacao[]
+  campanhas    Campanha[]
+  operadores   Operador[]
+  permissoes   PermissaoAdministrador[]
 
   @@map("administradores")
 }
@@ -57,13 +58,13 @@ enum RecursoMenuAdmin {
 // Define, por membro administrador (nunca para o proprietário, que tem acesso
 // total), se ele pode criar/editar/remover em cada seção do menu do admin.
 model PermissaoAdministrador {
-  id              String            @id @default(uuid())
+  id              String           @id @default(uuid())
   administradorId String
-  administrador   Administrador     @relation(fields: [administradorId], references: [id], onDelete: Cascade)
+  administrador   Administrador    @relation(fields: [administradorId], references: [id], onDelete: Cascade)
   recurso         RecursoMenuAdmin
-  podeCriar       Boolean           @default(false)
-  podeEditar      Boolean           @default(false)
-  podeRemover     Boolean           @default(false)
+  podeCriar       Boolean          @default(false)
+  podeEditar      Boolean          @default(false)
+  podeRemover     Boolean          @default(false)
 
   @@unique([administradorId, recurso])
   @@map("permissoes_administrador")
@@ -89,19 +90,19 @@ model Grupo {
 }
 
 model Operador {
-  id              String   @id @default(uuid())
+  id              String        @id @default(uuid())
   administradorId String
   administrador   Administrador @relation(fields: [administradorId], references: [id])
   nomeCompleto    String
   endereco        String
-  cpf             String   @unique
+  cpf             String        @unique
   rg              String
   telefone        String
-  login           String   @unique
+  login           String        @unique
   senhaHash       String
-  criadoEm        DateTime @default(now())
+  criadoEm        DateTime      @default(now())
 
-  grupos     Grupo[]            @relation("OperadoresGrupos")
+  grupos     Grupo[]             @relation("OperadoresGrupos")
   permissoes PermissaoOperador[]
 
   @@map("operadores")
@@ -131,20 +132,20 @@ model PermissaoOperador {
 }
 
 model AgenteChatbot {
-  id                         String  @id @default(uuid())
-  grupoId                    String  @unique
-  grupo                      Grupo   @relation(fields: [grupoId], references: [id])
-  ativo                      Boolean @default(false)
-  avisa50PorCentoVendido     Boolean @default(true)
-  avisa80PorCentoVendido     Boolean @default(true)
-  avisa90PorCentoVendido     Boolean @default(true)
-  avisaNovaCampanha          Boolean @default(true)
-  avisaResultado             Boolean @default(true)
-  mensagem50PorCentoVendido  String?
-  mensagem80PorCentoVendido  String?
-  mensagem90PorCentoVendido  String?
-  mensagemNovaCampanha       String?
-  mensagemResultado          String?
+  id                        String  @id @default(uuid())
+  grupoId                   String  @unique
+  grupo                     Grupo   @relation(fields: [grupoId], references: [id])
+  ativo                     Boolean @default(false)
+  avisa50PorCentoVendido    Boolean @default(true)
+  avisa80PorCentoVendido    Boolean @default(true)
+  avisa90PorCentoVendido    Boolean @default(true)
+  avisaNovaCampanha         Boolean @default(true)
+  avisaResultado            Boolean @default(true)
+  mensagem50PorCentoVendido String?
+  mensagem80PorCentoVendido String?
+  mensagem90PorCentoVendido String?
+  mensagemNovaCampanha      String?
+  mensagemResultado         String?
 
   @@map("agentes_chatbot")
 }
@@ -243,45 +244,45 @@ enum TipoChavePix {
 }
 
 model Campanha {
-  id                       String                @id @default(uuid())
-  administradorId          String
-  administrador            Administrador         @relation(fields: [administradorId], references: [id])
-  grupoId                  String?
-  grupo                    Grupo?                @relation(fields: [grupoId], references: [id])
-  nome                     String
-  descricao                String
-  tipoChavePix             TipoChavePix?
-  chavePix                 String?
-  fotoUrl                  String?
-  premios                  Premio[]
-  dataAberturaVendas       DateTime?
-  dataEncerramentoVendas   DateTime?
-  dataRealizacao           DateTime?
-  quantidadeCotas          Int
-  valorCota                Decimal               @db.Decimal(10, 2)
-  quantidadeMinimaPorCompra       Int            @default(1)
+  id                              String               @id @default(uuid())
+  administradorId                 String
+  administrador                   Administrador        @relation(fields: [administradorId], references: [id])
+  grupoId                         String?
+  grupo                           Grupo?               @relation(fields: [grupoId], references: [id])
+  nome                            String
+  descricao                       String
+  tipoChavePix                    TipoChavePix?
+  chavePix                        String?
+  fotoUrl                         String?
+  premios                         Premio[]
+  dataAberturaVendas              DateTime?
+  dataEncerramentoVendas          DateTime?
+  dataRealizacao                  DateTime?
+  quantidadeCotas                 Int
+  valorCota                       Decimal              @db.Decimal(10, 2)
+  quantidadeMinimaPorCompra       Int                  @default(1)
   quantidadeMaximaPorCompra       Int?
-  expiracaoReservaMinutos         Int?           @default(2)
-  reservaExigeEmail               Boolean        @default(true)
-  reservaExigeNome                Boolean        @default(true)
-  reservaExigeTelefone            Boolean        @default(true)
-  reservaExigeConfirmacaoTelefone Boolean        @default(false)
-  reservaExigeCpf                 Boolean        @default(false)
-  formaVenda               FormaVendaCotas       @default(ESCOLHA_NUMERO)
-  status                   StatusCampanha        @default(NOVO)
-  statusVendas             StatusVendasCampanha  @default(AGUARDANDO_ABERTURA)
-  cotaVencedoraNumero      Int?
-  vencedorOptouPorDinheiro Boolean?
-  vencedorNome             String?
-  vencedorTelefone         String?
+  expiracaoReservaMinutos         Int?                 @default(2)
+  reservaExigeEmail               Boolean              @default(true)
+  reservaExigeNome                Boolean              @default(true)
+  reservaExigeTelefone            Boolean              @default(true)
+  reservaExigeConfirmacaoTelefone Boolean              @default(false)
+  reservaExigeCpf                 Boolean              @default(false)
+  formaVenda                      FormaVendaCotas      @default(ESCOLHA_NUMERO)
+  status                          StatusCampanha       @default(NOVO)
+  statusVendas                    StatusVendasCampanha @default(AGUARDANDO_ABERTURA)
+  cotaVencedoraNumero             Int?
+  vencedorOptouPorDinheiro        Boolean?
+  vencedorNome                    String?
+  vencedorTelefone                String?
   // Quando a campanha passou pro status FINALIZADA (ver Campanha.finalizar()) —
   // distinto de dataRealizacao, que é a data prevista/informada no lançamento.
-  finalizadoEm             DateTime?
-  removidaEm               DateTime?
-  criadoEm                 DateTime              @default(now())
-  alerta50PorCentoEnviado  Boolean               @default(false)
-  alerta80PorCentoEnviado  Boolean               @default(false)
-  alerta90PorCentoEnviado  Boolean               @default(false)
+  finalizadoEm                    DateTime?
+  removidaEm                      DateTime?
+  criadoEm                        DateTime             @default(now())
+  alerta50PorCentoEnviado         Boolean              @default(false)
+  alerta80PorCentoEnviado         Boolean              @default(false)
+  alerta90PorCentoEnviado         Boolean              @default(false)
 
   cotas                   Cota[]
   escolhasPosCancelamento EscolhaPosCancelamento[]
@@ -312,10 +313,10 @@ model Cota {
   // é compartilhado por todas as cotas de um mesmo lote reservado — é o que
   // permite localizar "minha reserva" e gerar/pagar o Pix sem sessão.
   tokenReservaConvidado String?
-  convidadoNome          String?
-  convidadoEmail         String?
-  convidadoTelefone      String?
-  convidadoCpf           String?
+  convidadoNome         String?
+  convidadoEmail        String?
+  convidadoTelefone     String?
+  convidadoCpf          String?
 
   pagamento Pagamento?
 
@@ -338,18 +339,18 @@ enum StatusPagamento {
 }
 
 model Pagamento {
-  id                    String          @id @default(uuid())
-  cotaId                String          @unique
-  cota                  Cota            @relation(fields: [cotaId], references: [id])
+  id                        String          @id @default(uuid())
+  cotaId                    String          @unique
+  cota                      Cota            @relation(fields: [cotaId], references: [id])
   // Nulo para pagamento de uma reserva de convidado (sem Comprador associado).
-  compradorId           String?
-  comprador             Comprador?      @relation(fields: [compradorId], references: [id])
-  valor                 Decimal         @db.Decimal(10, 2)
-  valorCashbackAplicado Decimal         @default(0) @db.Decimal(10, 2)
-  metodo                MetodoPagamento
-  status                StatusPagamento @default(PENDENTE)
-  idTransacaoGateway    String?
-  criadoEm              DateTime        @default(now())
+  compradorId               String?
+  comprador                 Comprador?      @relation(fields: [compradorId], references: [id])
+  valor                     Decimal         @db.Decimal(10, 2)
+  valorCashbackAplicado     Decimal         @default(0) @db.Decimal(10, 2)
+  metodo                    MetodoPagamento
+  status                    StatusPagamento @default(PENDENTE)
+  idTransacaoGateway        String?
+  criadoEm                  DateTime        @default(now())
   // Quando o comprador clicou em "Finalizar compra" na tela de pagamento —
   // distinto da confirmação (manual, pelo administrador) do recebimento.
   finalizadoPeloCompradorEm DateTime?
@@ -361,16 +362,16 @@ model Pagamento {
 // cancelada para a próxima campanha do mesmo grupo, mas ainda não existe uma
 // próxima campanha no momento da escolha (ver cancelamento-de-sorteio.feature).
 model CreditoPendente {
-  id                String    @id @default(uuid())
-  compradorId       String
-  comprador         Comprador @relation(fields: [compradorId], references: [id])
-  grupoId           String
-  grupo             Grupo     @relation(fields: [grupoId], references: [id])
-  campanhaOrigemId  String
-  quantidadeCotas   Int
-  valorTotal        Decimal   @db.Decimal(10, 2)
-  utilizado         Boolean   @default(false)
-  criadoEm          DateTime  @default(now())
+  id               String    @id @default(uuid())
+  compradorId      String
+  comprador        Comprador @relation(fields: [compradorId], references: [id])
+  grupoId          String
+  grupo            Grupo     @relation(fields: [grupoId], references: [id])
+  campanhaOrigemId String
+  quantidadeCotas  Int
+  valorTotal       Decimal   @db.Decimal(10, 2)
+  utilizado        Boolean   @default(false)
+  criadoEm         DateTime  @default(now())
 
   @@map("creditos_pendentes")
 }
@@ -399,4 +400,32 @@ model EscolhaPosCancelamento {
   criadoEm        DateTime                     @default(now())
 
   @@map("escolhas_pos_cancelamento")
+}
+
+enum TipoNotificacao {
+  NOVA_VENDA
+  COTAS_VENDIDAS_20
+  COTAS_VENDIDAS_50
+  COTAS_VENDIDAS_75
+  COTAS_VENDIDAS_90
+  COTAS_VENDIDAS_100
+}
+
+// Avisos para o painel de administradores/operadores (menu "Notificações").
+// Pertence ao administrador dono da campanha; operadores veem as dos grupos
+// a que têm acesso. `mensagem` já vem pronta, então sobrevive à exclusão da campanha.
+model Notificacao {
+  id              String          @id @default(uuid())
+  administradorId String
+  administrador   Administrador   @relation(fields: [administradorId], references: [id])
+  campanhaId      String?
+  grupoId         String?
+  tipo            TipoNotificacao
+  mensagem        String
+  lidaEm          DateTime?
+  criadoEm        DateTime        @default(now())
+
+  @@index([administradorId, criadoEm])
+  @@index([campanhaId, tipo])
+  @@map("notificacoes")
 }

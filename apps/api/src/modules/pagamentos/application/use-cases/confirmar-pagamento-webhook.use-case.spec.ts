@@ -130,7 +130,7 @@ describe('ConfirmarPagamentoWebhookUseCase', () => {
       deps.compradorRepository,
       deps.notificationSender,
       deps.grupoRepository,
-      deps.agenteChatbotRepository,
+      deps.agenteChatbotRepository, { executar: jest.fn().mockResolvedValue(undefined) } as never,
     );
   }
 

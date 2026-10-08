@@ -21,7 +21,7 @@ import {
 } from '../../../../lib/api';
 import { formatarCpf, formatarMoeda, formatarTelefone } from '../../../../lib/format';
 import { validarEmail, validarCelular, validarCpf } from '../../../../lib/validacoes-chave-pix';
-import { useSessaoCompradorOpcional } from '../../../../lib/auth';
+import { useAuth, useSessaoCompradorOpcional } from '../../../../lib/auth';
 
 const LOTES_PRESET = [1, 5, 10, 15, 20, 25, 30];
 const QUANTIDADE_LOTE_PADRAO = 5;
@@ -33,6 +33,7 @@ type CampanhaExibicao = Campanha | CampanhaPublica;
 export default function DetalheCampanhaPage() {
   const { id } = useParams<{ id: string }>();
   const { sessao, pronto } = useSessaoCompradorOpcional();
+  const { sair } = useAuth();
   const router = useRouter();
 
   const [campanha, setCampanha] = useState<CampanhaExibicao | null>(null);
@@ -82,21 +83,8 @@ export default function DetalheCampanhaPage() {
     ? campanha.quantidadeMaximaPorCompra ?? campanha.quantidadeCotas
     : null;
 
-  async function carregar() {
-    if (sessao) {
-      const [campanhas, mapaCotas] = await Promise.all([
-        campanhasApi.visiveis(sessao.token),
-        campanhasApi.listarCotas(sessao.token, id),
-      ]);
-      const campanhaAtual = campanhas.find((c) => c.id === id) ?? null;
-      setCampanha(campanhaAtual);
-      setCotas(mapaCotas);
-      return { campanha: campanhaAtual, cotas: mapaCotas };
-    }
-
-    // Sem sessão: é o Link de Vendas aberto sem conta — mesmo mapa de cotas,
-    // só que sem "minha cota"/reserva (ainda não existe uma identidade de
-    // comprador aqui).
+  /** Link de Vendas: mesmo mapa de cotas, só que sem "minha cota"/reserva (não existe uma identidade de comprador aqui). */
+  async function carregarPublico() {
     try {
       const [campanhaPublica, mapaCotasPublico] = await Promise.all([
         campanhasApi.buscarPublica(id),
@@ -115,6 +103,31 @@ export default function DetalheCampanhaPage() {
       setCotas(null);
       return null;
     }
+  }
+
+  async function carregar() {
+    if (sessao) {
+      try {
+        const [campanhas, mapaCotas] = await Promise.all([
+          campanhasApi.visiveis(sessao.token),
+          campanhasApi.listarCotas(sessao.token, id),
+        ]);
+        const campanhaAtual = campanhas.find((c) => c.id === id) ?? null;
+        if (campanhaAtual) {
+          setCampanha(campanhaAtual);
+          setCotas(mapaCotas);
+          return { campanha: campanhaAtual, cotas: mapaCotas };
+        }
+        // Campanha de outro grupo: o Link de Vendas é público, então cai na
+        // visão pública em vez de deixar a pessoa sem a opção de comprar.
+      } catch (erroCarga) {
+        // Sessão vencida ou de uma conta que não existe mais (401): sai dela
+        // e segue como visitante, em vez de ficar carregando pra sempre.
+        if (erroCarga instanceof ApiError && erroCarga.status === 401) sair();
+      }
+    }
+
+    return carregarPublico();
   }
 
   function irParaPagamentoComCotas(
@@ -379,7 +392,7 @@ export default function DetalheCampanhaPage() {
         action={finalizada && <Badge tone="night">Campanha finalizada</Badge>}
       />
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-mist">
+      <div className="relative mx-auto aspect-[3/4] w-full max-w-[280px] overflow-hidden rounded-2xl bg-mist">
         {campanha.fotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- imagem da campanha, vem da API
           <img

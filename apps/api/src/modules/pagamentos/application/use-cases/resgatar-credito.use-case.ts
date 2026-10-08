@@ -13,6 +13,7 @@ import {
 } from '../../domain/repositories/credito-pendente.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { RegistrarMarcosDeVendaUseCase } from '../../../notificacoes/application/use-cases/registrar-marcos-de-venda.use-case';
 import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import {
   AGENTE_CHATBOT_REPOSITORY,
@@ -47,6 +48,7 @@ export class ResgatarCreditoUseCase {
     private readonly agenteChatbotRepository: AgenteChatbotRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: NotificationSender,
+    private readonly registrarMarcosDeVenda: RegistrarMarcosDeVendaUseCase,
   ) {}
 
   async executar(input: ResgatarCreditoInput, agora: Date = new Date()): Promise<void> {
@@ -91,6 +93,7 @@ export class ResgatarCreditoUseCase {
       this.agenteChatbotRepository,
       this.notificationSender,
       campanhaDestino,
+    this.registrarMarcosDeVenda,
     );
   }
 }

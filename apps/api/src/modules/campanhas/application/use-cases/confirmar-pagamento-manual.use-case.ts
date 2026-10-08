@@ -3,6 +3,7 @@ import { CAMPANHA_REPOSITORY, CampanhaRepository } from '../../domain/repositori
 import { COTA_REPOSITORY, CotaRepository } from '../../domain/repositories/cota.repository';
 import { atualizarStatusCampanhaAposPagamento } from '../services/atualizar-status-apos-pagamento';
 import { dispararAlertasCotasVendidas } from '../services/disparar-alertas-cotas-vendidas';
+import { RegistrarMarcosDeVendaUseCase } from '../../../notificacoes/application/use-cases/registrar-marcos-de-venda.use-case';
 import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import {
   AGENTE_CHATBOT_REPOSITORY,
@@ -37,6 +38,7 @@ export class ConfirmarPagamentoManualUseCase {
     private readonly agenteChatbotRepository: AgenteChatbotRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: NotificationSender,
+    private readonly registrarMarcosDeVenda: RegistrarMarcosDeVendaUseCase,
   ) {}
 
   async executar(input: ConfirmarPagamentoManualInput): Promise<void> {
@@ -69,6 +71,7 @@ export class ConfirmarPagamentoManualUseCase {
       this.agenteChatbotRepository,
       this.notificationSender,
       campanha,
+    this.registrarMarcosDeVenda,
     );
   }
 }

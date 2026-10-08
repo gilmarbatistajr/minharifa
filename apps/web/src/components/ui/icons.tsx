@@ -97,6 +97,15 @@ export function IconBell({ className = base }: IconProps) {
   );
 }
 
+export function IconInbox({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className={className}>
+      <path d="M3 13h5l1.5 2.5h5L16 13h5" />
+      <path d="M5.5 5h13L21 13v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5l2.5-8Z" />
+    </svg>
+  );
+}
+
 export function IconCheck({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>

@@ -20,6 +20,7 @@ import { Pagamento } from '../../domain/entities/pagamento.entity';
 import { resolverCotasElegiveisParaPagamento } from '../services/resolver-cotas-elegiveis-pagamento';
 import { atualizarStatusCampanhaAposPagamento } from '../../../campanhas/application/services/atualizar-status-apos-pagamento';
 import { dispararAlertasCotasVendidas } from '../../../campanhas/application/services/disparar-alertas-cotas-vendidas';
+import { RegistrarMarcosDeVendaUseCase } from '../../../notificacoes/application/use-cases/registrar-marcos-de-venda.use-case';
 import { GRUPO_REPOSITORY, GrupoRepository } from '../../../grupos/domain/repositories/grupo.repository';
 import {
   AGENTE_CHATBOT_REPOSITORY,
@@ -64,6 +65,7 @@ export class PagarComCashbackUseCase {
     private readonly agenteChatbotRepository: AgenteChatbotRepository,
     @Inject(NOTIFICATION_SENDER)
     private readonly notificationSender: NotificationSender,
+    private readonly registrarMarcosDeVenda: RegistrarMarcosDeVendaUseCase,
   ) {}
 
   async executar(input: PagarComCashbackInput, agora: Date = new Date()): Promise<PagarComCashbackOutput> {
@@ -149,6 +151,7 @@ export class PagarComCashbackUseCase {
         this.agenteChatbotRepository,
         this.notificationSender,
         campanha,
+      this.registrarMarcosDeVenda,
       );
     }
 
